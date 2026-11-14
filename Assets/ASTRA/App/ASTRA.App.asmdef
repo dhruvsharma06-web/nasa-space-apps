@@ -1,0 +1,14 @@
+{
+  "name": "ASTRA.App",
+  "rootNamespace": "Astra.App",
+  "references": ["ASTRA.Core", "ASTRA.XR", "ASTRA.UI", "ASTRA.Coach"],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

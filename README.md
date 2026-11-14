@@ -11,13 +11,15 @@ Pre-M0: repository skeleton only. See [docs/STATUS.md](docs/STATUS.md).
 ## Repository layout
 ```
 Assets/ASTRA/
-  Core/          mission phase FSM, simulation, assessment (pure C#, no engine refs)
-  XR/            OpenXR input adapters -> semantic actions, interactables
-  Scenes/        hub + one scene per level
-  Content/       mission definitions (validated JSON)
-  UI/            hub, HUD, debrief, subtitles
-  Integrations/  optional coach + operator clients
-  Tests/         EditMode tests (event-trace replays)
+  Core/          phase FSM, mission runner, scoring, simulation, progress (pure C#, no engine refs)
+  XR/            OpenXR input adapters, interactables, interaction event bus
+  UI/            instruction panel, alarms, debrief, pause menu
+  App/           LevelController (scene glue)
+  Levels/        one folder per level (L0-L7): scene + level-only scripts
+  Scenes/        Hub
+  Content/       mission definitions (validated JSON, one per level)
+  Integrations/  coach client (offline + HTTP)
+  Tests/         EditMode (Core) and PlayMode (scenes)
 services/coach-proxy/   optional Gemini proxy (holds the key, advisory only)
 fixtures/               contract fixtures: ok / empty / error
 scripts/                tooling (content validator)
@@ -32,7 +34,7 @@ CONTRACT.md             every boundary between owners
 4. Coach proxy (optional): copy `.env.example` to `.env`; keep `USE_MOCK_AI=true` unless you have a key.
 
 ## Docs
-- [PRD](docs/PRD.md) · [Contract](CONTRACT.md) · [Tasks](docs/TASKS.md) · [Team split](docs/TEAM.md) · [Decisions](docs/DECISIONS.md) · [Contributing](CONTRIBUTING.md)
+- [PRD](docs/PRD.md) · [Contract](CONTRACT.md) · [Tasks](docs/TASKS.md) · [Team split](docs/TEAM.md) · [Per-person prompts](docs/prompts/) · [Decisions](docs/DECISIONS.md) · [Contributing](CONTRIBUTING.md)
 
 ## Tech stack
 Unity 6 LTS · OpenXR Plugin · XR Interaction Toolkit · Input System · XR Hands (where supported) · URP · optional Gemini via proxy

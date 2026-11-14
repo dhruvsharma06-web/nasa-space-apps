@@ -1,9 +1,10 @@
 # Product Requirements Document (PRD)
 ## ASTRA Academy — OpenXR Astronaut Training Simulator
 **Document ID:** ASTRA-PRD-002  
-**Revision:** C — Standalone Unity OpenXR application  
+**Revision:** D — 8-level curriculum, 4-person team split, tech stack, contract v1.1  
 **Date:** 14 November 2026  
-**Status:** Proposed; technical feasibility and subject-matter review pending  
+**Status:** Approved for build; headset choice (M0) and subject-matter review pending  
+**Companion documents:** `CONTRACT.md` (exact interfaces, wins on any conflict), `docs/TEAM.md`, `docs/TASKS.md`  
 **Primary application engine:** Unity 6 LTS (exact version/package compatibility to be pinned after spike)  
 **Primary XR interface:** OpenXR, where supported by the target Unity player/platform
 
@@ -22,7 +23,7 @@ Traditional astronaut-themed learning is often passive, while professional space
 ## 3. Goals and success criteria
 | ID | Goal | MVP acceptance criterion |
 |---|---|---|
-| G-01 | Deliver a coherent XR training journey | Three playable training modules and one short integrated assessment scenario |
+| G-01 | Deliver a coherent XR training journey | Five P0 levels (L0, L1, L3, L4, L7) playable end to end on the target headset; L2 as P1; L5–L6 as stretch |
 | G-02 | Support natural interaction | Select, grab, release, move, and activate supported virtual objects using tracked hands or controllers |
 | G-03 | Assess procedural performance | Log every scored action, step completion, incorrect action, and timing |
 | G-04 | Prove OpenXR deployment | Run the Unity application on one specifically selected standalone headset using its supported Unity OpenXR path |
@@ -46,7 +47,7 @@ Age range and safeguarding requirements must be agreed before testing with minor
 ## 5. Product boundaries
 ### In scope for MVP
 - Unity XR application, headset/controller input, hand tracking where device/plugin support is confirmed.
-- Training hub, three playable modules, final assessment, onboarding and calibration.
+- Training hub, the P0 levels (L0, L1, L3, L4, L7), onboarding and calibration; L2 if time allows.
 - Virtual tools, buttons, levers, tether interactions, basic control panel, simulated power fault.
 - Mission state machine, deterministic scoring, local session logs, results/debrief UI.
 - Optional AI instructor prototype using approved mission context and structured events.
@@ -63,20 +64,21 @@ Age range and safeguarding requirements must be agreed before testing with minor
 ## 6. Training structure and progression
 Each module follows **Briefing → Guided demonstration → Practice → Qualification attempt → Debrief**. The cadet can repeat exercises; speed alone cannot override missed critical steps.
 
-| Level | Module | Core interactions | Completion criterion |
-|---|---|---|---|
-| 0 | Safety & calibration | Recenter, verify tracking, learn pause | Setup completed |
-| 1 | Cadet Orientation | Point, select, grab, release, place objects | Complete gesture/control tutorial |
-| 2 | Microgravity Equipment Handling | Transfer virtual tools, place objects, secure equipment | Finish object-handling sequence without mandatory-step omissions |
-| 3 | Spacecraft Cabin Familiarization | Locate labeled controls, operate buttons/toggles | Identify and activate requested controls |
-| 4 | Emergency Response | Read caution, diagnose simplified power fault, follow checklist | Restore safe simulated state using correct procedure |
-| 5 | EVA & Robotics (future) | Virtual tethering, tool use, robotic-arm control | Procedure-specific qualification |
-| 6 | Integrated Mission (MVP finale) | Combine control-panel and tool tasks | Complete all critical actions and receive debrief |
+| Level | Module | Core interactions | Completion criterion | Priority | missionId |
+|---|---|---|---|---|---|
+| L0 | Safety & Calibration | Recenter, verify tracking, learn pause/exit | Setup completed | P0 | `l0-safety-v1` |
+| L1 | Cadet Orientation | Point, select, grab, release, place objects | Complete gesture/control tutorial | P0 | `l1-orientation-v1` |
+| L2 | Microgravity Equipment Handling | Transfer virtual tools, place objects in sockets, secure equipment | Finish object-handling sequence without critical-step omissions | P1 | `l2-equipment-v1` |
+| L3 | Spacecraft Cabin Familiarization | Locate labelled controls, operate buttons/toggles/dials | Identify and activate requested controls | P0 | `l3-cabin-v1` |
+| L4 | Emergency Response | Read caution, diagnose a simplified power fault, follow checklist (with hints in Practice) | Restore safe simulated state using correct procedure | P0 | `l4-emergency-v1` |
+| L5 | EVA & Tethering | Clip/unclip a virtual tether, use a tool at a fixed work site | Procedure-specific qualification | P2 (stretch) | `l5-eva-v1` |
+| L6 | Robotics Arm | Move a simplified robotic arm to capture a target | Procedure-specific qualification | P2 (stretch) | `l6-robotics-v1` |
+| L7 | Integrated Mission (finale) | Combine cabin controls (L3), tool handling (L2) and the power procedure (L4), no hints | Complete all critical actions and receive debrief | P0 | `l7-restore-power-v1` |
 
-**Buildathon MVP:** Levels 1, 3, 4 and a short integrated finale; Level 2 is optional depending on tracking maturity. The wider roadmap retains EVA and robotics as subsequent modules. Level numbers describe curriculum order, not necessarily release order.
+**MVP:** L0, L1, L3, L4 and L7 are P0. L2 is P1, depending on tracking maturity. L5 and L6 are stretch goals, started only after Sync 3 passes. Level numbers describe curriculum order, not release order. Each level is unlocked by passing the previous available level.
 
 ### 6.1 Illustrative integrated mission
-**Operation: Restore Station Power** (fictional educational scenario):
+**Operation: Restore Station Power** (`l7-restore-power-v1`, fictional educational scenario; the canonical step list is the mission file):
 1. Calibrate view and complete safety check.
 2. Locate power distribution panel.
 3. Acknowledge simulated warning.
@@ -164,15 +166,18 @@ The MVP is a **standalone Unity XR application** built for one selected OpenXR-c
 
 Headset pose and input come from the active OpenXR runtime. Features such as hand tracking and passthrough are optional and must be capability-checked. A controller-based interaction fallback is required where supported.
 
-### 8.3 Unity package baseline (pin exact compatible versions after validation)
-- Unity 6 LTS
-- OpenXR Plugin
-- XR Plug-in Management
-- XR Interaction Toolkit
-- Input System
-- XR Hands only where supported by chosen provider/runtime
-- URP for mobile/standalone performance, subject to profiling
-- glTF/GLB asset import pipeline where supported, or imported FBX/Unity prefabs
+### 8.3 Tech stack (exact versions pinned by the Integration Lead after M0 and recorded in `docs/STATUS.md`)
+| Area | Choice |
+|---|---|
+| Engine / language | Unity 6 LTS, C# |
+| XR | OpenXR Plugin, XR Plug-in Management, XR Interaction Toolkit, Input System; XR Hands only where the headset supports it |
+| Rendering | URP, tuned for standalone headsets, subject to profiling |
+| Editor testing | XR Device Simulator (development only; not headset evidence) |
+| Tests | Unity Test Framework (NUnit): EditMode for Core, PlayMode for scenes |
+| Content | Validated JSON missions; `scripts/validate_content.py` (Python 3.11+) |
+| AI coach (P1) | `services/coach-proxy`: Python 3.11+ + FastAPI, Gemini via the official Google Gen AI SDK; key only in the proxy |
+| Assets | FBX / glTF (GLB), Git LFS for binaries |
+| Repo / CI | GitHub (protected `main`, PRs), GitHub Actions: content validation + gitleaks; Unity tests via GameCI once a license secret exists |
 
 Do not assume identical feature support across OpenXR platforms. Hand tracking, passthrough, anchors, controller profiles and mixed-reality extensions are capability-gated.
 
@@ -187,25 +192,28 @@ During week 1–2:
 The MVP is blocked until an end-to-end interactive scene works on physical hardware.
 
 ### 8.5 Data model
-Suggested assets:
+Repository layout (ownership in `docs/TEAM.md`):
 ```
-ASTRA-Academy/
-  Assets/
-    ASTRA/Core/                # lifecycle, mission, simulation, assessment
-    ASTRA/XR/                  # input adapters, interactables
-    ASTRA/Scenes/              # hub, orientation, cabin, emergency
-    ASTRA/Content/             # ScriptableObjects or validated JSON
-    ASTRA/Art/                 # 3D assets, audio, materials
-    ASTRA/Integrations/        # Optional Gemini and instructor services
-  Packages/
-  ProjectSettings/
-  Docs/
+Assets/ASTRA/
+  Core/          mission phases, runner, scoring, simulation, progress (pure C#, no engine refs)
+  XR/            input adapters, interactables, interaction event bus
+  UI/            instruction panel, alarms, phase banner, debrief, pause menu
+  App/           LevelController (scene glue), loaders, session log writer
+  Levels/L<n>_*/ one folder per level: scene + level-only scripts/prefabs
+  Scenes/        Hub
+  Content/       mission JSON (one file per level)
+  Integrations/  coach client (offline + HTTP), operator view (later)
+  Art/           models, materials, audio (Git LFS)
+  Tests/         EditMode (Core) and PlayMode (scenes)
+Packages/  ProjectSettings/        created at M0
+services/coach-proxy/              optional Gemini proxy
+fixtures/  scripts/  docs/  CONTRACT.md
 ```
-Sample event:
+Sample event (full schema in `CONTRACT.md` §1):
 ```json
 {
   "sessionId": "demo-001",
-  "missionId": "restore-power-v1",
+  "missionId": "l7-restore-power-v1",
   "timestampMs": 12842,
   "event": "control_activated",
   "targetId": "power_bus_b_selector",
@@ -240,13 +248,14 @@ Sample event:
 ## 11. Release roadmap
 | Milestone | Scope | Exit gate |
 |---|---|---|
-| M0 — Platform spike (week 1–2) | Choose target headset; Unity/OpenXR setup; basic hand/controller interaction | Interactive cube on physical headset; validated package and device baseline |
-| M1 — Core training (week 3–4) | Hub, orientation, cabin, mission engine, event logging | Two complete interactive modules |
-| M2 — Mission demo (week 5–6) | Simplified power fault, checklist, qualification and debrief | End-to-end integrated mission, repeatable results |
-| M3 — Polish & optional AI (week 7–8) | Gemini coach, operator view, UX and performance tuning | Reliable 10-minute demo on target headset |
-| M4 — Expanded curriculum (post-MVP) | EVA, robotics, additional systems, additional supported headset profiles | Validated device-specific builds and content |
+| M0 — Platform spike + parts built alone (week 1–2) | Unity project, headset chosen, interactive cube on device; each person builds their parts against `CONTRACT.md` and fixtures | Sync 1: shared prefabs, runner/scorer, LevelController + level template merged; template level plays Briefing → Debrief in the Editor |
+| M1 — First real slice (week 3–4) | Real runner + scorer behind the LevelController; L4 on the headset | Sync 2: L4 end to end on the headset with a real debrief |
+| M2 — P0 levels (week 5–6) | L0, L1, L3, L4, L7; progress save; offline coach | Sync 3: all P0 levels on the headset, repeatable scores |
+| M3 — Harden, polish, P1 (week 7) | L2, Gemini coach, comfort/perf/security pass | Sync 4: feature freeze, `rc-1` tagged |
+| M3b — Demo (week 8) | Rehearsals, backup video, submission | Final: reliable 10-minute demo on the target headset |
+| M4 — Post-MVP | L5, L6 (if not reached), operator view, more headsets | Validated device-specific builds and content |
 
-Dates are illustrative planning estimates, not commitments. Replan after M0.
+Dates are planning estimates, not commitments. Replan after M0. Stage details per person are in `docs/prompts/`.
 
 ## 12. Key risks and mitigations
 | Risk | Impact | Mitigation |
@@ -263,11 +272,11 @@ Dates are illustrative planning estimates, not commitments. Replan after M0.
 ## 13. Dependencies and open decisions
 1. **Which standalone headset and OS version is the primary test target?**
 2. **Which OpenXR extensions and interaction profiles are available on the selected headset?**
-3. **Will hand tracking be mandatory, or is controller-based interaction sufficient for the MVP?**
-4. Will Gemini be required for the demo or an optional enhancement?
+3. ~~Will hand tracking be mandatory?~~ **Decided (Rev D):** no. Controllers are the guaranteed path; hand tracking is a capability-gated target.
+4. ~~Will Gemini be required?~~ **Decided (Rev D):** no. Gemini coaching is P1; the offline coach is P0.
 5. What is the final age group, session duration and supervision model?
 6. Is a low-cost physical panel mock-up in scope?
-7. Who owns mission-content validation and final safety review?
+7. ~~Who owns mission-content validation?~~ **Decided (Rev D):** Content & AI Coach owns the style guide and reviews every mission file; final safety review is still open.
 
 ## 14. Acceptance test plan
 - **AT-01:** Start app on selected standalone headset, calibrate and enter academy hub.
@@ -293,6 +302,22 @@ Dates are illustrative planning estimates, not commitments. Replan after M0.
 | Full telemetry and 3D replay in initial scope | Event logs and deterministic assessment first; replay later |
 | High-fidelity simulation and 36-week release plan | Educational prototype and staged 8-week illustrative plan |
 | HoloKit/Unity/Flutter/.NET multi-part stack | Unity application with modular integrations; no unnecessary framework mandates |
+
+## 16. Team and ownership (Rev D)
+| Role | System | Levels |
+|---|---|---|
+| XR & Interaction Developer | Interactables, XR rig, hand/controller input, all UI, Hub | L0, L1 |
+| Core Logic Developer | Phase FSM, mission runner, scorer, power simulation, progress save, EditMode tests | L4, L7 |
+| Content & AI Coach Developer | Content style guide, hints/subtitles, offline coach, HTTP coach client, coach proxy | L2, L3 |
+| Integration Lead | Unity project, packages, headset builds, LevelController, CI, PlayMode smoke tests, demo/pitch | L5, L6 (stretch) |
+
+Each level owner writes their own mission file and scene. Folder ownership and hand-offs are in `docs/TEAM.md`; the exact interfaces are in `CONTRACT.md`. Everyone works independently against fixtures and stubs until Sync 1 (end of week 2), the first combine.
+
+## 17. Revision history
+| Rev | Date | Change |
+|---|---|---|
+| C | 2026-11-14 | Standalone Unity OpenXR application |
+| D | 2026-11-14 | 8 levels (L5 EVA and L6 Robotics split; finale is L7); priorities per level; 4-person ownership; tech stack table; layout with `Levels/` and `App/`; open decisions 3, 4, 7 resolved; roadmap mapped to sync points; contract v1.1 |
 
 ---
 

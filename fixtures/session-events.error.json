@@ -1,3 +1,3 @@
 [
-  { "sessionId": "demo-002", "missionId": "restore-power-v1", "timestampMs": -5, "event": "teleport", "targetId": "", "input": "telepathy", "result": "maybe" }
+  { "sessionId": "demo-002", "missionId": "l7-restore-power-v1", "timestampMs": -5, "event": "teleport", "targetId": "", "input": "telepathy", "result": "maybe" }
 ]

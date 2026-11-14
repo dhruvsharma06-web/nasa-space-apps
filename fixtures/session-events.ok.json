@@ -1,11 +1,11 @@
 [
-  { "sessionId": "demo-001", "missionId": "restore-power-v1", "timestampMs": 1200,  "event": "calibration_completed", "targetId": "calibration",              "input": "controller_ray", "result": "correct" },
-  { "sessionId": "demo-001", "missionId": "restore-power-v1", "timestampMs": 4100,  "event": "target_located",        "targetId": "power_distribution_panel", "input": "controller_ray", "result": "correct" },
-  { "sessionId": "demo-001", "missionId": "restore-power-v1", "timestampMs": 6020,  "event": "control_activated",     "targetId": "caution_ack_button",       "input": "hand_pinch",     "result": "correct" },
-  { "sessionId": "demo-001", "missionId": "restore-power-v1", "timestampMs": 7800,  "event": "checklist_opened",      "targetId": "power_fault_checklist",    "input": "hand_pinch",     "result": "correct" },
-  { "sessionId": "demo-001", "missionId": "restore-power-v1", "timestampMs": 9900,  "event": "target_selected",       "targetId": "power_bus_a",              "input": "hand_pinch",     "result": "incorrect" },
-  { "sessionId": "demo-001", "missionId": "restore-power-v1", "timestampMs": 10950, "event": "target_selected",       "targetId": "power_bus_b",              "input": "hand_pinch",     "result": "correct" },
-  { "sessionId": "demo-001", "missionId": "restore-power-v1", "timestampMs": 12842, "event": "control_activated",     "targetId": "power_bus_b_selector",     "input": "hand_pinch",     "result": "correct" },
-  { "sessionId": "demo-001", "missionId": "restore-power-v1", "timestampMs": 14400, "event": "control_activated",     "targetId": "crosstie_breaker",         "input": "controller_ray", "result": "correct" },
-  { "sessionId": "demo-001", "missionId": "restore-power-v1", "timestampMs": 16030, "event": "status_reported",       "targetId": "comms_report_button",      "input": "controller_ray", "result": "correct" }
+  { "sessionId": "demo-001", "missionId": "l7-restore-power-v1", "timestampMs": 1200,  "event": "calibration_completed", "targetId": "calibration",              "input": "controller_ray", "result": "correct" },
+  { "sessionId": "demo-001", "missionId": "l7-restore-power-v1", "timestampMs": 4100,  "event": "target_located",        "targetId": "power_distribution_panel", "input": "controller_ray", "result": "correct" },
+  { "sessionId": "demo-001", "missionId": "l7-restore-power-v1", "timestampMs": 6020,  "event": "control_activated",     "targetId": "caution_ack_button",       "input": "hand_pinch",     "result": "correct" },
+  { "sessionId": "demo-001", "missionId": "l7-restore-power-v1", "timestampMs": 7800,  "event": "checklist_opened",      "targetId": "power_fault_checklist",    "input": "hand_pinch",     "result": "correct" },
+  { "sessionId": "demo-001", "missionId": "l7-restore-power-v1", "timestampMs": 9900,  "event": "target_selected",       "targetId": "power_bus_a",              "input": "hand_pinch",     "result": "incorrect" },
+  { "sessionId": "demo-001", "missionId": "l7-restore-power-v1", "timestampMs": 10950, "event": "target_selected",       "targetId": "power_bus_b",              "input": "hand_pinch",     "result": "correct" },
+  { "sessionId": "demo-001", "missionId": "l7-restore-power-v1", "timestampMs": 12842, "event": "control_activated",     "targetId": "power_bus_b_selector",     "input": "hand_pinch",     "result": "correct" },
+  { "sessionId": "demo-001", "missionId": "l7-restore-power-v1", "timestampMs": 14400, "event": "control_activated",     "targetId": "crosstie_breaker",         "input": "controller_ray", "result": "correct" },
+  { "sessionId": "demo-001", "missionId": "l7-restore-power-v1", "timestampMs": 16030, "event": "status_reported",       "targetId": "comms_report_button",      "input": "controller_ray", "result": "correct" }
 ]

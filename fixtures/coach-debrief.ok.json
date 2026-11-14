@@ -1,10 +1,10 @@
 {
   "sessionId": "demo-001",
-  "missionId": "restore-power-v1",
+  "missionId": "l7-restore-power-v1",
   "advisory": true,
   "summary": "You restored simulated power and completed every critical step. You first selected Bus A before correcting to Bus B.",
   "hints": [
     "Read the caution message for the bus name before selecting a bus."
   ],
-  "model_version": "coach-mock-0"
+  "modelVersion": "coach-mock-0"
 }

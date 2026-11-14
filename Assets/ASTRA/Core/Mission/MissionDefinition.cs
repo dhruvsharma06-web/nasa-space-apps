@@ -8,6 +8,7 @@ namespace Astra.Core.Mission
     public sealed class MissionDefinition
     {
         public string missionId;
+        public int level;
         public string version;
         public string title;
         public bool fictional = true;
@@ -20,6 +21,7 @@ namespace Astra.Core.Mission
         public string stepId;
         public int order;
         public string instruction;
+        public string hint;
         public string expectedEvent;
         public string targetId;
         public bool critical;

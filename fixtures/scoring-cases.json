@@ -1,0 +1,341 @@
+{
+  "missionId": "l7-restore-power-v1",
+  "cases": [
+    {
+      "name": "skip_optional_steps",
+      "description": "Optional steps (locate_panel, open_checklist) are skipped; still passes.",
+      "sessionId": "case-a",
+      "events": [
+        {
+          "sessionId": "case-a",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 1000,
+          "event": "calibration_completed",
+          "targetId": "calibration",
+          "input": "controller_ray",
+          "result": "correct"
+        },
+        {
+          "sessionId": "case-a",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 2000,
+          "event": "control_activated",
+          "targetId": "caution_ack_button",
+          "input": "controller_ray",
+          "result": "correct"
+        },
+        {
+          "sessionId": "case-a",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 3000,
+          "event": "target_selected",
+          "targetId": "power_bus_b",
+          "input": "controller_ray",
+          "result": "correct"
+        },
+        {
+          "sessionId": "case-a",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 4000,
+          "event": "control_activated",
+          "targetId": "power_bus_b_selector",
+          "input": "controller_ray",
+          "result": "correct"
+        },
+        {
+          "sessionId": "case-a",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 5000,
+          "event": "control_activated",
+          "targetId": "crosstie_breaker",
+          "input": "controller_ray",
+          "result": "correct"
+        },
+        {
+          "sessionId": "case-a",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 6000,
+          "event": "status_reported",
+          "targetId": "comms_report_button",
+          "input": "controller_ray",
+          "result": "correct"
+        }
+      ],
+      "expected": {
+        "sessionId": "case-a",
+        "missionId": "l7-restore-power-v1",
+        "passed": true,
+        "completedSteps": [
+          "calibrate",
+          "ack_warning",
+          "identify_bus",
+          "isolate_bus",
+          "crosstie",
+          "verify_recovery"
+        ],
+        "skippedSteps": [
+          "locate_panel",
+          "open_checklist"
+        ],
+        "omittedCriticalSteps": [],
+        "sequenceErrors": [],
+        "incorrectActions": [],
+        "completionTimeMs": 6000
+      }
+    },
+    {
+      "name": "out_of_order_then_fixed",
+      "description": "Cross-tie pressed before isolating Bus B: sequence error, no advance; then done in order; passes.",
+      "sessionId": "case-b",
+      "events": [
+        {
+          "sessionId": "case-b",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 1000,
+          "event": "calibration_completed",
+          "targetId": "calibration",
+          "input": "controller_ray",
+          "result": "correct"
+        },
+        {
+          "sessionId": "case-b",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 2000,
+          "event": "control_activated",
+          "targetId": "caution_ack_button",
+          "input": "controller_ray",
+          "result": "correct"
+        },
+        {
+          "sessionId": "case-b",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 3000,
+          "event": "target_selected",
+          "targetId": "power_bus_b",
+          "input": "controller_ray",
+          "result": "correct"
+        },
+        {
+          "sessionId": "case-b",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 4000,
+          "event": "control_activated",
+          "targetId": "crosstie_breaker",
+          "input": "controller_ray",
+          "result": "incorrect"
+        },
+        {
+          "sessionId": "case-b",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 5000,
+          "event": "control_activated",
+          "targetId": "power_bus_b_selector",
+          "input": "controller_ray",
+          "result": "correct"
+        },
+        {
+          "sessionId": "case-b",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 6000,
+          "event": "control_activated",
+          "targetId": "crosstie_breaker",
+          "input": "controller_ray",
+          "result": "correct"
+        },
+        {
+          "sessionId": "case-b",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 7000,
+          "event": "status_reported",
+          "targetId": "comms_report_button",
+          "input": "controller_ray",
+          "result": "correct"
+        }
+      ],
+      "expected": {
+        "sessionId": "case-b",
+        "missionId": "l7-restore-power-v1",
+        "passed": true,
+        "completedSteps": [
+          "calibrate",
+          "ack_warning",
+          "identify_bus",
+          "isolate_bus",
+          "crosstie",
+          "verify_recovery"
+        ],
+        "skippedSteps": [
+          "locate_panel",
+          "open_checklist"
+        ],
+        "omittedCriticalSteps": [],
+        "sequenceErrors": [
+          "crosstie"
+        ],
+        "incorrectActions": [],
+        "completionTimeMs": 7000
+      }
+    },
+    {
+      "name": "critical_step_omitted",
+      "description": "Cross-tie never closed; report attempted early is out of order; fails.",
+      "sessionId": "case-c",
+      "events": [
+        {
+          "sessionId": "case-c",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 1000,
+          "event": "calibration_completed",
+          "targetId": "calibration",
+          "input": "controller_ray",
+          "result": "correct"
+        },
+        {
+          "sessionId": "case-c",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 2000,
+          "event": "control_activated",
+          "targetId": "caution_ack_button",
+          "input": "controller_ray",
+          "result": "correct"
+        },
+        {
+          "sessionId": "case-c",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 3000,
+          "event": "target_selected",
+          "targetId": "power_bus_b",
+          "input": "controller_ray",
+          "result": "correct"
+        },
+        {
+          "sessionId": "case-c",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 4000,
+          "event": "control_activated",
+          "targetId": "power_bus_b_selector",
+          "input": "controller_ray",
+          "result": "correct"
+        },
+        {
+          "sessionId": "case-c",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 5000,
+          "event": "status_reported",
+          "targetId": "comms_report_button",
+          "input": "controller_ray",
+          "result": "incorrect"
+        }
+      ],
+      "expected": {
+        "sessionId": "case-c",
+        "missionId": "l7-restore-power-v1",
+        "passed": false,
+        "completedSteps": [
+          "calibrate",
+          "ack_warning",
+          "identify_bus",
+          "isolate_bus"
+        ],
+        "skippedSteps": [
+          "locate_panel",
+          "open_checklist"
+        ],
+        "omittedCriticalSteps": [
+          "crosstie",
+          "verify_recovery"
+        ],
+        "sequenceErrors": [
+          "verify_recovery"
+        ],
+        "incorrectActions": [],
+        "completionTimeMs": 5000
+      }
+    },
+    {
+      "name": "repeats_neutral_and_wrong",
+      "description": "Repeat of a done step and pause/grab are neutral; a wrong button is incorrect; then the cadet stops.",
+      "sessionId": "case-d",
+      "events": [
+        {
+          "sessionId": "case-d",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 1000,
+          "event": "calibration_completed",
+          "targetId": "calibration",
+          "input": "controller_ray",
+          "result": "correct"
+        },
+        {
+          "sessionId": "case-d",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 2000,
+          "event": "calibration_completed",
+          "targetId": "calibration",
+          "input": "controller_ray",
+          "result": "neutral"
+        },
+        {
+          "sessionId": "case-d",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 3000,
+          "event": "paused",
+          "targetId": "system",
+          "input": "controller_ray",
+          "result": "neutral"
+        },
+        {
+          "sessionId": "case-d",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 4000,
+          "event": "resumed",
+          "targetId": "system",
+          "input": "controller_ray",
+          "result": "neutral"
+        },
+        {
+          "sessionId": "case-d",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 5000,
+          "event": "object_grabbed",
+          "targetId": "multimeter_tool",
+          "input": "controller_ray",
+          "result": "neutral"
+        },
+        {
+          "sessionId": "case-d",
+          "missionId": "l7-restore-power-v1",
+          "timestampMs": 6000,
+          "event": "control_activated",
+          "targetId": "lights_switch",
+          "input": "controller_ray",
+          "result": "incorrect"
+        }
+      ],
+      "expected": {
+        "sessionId": "case-d",
+        "missionId": "l7-restore-power-v1",
+        "passed": false,
+        "completedSteps": [
+          "calibrate"
+        ],
+        "skippedSteps": [
+          "locate_panel",
+          "open_checklist"
+        ],
+        "omittedCriticalSteps": [
+          "ack_warning",
+          "identify_bus",
+          "isolate_bus",
+          "crosstie",
+          "verify_recovery"
+        ],
+        "sequenceErrors": [],
+        "incorrectActions": [
+          "lights_switch"
+        ],
+        "completionTimeMs": 6000
+      }
+    }
+  ]
+}

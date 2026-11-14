@@ -1,0 +1,11 @@
+{
+  "sessionId": "demo-003",
+  "missionId": "l7-restore-power-v1",
+  "passed": false,
+  "completedSteps": [],
+  "skippedSteps": ["locate_panel", "open_checklist"],
+  "omittedCriticalSteps": ["calibrate", "ack_warning", "identify_bus", "isolate_bus", "crosstie", "verify_recovery"],
+  "sequenceErrors": [],
+  "incorrectActions": [],
+  "completionTimeMs": 0
+}
