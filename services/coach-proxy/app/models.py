@@ -1,8 +1,12 @@
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StringConstraints
 
 NonEmptyStr = Annotated[str, Field(min_length=1)]
+IdStr = Annotated[str, Field(pattern=r"^[a-z0-9_]{1,64}$")]
+SessionIdStr = Annotated[str, Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")]
+Question = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=300)]
+Phase = Literal["Briefing", "Demonstration", "Practice", "Qualification", "Debrief"]
 
 EventName = Literal[
     "calibration_completed",
@@ -19,7 +23,7 @@ EventName = Literal[
     "recentered",
 ]
 InputModality = Literal[
-    "controller_ray", "controller_grip", "hand_pinch", "hand_grab", "simulator"
+    "controller_ray", "controller_grip", "hand_pinch", "hand_grab", "simulator", "gaze"
 ]
 EventResult = Literal["correct", "incorrect", "neutral"]
 
@@ -29,29 +33,37 @@ class _Strict(BaseModel):
 
 
 class SessionEvent(_Strict):
-    sessionId: NonEmptyStr
+    sessionId: SessionIdStr
     missionId: NonEmptyStr
     timestampMs: Annotated[StrictInt, Field(ge=0)]
     event: EventName
-    targetId: NonEmptyStr
+    targetId: IdStr
     input: InputModality
     result: EventResult
 
 
 class SessionResult(_Strict):
-    sessionId: str
+    sessionId: SessionIdStr
     missionId: str
     passed: bool
-    completedSteps: list[str]
-    skippedSteps: list[str]
-    omittedCriticalSteps: list[str]
-    sequenceErrors: list[str]
-    incorrectActions: list[str]
+    completedSteps: list[IdStr]
+    skippedSteps: list[IdStr]
+    omittedCriticalSteps: list[IdStr]
+    sequenceErrors: list[IdStr]
+    incorrectActions: list[IdStr]
     completionTimeMs: Annotated[StrictInt, Field(ge=0)]
 
 
 class CoachRequest(_Strict):
-    sessionId: NonEmptyStr
+    sessionId: SessionIdStr
     missionId: NonEmptyStr
     result: SessionResult
     events: Annotated[list[SessionEvent], Field(max_length=500)]
+
+
+class AskRequest(_Strict):
+    sessionId: SessionIdStr
+    missionId: NonEmptyStr
+    phase: Phase
+    currentStepId: IdStr | None
+    question: Question

@@ -24,7 +24,7 @@ EVENTS = {
     "status_reported", "paused", "resumed", "recentered",
 }
 NEUTRAL_WHEN_UNMATCHED = {"target_located", "object_grabbed", "object_released", "paused", "resumed", "recentered"}
-INPUTS = {"controller_ray", "controller_grip", "hand_pinch", "hand_grab", "simulator"}
+INPUTS = {"controller_ray", "controller_grip", "hand_pinch", "hand_grab", "simulator", "gaze"}
 RESULTS = {"correct", "incorrect", "neutral"}
 
 EVENT_KEYS = {"sessionId", "missionId", "timestampMs", "event", "targetId", "input", "result"}
@@ -175,6 +175,71 @@ def stamp(mission: dict, trace: list[dict]) -> list[str]:
     return out
 
 
+# ------------------------------------------------------------- layouts (v1.4)
+
+LAYOUTS_DIR = ROOT / "Assets/ASTRA/Content/Layouts"
+LAYOUT_KEYS = {"missionId", "scene", "panels", "controls", "tools", "decoys", "indicators"}
+CONTROL_TYPES = {"button", "toggle", "dial", "lever", "checklist", "socket"}
+ID_RE = __import__("re").compile(r"^[a-z0-9_]{1,64}$")
+
+
+def layout_errors(lay: dict, filename_stem: str, missions: dict) -> list[str]:
+    errs = []
+    extra = set(lay) - LAYOUT_KEYS
+    if extra: errs.append(f"unknown keys {sorted(extra)}")
+    m = missions.get(lay.get("missionId"))
+    if m is None: return errs + [f"missionId {lay.get('missionId')!r} is not a known mission"]
+    if filename_stem != f"l{m['level']}-layout": errs.append(f"file must be named l{m['level']}-layout.json")
+    def reach(pos, what):
+        if not (isinstance(pos, list) and len(pos) == 3 and all(isinstance(x, (int, float)) for x in pos)):
+            errs.append(f"{what}: position must be [x, y, z]"); return
+        x, y, z = pos
+        if (x * x + z * z) ** 0.5 > 0.7 + 1e-9: errs.append(f"{what}: {round((x*x+z*z)**0.5, 3)} m from the seat (max 0.7)")
+        if not 0.7 <= y <= 1.5: errs.append(f"{what}: height {y} m (must be 0.7-1.5)")
+        if z < 0: errs.append(f"{what}: behind the seat (z < 0)")
+    panels = {}
+    for p in lay.get("panels", []):
+        pid = p.get("id", "?")
+        if pid in panels: errs.append(f"duplicate panel id {pid!r}")
+        panels[pid] = p
+        reach(p.get("position"), f"panel {pid}")
+        if not (isinstance(p.get("size"), list) and len(p["size"]) == 2): errs.append(f"panel {pid}: size must be [w, h]")
+        if not p.get("title"): errs.append(f"panel {pid}: title required")
+    placed = []
+    tool_ids = {t.get("targetId") for t in lay.get("tools", [])}
+    for group in ("controls", "decoys"):
+        for c in lay.get(group, []):
+            tid = c.get("targetId", "?"); placed.append((group, tid))
+            if not ID_RE.match(tid): errs.append(f"{group} {tid!r}: bad targetId")
+            if c.get("type") not in CONTROL_TYPES: errs.append(f"{group} {tid}: type {c.get('type')!r} not in {sorted(CONTROL_TYPES)}")
+            if c.get("panel") not in panels: errs.append(f"{group} {tid}: unknown panel {c.get('panel')!r}")
+            else:
+                w, h = panels[c["panel"]].get("size", [0, 0])
+                at = c.get("at", [None, None])
+                if not (isinstance(at, list) and len(at) == 2 and abs(at[0]) <= w / 2 and abs(at[1]) <= h / 2):
+                    errs.append(f"{group} {tid}: 'at' {at} is outside its panel")
+            if not c.get("label"): errs.append(f"{group} {tid}: label required")
+            if c.get("type") == "socket" and c.get("accepts") not in tool_ids:
+                errs.append(f"{group} {tid}: socket 'accepts' must name a tool in this layout")
+    for t in lay.get("tools", []):
+        placed.append(("tools", t.get("targetId", "?")))
+        reach(t.get("position"), f"tool {t.get('targetId')}")
+    for pid, p in panels.items():
+        if p.get("target"): placed.append(("panels", pid))
+    for i in lay.get("indicators", []):
+        if i.get("panel") not in panels: errs.append(f"indicator {i.get('id')}: unknown panel")
+    mission_targets = {s["targetId"] for s in m["steps"]}
+    ids = [tid for _, tid in placed]
+    for tid in sorted(mission_targets):
+        n = ids.count(tid)
+        if n != 1: errs.append(f"mission target {tid!r} placed {n} times (must be exactly 1)")
+    for group, tid in placed:
+        if group == "decoys" and tid in mission_targets: errs.append(f"decoy {tid!r} is a mission target")
+        if group != "decoys" and tid not in mission_targets and not (group == "panels"):
+            errs.append(f"{group} {tid!r} is not used by the mission (make it a decoy)")
+    return errs
+
+
 # ---------------------------------------------------------------------- main
 
 def load(path: Path):
@@ -195,6 +260,9 @@ def main() -> int:
             levels[m["level"]] = path.stem
         failures += report(path, errs)
         missions[m.get("missionId")] = m
+
+    for path in sorted(LAYOUTS_DIR.glob("*.json")) if LAYOUTS_DIR.exists() else []:
+        failures += report(path, layout_errors(load(path), path.stem, missions))
 
     for path in sorted(FIXTURES_DIR.glob("*.json")):
         load(path)  # every fixture must at least parse
@@ -266,6 +334,18 @@ def main() -> int:
         if c.get("advisory") is not True:
             errs.append("advisory must be true")
         failures += report(path, errs)
+    # Ask-the-coach fixtures (CONTRACT v1.3 §9.2)
+    ask = load(FIXTURES_DIR / "coach-ask.ok.json")
+    ask_keys = {"sessionId", "missionId", "advisory", "answer", "stepId", "modelVersion"}
+    errs = [] if set(ask) == ask_keys else [f"keys {sorted(set(ask) ^ ask_keys)} missing/unknown"]
+    if ask.get("advisory") is not True: errs.append("advisory must be true")
+    if not isinstance(ask.get("answer"), str) or not 0 < len(ask["answer"]) <= 400: errs.append("answer must be 1-400 chars")
+    m = missions.get(ask.get("missionId"))
+    if m is None or ask.get("stepId") not in {s["stepId"] for s in m["steps"]}: errs.append("stepId must exist in the mission")
+    failures += report(FIXTURES_DIR / "coach-ask.ok.json", errs)
+    code = load(FIXTURES_DIR / "coach-ask.error.json").get("error", {}).get("code")
+    failures += report(FIXTURES_DIR / "coach-ask.error.json", [] if code in ERROR_CODES else [f"error.code {code!r} not in contract"])
+
     path = FIXTURES_DIR / "coach-debrief.error.json"
     c = load(path)
     code = c.get("error", {}).get("code")

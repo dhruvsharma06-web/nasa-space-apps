@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASTRA Level Simulator</title>
+<style>
+  :root {
+    --opus: #DA8FFF; --blue: #409CFF; --mint: #63E6E2; --ok: #30D158; --warn: #FF9F0A; --bad: #FF6961;
+    --text: #F5F5F7; --muted: #9C9CA6; --line: rgba(255,255,255,.08);
+    --glass: rgba(30,34,48,.52); --glass-thin: rgba(255,255,255,.06); --stroke: rgba(255,255,255,.12); --highlight: rgba(255,255,255,.16);
+    --blur: saturate(170%) blur(28px); --radius: 20px; --radius-sm: 12px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: var(--text); background: #07090f; min-height: 100vh;
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    letter-spacing: -.01em; -webkit-font-smoothing: antialiased; }
+  body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background: radial-gradient(900px 600px at 8% 0%, rgba(10,132,255,.18), transparent 60%),
+                radial-gradient(800px 600px at 95% 20%, rgba(99,230,226,.13), transparent 60%),
+                radial-gradient(900px 700px at 50% 100%, rgba(191,90,242,.12), transparent 60%),
+                linear-gradient(180deg, #0a0d16, #07090f); }
+  header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 28px;
+    background: rgba(12,14,22,.6); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); border-bottom: 1px solid var(--line); }
+  header h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.02em; }
+  .badge { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--warn); border: 1px solid rgba(255,159,10,.45); background: rgba(255,159,10,.10); border-radius: 999px; padding: 3px 10px; }
+  header .ctrls { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  label.sel { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  select, button { font: inherit; color: var(--text); }
+  select { background: rgba(255,255,255,.08); border: 1px solid var(--stroke); border-radius: 10px; padding: 6px 10px; min-height: 32px; }
+  select option { background: #1b2030; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; padding: 6px 16px; border-radius: 999px; cursor: pointer;
+    font-size: 13px; font-weight: 500; background: rgba(255,255,255,.08); border: 1px solid var(--stroke); }
+  .btn:hover:not(:disabled) { background: rgba(255,255,255,.14); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.primary { background: rgba(10,132,255,.85); border-color: rgba(64,156,255,.9); }
+  .btn.primary:hover:not(:disabled) { background: #0A84FF; }
+  .btn:focus-visible, select:focus-visible, .ctl:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  main { max-width: 1440px; margin: 0 auto; padding: 24px 28px 64px; display: grid; grid-template-columns: 400px 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 1050px) { main { grid-template-columns: 1fr; } }
+  section { background: var(--glass); border: 1px solid var(--stroke); border-radius: var(--radius); padding: 20px;
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); box-shadow: inset 0 1px 0 var(--highlight), 0 24px 64px rgba(0,0,0,.35); min-width: 0; }
+  h2 { margin: 0 0 12px; font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+  .muted { color: var(--muted); } .mono { font-family: "SF Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; }
+  .col { display: grid; gap: 24px; align-content: start; }
+
+  /* phase stepper */
+  .phases { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 16px; }
+  .phases div { text-align: center; font-size: 10.5px; font-weight: 600; letter-spacing: .04em; color: var(--muted); padding: 8px 2px; border-radius: 8px; background: rgba(255,255,255,.04); border: 1px solid transparent; }
+  .phases div.done { color: var(--ok); }
+  .phases div.cur { color: #fff; background: rgba(10,132,255,.25); border-color: rgba(64,156,255,.6); }
+
+  /* headset-style instruction panel */
+  .vr { border-radius: 18px; padding: 18px; background: rgba(20,26,42,.65); border: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.2); }
+  .vr .phase { font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--blue); }
+  .vr .instr { font-size: 21px; font-weight: 600; letter-spacing: -.02em; line-height: 1.3; margin-top: 8px; min-height: 56px; }
+  .vr .sub { margin-top: 6px; color: var(--muted); font-size: 13px; }
+  .feedback { margin-top: 12px; padding: 10px 12px; border-radius: 12px; font-size: 13px; display: none; }
+  .feedback.on { display: block; }
+  .feedback.Correct { background: rgba(48,209,88,.12); border: 1px solid rgba(48,209,88,.4); color: #b5f5c5; }
+  .feedback.Incorrect, .feedback.OutOfOrder { background: rgba(255,159,10,.10); border: 1px solid rgba(255,159,10,.4); color: #FFD8A0; }
+  .feedback.Ignored { background: rgba(255,255,255,.05); border: 1px solid var(--stroke); color: var(--muted); }
+  .feedback b { display: block; font-size: 11px; letter-spacing: .1em; margin-bottom: 3px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .caps { font-weight: 700; letter-spacing: .02em; color: #fff; }
+  .clock { font-variant-numeric: tabular-nums; }
+  .briefing-list { margin: 10px 0 0; padding-left: 18px; color: #d6dae3; font-size: 13px; }
+
+  /* control panel */
+  .panel-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  .ctl { position: relative; text-align: left; border-radius: 14px; padding: 14px; cursor: pointer; min-height: 104px;
+    background: rgba(255,255,255,.05); border: 1px solid var(--stroke); box-shadow: inset 0 1px 0 rgba(255,255,255,.1); transition: background .15s, border-color .15s, transform .1s; }
+  .ctl:hover:not(:disabled) { background: rgba(255,255,255,.1); }
+  .ctl:active:not(:disabled) { transform: scale(.98); }
+  .ctl:disabled { cursor: not-allowed; opacity: .55; }
+  .ctl .lbl { font-size: 13px; font-weight: 700; letter-spacing: .04em; }
+  .ctl .verb { margin-top: 6px; font-size: 12px; color: var(--muted); }
+  .ctl .type { position: absolute; top: 12px; right: 12px; font-size: 10px; color: var(--muted); letter-spacing: .06em; }
+  .ctl .state { margin-top: 10px; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--muted); }
+  .ctl .state.on { color: var(--ok); }
+  .ctl.demo { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(64,156,255,.5), inset 0 1px 0 rgba(255,255,255,.1); }
+  .ctl.flash-Correct { border-color: var(--ok); } .ctl.flash-Incorrect, .ctl.flash-OutOfOrder { border-color: var(--warn); }
+  .ctl.decoy { background: rgba(255,255,255,.03); }
+  .sysrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+
+  /* log + debrief */
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+  th { color: var(--muted); font-weight: 500; }
+  .chip { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 9px; border-radius: 999px; border: 1px solid var(--stroke); background: rgba(255,255,255,.06); }
+  .chip.Correct, .chip.correct { color: var(--ok); border-color: rgba(48,209,88,.45); }
+  .chip.Incorrect, .chip.OutOfOrder, .chip.incorrect { color: var(--warn); border-color: rgba(255,159,10,.45); }
+  .chip.Ignored, .chip.neutral { color: var(--muted); }
+  .logwrap { max-height: 280px; overflow: auto; }
+  .verdict { font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
+  .verdict.pass { color: var(--ok); } .verdict.fail { color: var(--bad); }
+  .lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 14px; }
+  .box { border-radius: 12px; padding: 12px 14px; background: var(--glass-thin); border: 1px solid var(--stroke); }
+  .box h3 { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+  .box ul { margin: 0; padding-left: 18px; font-size: 13px; }
+  .coach { border-radius: 12px; padding: 14px; background: var(--glass-thin); border: 1px solid var(--stroke); }
+  .coach .who { font-size: 11px; font-weight: 700; letter-spacing: .1em; }
+  .coach.offline .who { color: var(--mint); } .coach.ai .who { color: var(--opus); }
+  .coach p { margin: 8px 0 4px; } .coach ul { margin: 6px 0 0; padding-left: 18px; color: #dfe3ea; }
+  details { margin-top: 12px; } summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+  pre { margin: 8px 0 0; padding: 12px; border-radius: 10px; background: rgba(0,0,0,.35); border: 1px solid var(--line); max-height: 260px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+  .hidden { display: none !important; }
+
+  @media (prefers-reduced-transparency: reduce) {
+    body::before { display: none; } header, section { backdrop-filter: none; -webkit-backdrop-filter: none; }
+    section { background: #151927; } header { background: #0d1019; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>ASTRA Level Simulator</h1>
+  <span class="badge">BROWSER SIMULATOR · NOT HEADSET EVIDENCE</span>
+  <div class="ctrls">
+    <label class="sel">Mission <select id="missionSel" aria-label="Mission"></select></label>
+    <label class="sel">Input <select id="inputSel" aria-label="Input modality">
+      <option value="simulator">simulator</option><option value="controller_ray">controller_ray</option>
+      <option value="controller_grip">controller_grip</option><option value="hand_pinch">hand_pinch</option><option value="hand_grab">hand_grab</option>
+    </select></label>
+  </div>
+</header>
+
+<main>
+  <div class="col">
+    <section>
+      <div class="phases" id="phases"></div>
+      <div class="vr" aria-live="polite">
+        <div class="phase" id="phaseLabel">BRIEFING</div>
+        <div class="instr" id="instr"></div>
+        <div class="sub" id="sub"></div>
+        <div class="feedback" id="feedback"></div>
+      </div>
+      <div class="row" id="actions"></div>
+      <div class="sysrow">
+        <button class="btn" id="pauseBtn">Pause</button>
+        <button class="btn" id="recenterBtn">Recenter</button>
+        <button class="btn" id="restartBtn">Restart level</button>
+        <span class="muted clock" id="clock" style="margin-left:auto;align-self:center"></span>
+      </div>
+    </section>
+    <section>
+      <h2>Event log <span class="muted" id="logInfo"></span></h2>
+      <div class="logwrap"><table><thead><tr><th>ms</th><th>event → target</th><th>outcome</th></tr></thead><tbody id="log"></tbody></table></div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section id="panelSection">
+      <div class="panel-head"><h2 style="margin:0" id="panelTitle">Control panel</h2>
+        <span class="muted" id="panelNote">Generated from the mission file. Layout is alphabetical, so it never gives away the order.</span></div>
+      <div class="grid" id="controls"></div>
+    </section>
+    <section id="debriefSection" class="hidden">
+      <h2>Debrief</h2>
+      <div id="debrief"></div>
+    </section>
+  </div>
+</main>
+
+<script type="module">
+import { MissionRunner, score, sortedSteps } from "./scoring.js";
+import { offlineCoach } from "./coach.js";
+
+const PHASES = ["Briefing", "Demonstration", "Practice", "Qualification", "Debrief"];
+const ALLOWED = { Briefing: ["Demonstration", "Practice"], Demonstration: ["Practice"], Practice: ["Qualification", "Briefing"],
+                  Qualification: ["Debrief"], Debrief: ["Practice", "Briefing"] };   // = ModulePhaseMachine
+const DEMO_MS = 2500;
+const DECOYS = [
+  { targetId: "spare_a_button", event: "control_activated" },
+  { targetId: "aux_heater_toggle", event: "control_activated" },
+  { targetId: "aux_panel", event: "target_selected" },
+];
+const TYPE_RE = /_(button|toggle|dial|lever|panel|socket|tool|checklist|display)(?:_\d+)?$/;
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const caps = s => esc(s).replace(/\b([A-Z][A-Z0-9-]{1,}(?:\s+[A-Z][A-Z0-9-]{1,})*)\b/g, '<span class="caps">$1</span>');
+const $ = id => document.getElementById(id);
+const labelOf = t => t.replace(TYPE_RE, "").replace(/_/g, " ").toUpperCase();
+const typeOf = t => (t.match(TYPE_RE) || [, "control"])[1];
+const VERB = { target_located: "Look at", target_selected: "Select", checklist_opened: "Open", status_reported: "Press",
+  calibration_completed: "Calibrate", object_grabbed: "Grab", object_released: "Release", object_placed: "Place tool in",
+  paused: "Pause", resumed: "Resume", recentered: "Recenter" };
+const ACTIVATE = { toggle: "Flip", dial: "Turn", lever: "Pull", button: "Press" };
+const verbOf = (ev, t) => ev === "control_activated" ? (ACTIVATE[typeOf(t)] || "Activate") : (VERB[ev] || ev);
+
+let missions = [], mission = null, steps = [];
+let phase = "Briefing", runner = null, sessionId = null;
+let attemptStart = 0, pausedAt = null, pausedTotal = 0, demoTimer = null, clockTimer = null;
+const toggles = {};
+
+async function init() {
+  const r = await (await fetch("/api/missions", { cache: "no-store" })).json();
+  missions = r.missions.filter(m => m.mission);
+  $("missionSel").innerHTML = missions.map((m, i) => `<option value="${i}">L${m.mission.level} · ${esc(m.mission.missionId)}</option>`).join("");
+  const l3 = missions.findIndex(m => m.mission.missionId === "l3-cabin-v1");
+  $("missionSel").value = String(l3 >= 0 ? l3 : 0);
+  $("missionSel").onchange = () => load(missions[+$("missionSel").value].mission);
+  load(missions[+$("missionSel").value].mission);
+}
+
+function load(m) {
+  mission = m; steps = sortedSteps(m);
+  Object.keys(toggles).forEach(k => delete toggles[k]);
+  $("panelTitle").textContent = m.title;
+  buildControls();
+  enter("Briefing", true);
+}
+
+/* ---------- controls generated from the mission ---------- */
+function buildControls() {
+  const seen = new Map();
+  for (const s of steps) seen.set(`${s.expectedEvent}|${s.targetId}`, { targetId: s.targetId, event: s.expectedEvent, decoy: false });
+  for (const d of DECOYS) if (![...seen.values()].some(c => c.targetId === d.targetId)) seen.set(`${d.event}|${d.targetId}`, { ...d, decoy: true });
+  const list = [...seen.values()].sort((a, b) => a.targetId.localeCompare(b.targetId) || a.event.localeCompare(b.event));
+  $("controls").innerHTML = list.map(c => `
+    <button class="ctl ${c.decoy ? "decoy" : ""}" data-target="${esc(c.targetId)}" data-event="${esc(c.event)}" aria-label="${esc(verbOf(c.event, c.targetId))} ${esc(labelOf(c.targetId))}">
+      <span class="type">${esc(typeOf(c.targetId).toUpperCase())}</span>
+      <div class="lbl">${esc(labelOf(c.targetId))}</div>
+      <div class="verb">${esc(verbOf(c.event, c.targetId))}${c.decoy ? " · not in this mission" : ""}</div>
+      ${typeOf(c.targetId) === "toggle" ? `<div class="state" data-state="${esc(c.targetId)}">OFF</div>` : ""}
+    </button>`).join("");
+  document.querySelectorAll(".ctl").forEach(b => b.onclick = () => interact(b.dataset.event, b.dataset.target, b));
+}
+
+/* ---------- phases ---------- */
+function canGo(next) { return ALLOWED[phase].includes(next); }
+function enter(next, force = false) {
+  if (!force && !canGo(next)) { console.error(`illegal phase ${phase} -> ${next}`); return; }
+  phase = next;
+  clearTimeout(demoTimer); clearInterval(clockTimer);
+  document.querySelectorAll(".ctl").forEach(b => b.classList.remove("demo"));
+  $("feedback").className = "feedback";
+  $("debriefSection").classList.toggle("hidden", phase !== "Debrief");
+  if (phase === "Practice" || phase === "Qualification") startAttempt();
+  else if (phase !== "Debrief") runner = null;          // Debrief keeps the Qualification runner to score it
+  renderPhases(); renderPanel(); renderLog();
+  if (phase === "Demonstration") runDemo(0);
+  if (phase === "Debrief") debrief();
+  setControlsEnabled(phase === "Practice" || phase === "Qualification");
+}
+
+function startAttempt() {
+  sessionId = crypto.randomUUID();
+  runner = new MissionRunner(mission, sessionId);
+  attemptStart = performance.now(); pausedTotal = 0; pausedAt = null;
+  $("pauseBtn").textContent = "Pause";
+  clockTimer = setInterval(() => { $("clock").textContent = `${(now() / 1000).toFixed(1)} s`; }, 100);
+}
+const now = () => Math.round((pausedAt ?? performance.now()) - attemptStart - pausedTotal);
+
+function renderPhases() {
+  const i = PHASES.indexOf(phase);
+  $("phases").innerHTML = PHASES.map((p, j) => `<div class="${j < i ? "done" : j === i ? "cur" : ""}">${p.toUpperCase()}</div>`).join("");
+  $("phaseLabel").textContent = phase.toUpperCase();
+}
+
+function renderPanel() {
+  const a = $("actions"); let html = "";
+  const crit = steps.filter(s => s.critical).length;
+  if (phase === "Briefing") {
+    $("instr").innerHTML = esc(mission.title);
+    $("sub").innerHTML = `${steps.length} steps · ${crit} critical · fictional scenario` +
+      `<ol class="briefing-list">${steps.map(s => `<li>${caps(s.instruction)}${s.critical ? "" : ' <span class="muted">(optional)</span>'}</li>`).join("")}</ol>`;
+    html = `<button class="btn primary" id="goDemo">Start demonstration</button><button class="btn" id="goPractice">Skip to practice</button>`;
+  } else if (phase === "Demonstration") {
+    html = `<button class="btn primary" id="goPractice">Start practice</button>`;
+  } else if (phase === "Practice" || phase === "Qualification") {
+    showCurrent();
+    if (phase === "Qualification") html = `<button class="btn" id="finish">Finish attempt</button>`;
+  } else if (phase === "Debrief") {
+    $("instr").innerHTML = "Debrief"; $("sub").textContent = "Your scored attempt is on the right.";
+    html = `<button class="btn primary" id="retry">Retry (practice)</button><button class="btn" id="toBriefing">Back to briefing</button>`;
+  }
+  a.innerHTML = html;
+  $("goDemo") && ($("goDemo").onclick = () => enter("Demonstration"));
+  $("goPractice") && ($("goPractice").onclick = () => enter("Practice"));
+  $("finish") && ($("finish").onclick = () => enter("Debrief"));
+  $("retry") && ($("retry").onclick = () => enter("Practice"));
+  $("toBriefing") && ($("toBriefing").onclick = () => enter("Briefing"));
+}
+
+function showCurrent() {
+  const s = runner.currentStep;
+  $("instr").innerHTML = s ? caps(s.instruction) : "All steps complete.";
+  $("sub").innerHTML = s ? `Step ${steps.indexOf(s) + 1} of ${steps.length} · ${s.critical ? "critical" : "optional"}` +
+    (phase === "Qualification" ? " · scored, no hints" : " · hints on") : "";
+}
+
+function runDemo(i) {
+  document.querySelectorAll(".ctl").forEach(b => b.classList.remove("demo"));
+  if (i >= steps.length) { $("instr").innerHTML = "Demonstration complete."; $("sub").textContent = "Start practice when you are ready."; return; }
+  const s = steps[i];
+  $("instr").innerHTML = caps(s.instruction);
+  $("sub").textContent = `Demonstration · step ${i + 1} of ${steps.length}`;
+  const el = document.querySelector(`.ctl[data-target="${CSS.escape(s.targetId)}"][data-event="${CSS.escape(s.expectedEvent)}"]`);
+  el && el.classList.add("demo");
+  demoTimer = setTimeout(() => runDemo(i + 1), DEMO_MS);
+}
+
+/* ---------- interaction -> runner (the LevelController's job in Unity) ---------- */
+const attemptActive = () => runner && (phase === "Practice" || phase === "Qualification");
+function interact(eventName, targetId, el) {
+  if (!attemptActive() || pausedAt !== null) return;
+  if (typeOf(targetId) === "toggle" && eventName === "control_activated") {
+    toggles[targetId] = !toggles[targetId];
+    const st = document.querySelector(`[data-state="${CSS.escape(targetId)}"]`);
+    if (st) { st.textContent = toggles[targetId] ? "ON" : "OFF"; st.classList.toggle("on", toggles[targetId]); }
+  }
+  let fb;
+  try { fb = runner.report(eventName, targetId, $("inputSel").value, now()); }
+  catch (e) { showFeedback("Incorrect", `Rejected by runner: ${e.message}`); return; }
+  if (el) { el.classList.add(`flash-${fb.outcome}`); setTimeout(() => el.classList.remove(`flash-${fb.outcome}`), 600); }
+  const msg = {
+    Correct: "Step complete.",
+    Incorrect: "That control is not part of the current step.",
+    OutOfOrder: "That step comes later. Finish the current step first.",
+    Ignored: "Recorded, no effect on the procedure.",
+  }[fb.outcome];
+  if (phase === "Practice" && (fb.outcome === "Incorrect" || fb.outcome === "OutOfOrder") && fb.hint) {
+    showFeedback(fb.outcome, `${msg}<br><span class="caps">HINT</span> ${caps(fb.hint)}`);
+  } else if (phase === "Practice") {
+    showFeedback(fb.outcome, msg);
+  } else {
+    $("feedback").className = "feedback";   // Qualification: no feedback, no hints
+  }
+  renderLog(); showCurrent();
+  if (runner.isComplete) {
+    if (phase === "Practice") { showFeedback("Correct", "Practice complete. Qualification starts in 3 seconds; it is scored and gives no hints."); setControlsEnabled(false); setTimeout(() => phase === "Practice" && enter("Qualification"), 3000); }
+    else if (phase === "Qualification") enter("Debrief");
+  }
+}
+function showFeedback(kind, html) { const f = $("feedback"); f.className = `feedback on ${kind}`; f.innerHTML = `<b>${kind.toUpperCase()}</b>${html}`; }
+function setControlsEnabled(on) { document.querySelectorAll(".ctl").forEach(b => b.disabled = !on); }
+
+$("pauseBtn").onclick = () => {
+  if (!attemptActive()) return;
+  if (pausedAt === null) { interact("paused", "system", null); pausedAt = performance.now(); $("pauseBtn").textContent = "Resume"; setControlsEnabled(false); }
+  else { pausedTotal += performance.now() - pausedAt; pausedAt = null; interact("resumed", "system", null); $("pauseBtn").textContent = "Pause"; setControlsEnabled(true); }
+};
+$("recenterBtn").onclick = () => attemptActive() && interact("recentered", "system", null);
+$("restartBtn").onclick = () => load(mission);
+
+function renderLog() {
+  const evs = runner ? runner.events : [];
+  $("logInfo").textContent = runner ? `· ${phase.toLowerCase()} · session ${sessionId.slice(0, 8)}` : "";
+  $("log").innerHTML = evs.map(e => `<tr><td class="mono">${e.timestampMs}</td><td class="mono">${esc(e.event)} → ${esc(e.targetId)}</td>
+    <td><span class="chip ${esc(e.result)}">${esc(e.result)}</span></td></tr>`).join("") || `<tr><td colspan="3" class="muted">No events yet.</td></tr>`;
+}
+
+/* ---------- debrief: score + offline coach + AI coach (proxy) ---------- */
+async function debrief() {
+  const events = runner ? runner.events.slice() : [];
+  const result = score(mission, sessionId, events);
+  const request = { sessionId, missionId: mission.missionId, result, events };
+  const offline = offlineCoach(request, mission);
+  const byId = Object.fromEntries(steps.map(s => [s.stepId, s]));
+  const li = arr => arr.length ? `<ul>${arr.map(x => `<li>${caps(x)}</li>`).join("")}</ul>` : `<span class="muted">None</span>`;
+  const stepText = ids => ids.map(id => byId[id] ? byId[id].instruction : id);
+  $("debrief").innerHTML = `
+    <div class="verdict ${result.passed ? "pass" : "fail"}">${result.passed ? "PASSED" : "NOT PASSED · RETRY"}</div>
+    <div class="muted">${(result.completionTimeMs / 1000).toFixed(1)} s · ${result.completedSteps.length}/${steps.length} steps completed · session <span class="mono">${esc(sessionId)}</span></div>
+    <div class="lists">
+      <div class="box"><h3>Missed critical steps</h3>${li(stepText(result.omittedCriticalSteps))}</div>
+      <div class="box"><h3>Done too early (out of order)</h3>${li(stepText(result.sequenceErrors))}</div>
+      <div class="box"><h3>Wrong controls used</h3>${li(result.incorrectActions.map(labelOf))}</div>
+      <div class="box"><h3>Optional steps skipped</h3>${li(stepText(result.skippedSteps))}</div>
+    </div>
+    <div class="lists">
+      <div class="coach offline"><div class="who">OFFLINE COACH · ${esc(offline.modelVersion)}</div>${coachBody(offline)}</div>
+      <div class="coach ai" id="aiCoach"><div class="who">AI COACH (ADVISORY)</div><p class="muted">Contacting the coach server…</p></div>
+    </div>
+    <details><summary>SessionResult JSON (CONTRACT §5)</summary><pre class="mono">${esc(JSON.stringify(result, null, 2))}</pre></details>
+    <details><summary>Coach request JSON (what the game sends)</summary><pre class="mono">${esc(JSON.stringify(request, null, 2))}</pre></details>
+    <div class="row"><button class="btn" id="dl">Download session log (JSON)</button></div>`;
+  $("dl").onclick = () => {
+    const blob = new Blob([JSON.stringify(request, null, 2)], { type: "application/json" });
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `${mission.missionId}-${sessionId}.json` });
+    a.click(); URL.revokeObjectURL(a.href);
+  };
+  try {
+    const r = await fetch("/api/coach", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(request) });
+    const body = await r.json();
+    const ok = r.status === 200 && body.advisory === true;
+    $("aiCoach").innerHTML = `<div class="who">AI COACH (ADVISORY) · ${ok ? esc(body.modelVersion) : "unavailable"}</div>` +
+      (ok ? coachBody(body) + (String(body.modelVersion).includes("mock") ? `<p class="muted">Mock mode: fixed sample text, not generated for this attempt.</p>` : "")
+          : `<p class="muted">HTTP ${r.status} · ${esc(body?.error?.code || "")}: ${esc(body?.error?.message || "")}<br>The game falls back to the offline coach.</p>`);
+  } catch (e) {
+    $("aiCoach").innerHTML = `<div class="who">AI COACH (ADVISORY) · unavailable</div><p class="muted">Simulator server not reachable. The game falls back to the offline coach.</p>`;
+  }
+}
+function coachBody(c) {
+  if (!c.summary) return `<p class="muted">No advice (${esc(c.reason || "empty")}).</p>`;
+  return `<p>${esc(c.summary)}</p>${c.hints?.length ? `<ul>${c.hints.map(h => `<li>${caps(h)}</li>`).join("")}</ul>` : ""}`;
+}
+init();
+</script>
+</body>
+</html>

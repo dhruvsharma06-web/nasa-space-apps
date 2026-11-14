@@ -1,0 +1,23 @@
+{
+  "missionId": "l2-equipment-v1",
+  "scene": "L2_Equipment",
+  "panels": [
+    { "id": "tool_stowage_panel", "title": "TOOL STOWAGE", "position": [0.00, 1.00, 0.62], "size": [0.44, 0.32], "tilt": 15, "target": true },
+    { "id": "status_panel", "title": "STATUS", "position": [0.45, 1.05, 0.45], "size": [0.30, 0.24], "tilt": 15, "target": false }
+  ],
+  "controls": [
+    { "targetId": "tool_bay_socket_1", "type": "socket", "label": "BAY 1", "panel": "tool_stowage_panel", "at": [-0.11, 0.04], "accepts": "torque_wrench_tool" },
+    { "targetId": "tool_bay_socket_2", "type": "socket", "label": "BAY 2", "panel": "tool_stowage_panel", "at": [0.11, 0.04], "accepts": "inspection_scanner_tool" },
+    { "targetId": "bay_1_latch_toggle", "type": "toggle", "label": "BAY 1 LATCH", "panel": "tool_stowage_panel", "at": [-0.11, -0.10] },
+    { "targetId": "bay_2_latch_toggle", "type": "toggle", "label": "BAY 2 LATCH", "panel": "tool_stowage_panel", "at": [0.11, -0.10] },
+    { "targetId": "stowage_report_button", "type": "button", "label": "REPORT", "panel": "status_panel", "at": [0.0, -0.05] }
+  ],
+  "tools": [
+    { "targetId": "torque_wrench_tool", "label": "TORQUE WRENCH", "position": [-0.35, 1.10, 0.40] },
+    { "targetId": "inspection_scanner_tool", "label": "INSPECTION SCANNER", "position": [0.52, 1.36, 0.42] }
+  ],
+  "indicators": [],
+  "decoys": [
+    { "targetId": "vent_purge_button", "type": "button", "label": "VENT PURGE", "panel": "status_panel", "at": [0.0, 0.04] }
+  ]
+}

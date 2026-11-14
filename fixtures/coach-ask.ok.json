@@ -1,0 +1,8 @@
+{
+  "sessionId": "demo-001",
+  "missionId": "l3-cabin-v1",
+  "advisory": true,
+  "answer": "The AIR FAN dial is on the CABIN CONTROL panel. Turn it until it points at LOW.",
+  "stepId": "fan_low",
+  "modelVersion": "coach-mock-0"
+}
