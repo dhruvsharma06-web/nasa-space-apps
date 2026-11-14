@@ -79,6 +79,8 @@ namespace Astra.Core.Progress
             if (state.records == null)
                 state.records = new List<LevelRecord>();
             state.records.RemoveAll(r => r == null);
+            if (state.callsign == null)
+                state.callsign = "";
             Unlock(state, 0);
             return state;
         }
