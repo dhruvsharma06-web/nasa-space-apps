@@ -1,0 +1,19 @@
+name: Feature / task
+description: New feature or task tied to the PRD
+labels: [enhancement]
+body:
+  - type: input
+    id: req
+    attributes: { label: Requirement ID, description: "e.g. FR-XR-03, FR-SIM-01, G-04" }
+  - type: dropdown
+    id: priority
+    attributes: { label: Priority, options: [P0, P1, P2] }
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes: { label: What and why }
+    validations: { required: true }
+  - type: textarea
+    id: accept
+    attributes: { label: Acceptance check, description: "Given [input], the headset shows [result]" }
+    validations: { required: true }

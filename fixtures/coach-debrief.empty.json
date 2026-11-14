@@ -1,0 +1,9 @@
+{
+  "sessionId": "demo-003",
+  "missionId": "restore-power-v1",
+  "advisory": true,
+  "summary": null,
+  "hints": [],
+  "reason": "NO_EVENTS",
+  "model_version": "coach-mock-0"
+}

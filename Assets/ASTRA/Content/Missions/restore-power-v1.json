@@ -1,0 +1,16 @@
+{
+  "missionId": "restore-power-v1",
+  "version": "1.0.0",
+  "title": "Operation: Restore Station Power",
+  "fictional": true,
+  "steps": [
+    { "stepId": "calibrate",        "order": 1, "instruction": "Calibrate your view and complete the safety check.", "expectedEvent": "calibration_completed", "targetId": "calibration",              "critical": true  },
+    { "stepId": "locate_panel",     "order": 2, "instruction": "Locate the power distribution panel.",                "expectedEvent": "target_located",        "targetId": "power_distribution_panel", "critical": false },
+    { "stepId": "ack_warning",      "order": 3, "instruction": "Acknowledge the simulated warning.",                  "expectedEvent": "control_activated",     "targetId": "caution_ack_button",       "critical": true  },
+    { "stepId": "open_checklist",   "order": 4, "instruction": "Open the electronic checklist.",                      "expectedEvent": "checklist_opened",      "targetId": "power_fault_checklist",    "critical": false },
+    { "stepId": "identify_bus",     "order": 5, "instruction": "Identify the affected power bus.",                    "expectedEvent": "target_selected",       "targetId": "power_bus_b",              "critical": true  },
+    { "stepId": "isolate_bus",      "order": 6, "instruction": "Move the Bus B selector to ISOLATE.",                 "expectedEvent": "control_activated",     "targetId": "power_bus_b_selector",     "critical": true  },
+    { "stepId": "crosstie",         "order": 7, "instruction": "Close the cross-tie breaker.",                        "expectedEvent": "control_activated",     "targetId": "crosstie_breaker",         "critical": true  },
+    { "stepId": "verify_recovery",  "order": 8, "instruction": "Verify the system shows RESTORED and report.",        "expectedEvent": "status_reported",       "targetId": "comms_report_button",      "critical": true  }
+  ]
+}

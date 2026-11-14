@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "UPSTREAM_UNAVAILABLE",
+    "message": "The AI coach is unavailable. Your scripted debrief is shown instead.",
+    "details": []
+  }
+}

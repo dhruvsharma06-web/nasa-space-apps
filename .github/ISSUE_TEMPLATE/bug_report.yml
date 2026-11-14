@@ -1,0 +1,25 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: expected
+    attributes: { label: Expected, description: What should happen? }
+    validations: { required: true }
+  - type: textarea
+    id: actual
+    attributes: { label: Actual, description: What happened? Paste exact errors/logs. }
+    validations: { required: true }
+  - type: textarea
+    id: repro
+    attributes: { label: Steps to reproduce, description: Smallest steps that show the problem. }
+    validations: { required: true }
+  - type: input
+    id: env
+    attributes: { label: Environment, description: "Headset/OS/runtime or Editor + Unity version, branch, commit" }
+    validations: { required: true }
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Core / mission, Simulation, Assessment, XR input, UI / scenes, Content, Coach proxy, Build / CI, Docs]

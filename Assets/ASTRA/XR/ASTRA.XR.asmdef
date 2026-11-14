@@ -1,0 +1,14 @@
+{
+  "name": "ASTRA.XR",
+  "rootNamespace": "Astra.XR",
+  "references": ["ASTRA.Core"],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
