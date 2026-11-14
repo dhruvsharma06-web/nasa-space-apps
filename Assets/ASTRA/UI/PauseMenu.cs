@@ -59,12 +59,15 @@ namespace Astra.UI
             revision++;
         }
 
-        // Parameterless methods are for explicitly configured controller/simulator UI bindings.
-        // Tracked pointer adapters use the Try* methods with the actual acting interactor instead.
-        public void Pause() => TryPause(defaultInteractor);
-        public void Resume() => TryResume(defaultInteractor);
-        public void Toggle() => TryToggle(defaultInteractor);
-        public void Recenter() => TryRecenter(defaultInteractor);
+        // Parameterless methods serve UnityEvent bindings. A tracked pointer that invokes the binding
+        // publishes itself through UiActionActor, so the report carries the modality that actually acted;
+        // otherwise (desktop EventSystem click) the explicitly configured default interactor is used.
+        public void Pause() => TryPause(ActingInteractor);
+        public void Resume() => TryResume(ActingInteractor);
+        public void Toggle() => TryToggle(ActingInteractor);
+        public void Recenter() => TryRecenter(ActingInteractor);
+
+        private Component ActingInteractor => UiActionActor.Current != null ? UiActionActor.Current : defaultInteractor;
 
         public bool TryPause(Component interactor) => TrySetPaused(true, interactor);
         public bool TryResume(Component interactor) => TrySetPaused(false, interactor);

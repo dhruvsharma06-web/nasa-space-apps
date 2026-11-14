@@ -1,8 +1,16 @@
 {
   "name": "ASTRA.UI.Editor",
   "rootNamespace": "Astra.UI.Editor",
-  "references": ["ASTRA.UI", "UnityEngine.UI"],
-  "includePlatforms": ["Editor"],
+  "references": [
+    "ASTRA.Core",
+    "ASTRA.XR",
+    "ASTRA.UI",
+    "ASTRA.App",
+    "UnityEngine.UI"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
   "overrideReferences": false,

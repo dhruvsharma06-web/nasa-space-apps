@@ -33,6 +33,21 @@ For L1, grab → release → grab → place is the physical sequence. The runner
 
 `ConsoleInteractionLogger` subscribes only while enabled and prints each report. Use it until the real LevelController is integrated; do not turn it into a scorer.
 
+## Rig and input routes (`Rig/`, `Prefabs/AstraXRRig.prefab`)
+
+`AstraXRRig` is the seated rig: origin on the floor, `TrackingSpace` at 1.2 m seated eye height, `Head` camera. Every route feeds the shared `RayInteractor`, which calls the interactable adapter entry points above with the actor that actually acted. No route scores, timestamps or changes mission state.
+
+| Route | Component | Actions and reported modality |
+|---|---|---|
+| Headset hand aim | `HandAimInput` | Uses `UnityEngine.XR.InputDevices` (Vision Aura “Vision Aura Hand Aim”, else any tracked controller). Pinch/trigger selects/activates and clicks world UI (`hand_pinch`, or `controller_ray` for a controller); fist/grip grabs (`hand_grab` / `controller_grip`); menu opens pause. Tracking loss cancels a grab once. |
+| Desktop window | `DesktopMouseInput` | Active only while no headset is tracking; reports `simulator`. Click selects/activates; hold on a tool to grab, release to drop/place; scroll changes held distance; right-drag turns the seated view; ESC/P pauses. UI uses the scene EventSystem. |
+| Head | `HeadPoseDriver` | Applies the tracked center-eye pose locally under `TrackingSpace`; restores the desktop view when tracking stops. |
+| Recenter | `RigRecenterService` | The single `recentered`/`system` publisher: `XRInputSubsystem.TryRecenter()` with a headset, desktop view reset otherwise. |
+
+`UiActionActor` lets a tracked pointer that invokes a parameterless UI binding (PauseMenu buttons) report its own modality. `PassthroughHidden` marks the virtual room hidden in passthrough AR.
+
+`VisionAura/` (assembly `ASTRA.XR.VisionAura`) compiles **only when the `com.visionaura.xr` package is installed** (`ASTRA_VISION_AURA` version define). It starts the Mac-hosted iPhone headset session at launch, reads AR/VR mode from the build manifest, and shows a small status box in the desktop window. The canonical project without that package is unaffected.
+
 ## Verification and remaining work
 
 The source tests live in `Tests/PlayMode/` under a separate test assembly. The isolated validation run uses Unity 6000.6.5f1 on macOS with Unity Test Framework 1.8.0; see `.agents/evidence/p1-implementation.md` at the repository root for results and limits. This version is a validation environment, not a project pin.

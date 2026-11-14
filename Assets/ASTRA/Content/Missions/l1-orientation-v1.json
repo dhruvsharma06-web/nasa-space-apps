@@ -1,0 +1,15 @@
+{
+  "missionId": "l1-orientation-v1",
+  "level": 1,
+  "version": "1.0.0",
+  "title": "Cadet Orientation: Basic Controls",
+  "fictional": true,
+  "steps": [
+    { "stepId": "locate_target", "order": 1, "instruction": "Locate the TARGET panel.",             "hint": "TARGET is the upright panel on your left. Point at it for one second; locating finds a control before you use it.", "expectedEvent": "target_located",    "targetId": "orientation_target_panel",  "critical": false },
+    { "stepId": "select_target", "order": 2, "instruction": "Select the TARGET panel.",             "hint": "Point at TARGET and press the trigger or click. Selecting chooses a panel; the panel outline lights up while you point at it.",             "expectedEvent": "target_selected",   "targetId": "orientation_target_panel",  "critical": true },
+    { "stepId": "press_start",   "order": 3, "instruction": "Press START.",                         "hint": "START is the button in the middle of the desk, labelled START. The button lights up while it is pressed.",                                "expectedEvent": "control_activated", "targetId": "orientation_start_button",  "critical": true },
+    { "stepId": "grab_tool",     "order": 4, "instruction": "Grab the TOOL.",                       "hint": "TOOL is on the left of the desk. Point at it and hold the grip button or mouse button to pick it up.",                                     "expectedEvent": "object_grabbed",    "targetId": "orientation_practice_tool", "critical": true },
+    { "stepId": "release_tool",  "order": 5, "instruction": "Release the TOOL away from the TOOL BAY.", "hint": "Let go over the empty desk, not the TOOL BAY tray. A released item stays where you leave it unless it is out of reach.",                 "expectedEvent": "object_released",   "targetId": "orientation_practice_tool", "critical": true },
+    { "stepId": "place_tool",    "order": 6, "instruction": "Place the TOOL in the TOOL BAY.",      "hint": "TOOL BAY is the tray on the right of the desk. Grab the TOOL again and release it over the tray; it snaps into place.",                    "expectedEvent": "object_placed",     "targetId": "orientation_tool_socket",   "critical": true }
+  ]
+}

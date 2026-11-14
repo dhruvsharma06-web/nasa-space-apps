@@ -1,0 +1,16 @@
+{
+  "name": "ASTRA.XR.VisionAura",
+  "rootNamespace": "Astra.XR.VisionAura",
+  "references": ["ASTRA.XR", "VisionAura.XR"],
+  "includePlatforms": ["Editor", "macOSStandalone"],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": ["ASTRA_VISION_AURA"],
+  "versionDefines": [
+    { "name": "com.visionaura.xr", "expression": "0.1.0", "define": "ASTRA_VISION_AURA" }
+  ],
+  "noEngineReferences": false
+}
