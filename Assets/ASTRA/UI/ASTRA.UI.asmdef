@@ -1,7 +1,7 @@
 {
   "name": "ASTRA.UI",
   "rootNamespace": "Astra.UI",
-  "references": ["ASTRA.Core", "ASTRA.XR"],
+  "references": ["ASTRA.Core", "ASTRA.XR", "UnityEngine.UI"],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

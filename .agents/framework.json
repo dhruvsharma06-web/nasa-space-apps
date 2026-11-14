@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "name": "astra-xr-l0-l1",
+  "projectRole": "P1 — XR & Interaction Developer",
+  "roleInstructions": "docs/prompts/P1-xr-interaction.md",
+  "codebaseAnalysis": ".agents/p1-codebase-analysis.md",
+  "targetUnityStream": "6000.3 LTS",
+  "requestedPlatforms": ["macOS", "Windows"],
+  "sourceWorkAheadOfCanonicalSetupAuthorized": true,
+  "kind": "orchestration-design",
+  "contract": "CONTRACT.md",
+  "contractVersion": "1.2",
+  "scope": ["XR & Interaction", "L0 Safety & Calibration", "L1 Cadet Orientation"],
+  "leadRole": "lead",
+  "dispatcherRole": "lead",
+  "execution": {
+    "maxConcurrentAgentsIncludingLead": 4,
+    "maxConcurrentHelpers": 3,
+    "recursiveDelegation": false,
+    "workspace": "shared",
+    "writePolicy": "one-writer-per-exact-file",
+    "dispatchPolicy": "dependencies-satisfied-and-file-scopes-disjoint",
+    "substantiveChangesRequireIndependentReview": true,
+    "integrationOwner": "lead",
+    "automaticCommit": false,
+    "automaticMerge": false
+  },
+  "models": {
+    "sol": "gpt-6.1-sol",
+    "terra": "gpt-6.1-terra",
+    "luna": "gpt-6-luna"
+  },
+  "roles": [
+    {
+      "id": "lead",
+      "model": "sol",
+      "mode": "lead-and-dispatcher",
+      "responsibilities": ["research", "architecture", "planning", "consequential logic", "task dispatch", "integration", "final acceptance"]
+    },
+    {
+      "id": "xr_engineer",
+      "model": "terra",
+      "mode": "bounded-writer",
+      "responsibilities": ["input adapters", "interactables", "rig and prefabs", "event emission"],
+      "potentialWritePaths": ["Assets/ASTRA/XR/**"]
+    },
+    {
+      "id": "frontend_engineer",
+      "model": "terra",
+      "mode": "bounded-writer",
+      "responsibilities": ["world-space UI", "pause menu", "Hub presentation", "accessible feedback"],
+      "potentialWritePaths": ["Assets/ASTRA/UI/**", "Assets/ASTRA/Scenes/Hub.unity", "Assets/ASTRA/Scenes/Hub.unity.meta"]
+    },
+    {
+      "id": "core_logic_specialist",
+      "model": "terra",
+      "mode": "advisory-unless-exact-level-local-task-assigned",
+      "responsibilities": ["mission trace analysis", "phase/progress boundary checks", "small level-local helpers designed by Sol"],
+      "potentialWritePaths": ["Assets/ASTRA/Levels/L0_Safety/**", "Assets/ASTRA/Levels/L1_Orientation/**"],
+      "externalOwnerPathsReadOnly": ["Assets/ASTRA/Core/**", "Assets/ASTRA/App/**"]
+    },
+    {
+      "id": "backend_specialist",
+      "model": "terra",
+      "mode": "on-demand-read-only",
+      "responsibilities": ["coach dependency review", "offline/failure behavior", "backend handoff proposals"],
+      "potentialWritePaths": [],
+      "externalOwnerPathsReadOnly": ["services/coach-proxy/**", "Assets/ASTRA/Integrations/Coach/**"]
+    },
+    {
+      "id": "frontend_tester",
+      "model": "luna",
+      "mode": "verification-and-scoped-test-artifacts",
+      "responsibilities": ["UI/XR test protocols", "simulator checks when available", "headset evidence with Integration Lead", "regression reproduction"],
+      "potentialWritePaths": [".agents/evidence/**", "Assets/ASTRA/XR/Tests/**", "Assets/ASTRA/UI/Tests/**"]
+    },
+    {
+      "id": "content_helper",
+      "model": "luna",
+      "mode": "bounded-writer",
+      "responsibilities": ["mission wording", "hints and captions", "content validation", "handoff documentation"],
+      "potentialWritePaths": ["Assets/ASTRA/Content/Missions/l0-safety-v1.json", "Assets/ASTRA/Content/Missions/l0-safety-v1.json.meta", "Assets/ASTRA/Content/Missions/l1-orientation-v1.json", "Assets/ASTRA/Content/Missions/l1-orientation-v1.json.meta", ".agents/evidence/**"]
+    },
+    {
+      "id": "code_reviewer",
+      "model": "terra",
+      "mode": "read-only",
+      "responsibilities": ["independent diff review", "contract and ownership compliance", "event lifecycle and edge cases", "verification gaps"],
+      "potentialWritePaths": []
+    }
+  ],
+  "taskStates": ["planned", "ready", "running", "review", "changes_requested", "blocked", "accepted"],
+  "allowedTransitions": {
+    "planned": ["ready", "blocked"],
+    "ready": ["running", "blocked"],
+    "running": ["review", "blocked"],
+    "review": ["accepted", "changes_requested", "blocked"],
+    "changes_requested": ["ready", "blocked"],
+    "blocked": ["ready"],
+    "accepted": []
+  },
+  "requiredDispatchFields": ["taskId", "stage", "role", "objective", "contractVersion", "baseRevision", "dependsOn", "writeFiles", "readOnlyDependencies", "interfaceConstraints", "acceptanceCriteria", "checks", "stopConditions"],
+  "requiredResultFields": ["taskId", "status", "changedFiles", "checksRun", "results", "untested", "blockers", "nextAction"],
+  "escalation": {
+    "architectureOrContractDecision": "lead",
+    "scopeExpansionOrConflictingFile": "lead",
+    "modelUnavailable": "lead-must-explicitly-reassign-or-defer",
+    "twoFailedFixAttempts": "stop-and-report-smallest-repro-to-lead"
+  }
+}

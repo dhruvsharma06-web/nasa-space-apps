@@ -1,0 +1,20 @@
+{
+  "name": "ASTRA.UI.Tests.PlayMode",
+  "rootNamespace": "Astra.UI.Tests.PlayMode",
+  "references": [
+    "ASTRA.Core",
+    "ASTRA.XR",
+    "ASTRA.UI",
+    "UnityEngine.UI",
+    "UnityEngine.TestRunner"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "precompiledReferences": ["nunit.framework.dll"],
+  "autoReferenced": false,
+  "defineConstraints": ["UNITY_INCLUDE_TESTS"],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
