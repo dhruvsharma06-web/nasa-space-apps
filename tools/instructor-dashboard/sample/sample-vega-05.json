@@ -1,0 +1,100 @@
+{
+    "sessionId": "sample-vega-05",
+    "missionId": "l4-emergency-v1",
+    "result": {
+        "sessionId": "sample-vega-05",
+        "missionId": "l4-emergency-v1",
+        "passed": true,
+        "completedSteps": [
+            "locate_panel",
+            "ack_caution",
+            "open_checklist",
+            "identify_bus",
+            "isolate_bus",
+            "close_crosstie",
+            "report_cleared"
+        ],
+        "skippedSteps": [],
+        "omittedCriticalSteps": [],
+        "sequenceErrors": [],
+        "incorrectActions": [
+            "power_bus_a_display"
+        ],
+        "completionTimeMs": 33015
+    },
+    "events": [
+        {
+            "sessionId": "sample-vega-05",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 1846,
+            "event": "target_located",
+            "targetId": "power_panel",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-05",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 5713,
+            "event": "control_activated",
+            "targetId": "caution_ack_button",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-05",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 10483,
+            "event": "checklist_opened",
+            "targetId": "power_fault_checklist",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-05",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 14490,
+            "event": "target_selected",
+            "targetId": "power_bus_b_display",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-05",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 19821,
+            "event": "control_activated",
+            "targetId": "power_bus_b_dial",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-05",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 24857,
+            "event": "control_activated",
+            "targetId": "crosstie_lever",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-05",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 28198,
+            "event": "control_activated",
+            "targetId": "power_bus_a_display",
+            "input": "simulator",
+            "result": "incorrect"
+        },
+        {
+            "sessionId": "sample-vega-05",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 33015,
+            "event": "status_reported",
+            "targetId": "power_report_button",
+            "input": "simulator",
+            "result": "correct"
+        }
+    ],
+    "callsign": "VEGA"
+}

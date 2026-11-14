@@ -1,0 +1,89 @@
+{
+    "sessionId": "sample-vega-03",
+    "missionId": "l3-cabin-v1",
+    "result": {
+        "sessionId": "sample-vega-03",
+        "missionId": "l3-cabin-v1",
+        "passed": true,
+        "completedSteps": [
+            "locate_panel",
+            "lights_on",
+            "fan_low",
+            "open_checklist",
+            "select_comms",
+            "comms_check",
+            "report_ready"
+        ],
+        "skippedSteps": [],
+        "omittedCriticalSteps": [],
+        "sequenceErrors": [],
+        "incorrectActions": [],
+        "completionTimeMs": 34778
+    },
+    "events": [
+        {
+            "sessionId": "sample-vega-03",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 2945,
+            "event": "target_located",
+            "targetId": "cabin_control_panel",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-03",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 8585,
+            "event": "control_activated",
+            "targetId": "cabin_lights_toggle",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-03",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 14231,
+            "event": "control_activated",
+            "targetId": "air_fan_dial",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-03",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 20297,
+            "event": "checklist_opened",
+            "targetId": "cabin_setup_checklist",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-03",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 25109,
+            "event": "target_selected",
+            "targetId": "comms_panel",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-03",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 30820,
+            "event": "control_activated",
+            "targetId": "comms_check_button",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-03",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 34778,
+            "event": "status_reported",
+            "targetId": "cabin_report_button",
+            "input": "gaze",
+            "result": "correct"
+        }
+    ],
+    "callsign": "VEGA"
+}

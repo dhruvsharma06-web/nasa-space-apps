@@ -1,0 +1,100 @@
+{
+    "sessionId": "sample-lyra-04",
+    "missionId": "l3-cabin-v1",
+    "result": {
+        "sessionId": "sample-lyra-04",
+        "missionId": "l3-cabin-v1",
+        "passed": true,
+        "completedSteps": [
+            "locate_panel",
+            "lights_on",
+            "fan_low",
+            "open_checklist",
+            "select_comms",
+            "comms_check",
+            "report_ready"
+        ],
+        "skippedSteps": [],
+        "omittedCriticalSteps": [],
+        "sequenceErrors": [],
+        "incorrectActions": [
+            "aux_heater_toggle"
+        ],
+        "completionTimeMs": 77888
+    },
+    "events": [
+        {
+            "sessionId": "sample-lyra-04",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 2347,
+            "event": "target_located",
+            "targetId": "cabin_control_panel",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-lyra-04",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 12166,
+            "event": "control_activated",
+            "targetId": "cabin_lights_toggle",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-lyra-04",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 22547,
+            "event": "control_activated",
+            "targetId": "air_fan_dial",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-lyra-04",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 35527,
+            "event": "checklist_opened",
+            "targetId": "cabin_setup_checklist",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-lyra-04",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 47480,
+            "event": "target_selected",
+            "targetId": "comms_panel",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-lyra-04",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 56656,
+            "event": "control_activated",
+            "targetId": "comms_check_button",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-lyra-04",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 67759,
+            "event": "control_activated",
+            "targetId": "aux_heater_toggle",
+            "input": "gaze",
+            "result": "incorrect"
+        },
+        {
+            "sessionId": "sample-lyra-04",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 77888,
+            "event": "status_reported",
+            "targetId": "cabin_report_button",
+            "input": "gaze",
+            "result": "correct"
+        }
+    ],
+    "callsign": "LYRA"
+}

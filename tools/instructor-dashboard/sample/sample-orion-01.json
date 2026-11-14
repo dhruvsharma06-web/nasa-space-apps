@@ -1,0 +1,79 @@
+{
+    "sessionId": "sample-orion-01",
+    "missionId": "l0-safety-v1",
+    "result": {
+        "sessionId": "sample-orion-01",
+        "missionId": "l0-safety-v1",
+        "passed": true,
+        "completedSteps": [
+            "locate_placard",
+            "press_ready",
+            "flip_test_switch",
+            "set_test_dial",
+            "grab_check_tool",
+            "place_check_tool"
+        ],
+        "skippedSteps": [],
+        "omittedCriticalSteps": [],
+        "sequenceErrors": [],
+        "incorrectActions": [],
+        "completionTimeMs": 22421
+    },
+    "events": [
+        {
+            "sessionId": "sample-orion-01",
+            "missionId": "l0-safety-v1",
+            "timestampMs": 2705,
+            "event": "target_located",
+            "targetId": "safety_placard_panel",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-orion-01",
+            "missionId": "l0-safety-v1",
+            "timestampMs": 5643,
+            "event": "control_activated",
+            "targetId": "ready_button",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-orion-01",
+            "missionId": "l0-safety-v1",
+            "timestampMs": 8904,
+            "event": "control_activated",
+            "targetId": "test_switch_toggle",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-orion-01",
+            "missionId": "l0-safety-v1",
+            "timestampMs": 12650,
+            "event": "control_activated",
+            "targetId": "test_dial",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-orion-01",
+            "missionId": "l0-safety-v1",
+            "timestampMs": 15947,
+            "event": "object_grabbed",
+            "targetId": "check_tool",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-orion-01",
+            "missionId": "l0-safety-v1",
+            "timestampMs": 22421,
+            "event": "object_placed",
+            "targetId": "tool_bay_slot",
+            "input": "gaze",
+            "result": "correct"
+        }
+    ],
+    "callsign": "ORION"
+}

@@ -1,0 +1,110 @@
+{
+    "sessionId": "sample-kepler-01",
+    "missionId": "l6-robotics-v1",
+    "result": {
+        "sessionId": "sample-kepler-01",
+        "missionId": "l6-robotics-v1",
+        "passed": true,
+        "completedSteps": [
+            "open_checklist",
+            "arm_power",
+            "camera_view",
+            "shoulder",
+            "wrist",
+            "capture",
+            "brakes",
+            "report"
+        ],
+        "skippedSteps": [],
+        "omittedCriticalSteps": [],
+        "sequenceErrors": [
+            "camera_view"
+        ],
+        "incorrectActions": [],
+        "completionTimeMs": 36393
+    },
+    "events": [
+        {
+            "sessionId": "sample-kepler-01",
+            "missionId": "l6-robotics-v1",
+            "timestampMs": 2742,
+            "event": "checklist_opened",
+            "targetId": "robotics_checklist",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-kepler-01",
+            "missionId": "l6-robotics-v1",
+            "timestampMs": 5615,
+            "event": "control_activated",
+            "targetId": "camera_two_button",
+            "input": "gaze",
+            "result": "incorrect"
+        },
+        {
+            "sessionId": "sample-kepler-01",
+            "missionId": "l6-robotics-v1",
+            "timestampMs": 9311,
+            "event": "control_activated",
+            "targetId": "arm_power_toggle",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-kepler-01",
+            "missionId": "l6-robotics-v1",
+            "timestampMs": 15301,
+            "event": "control_activated",
+            "targetId": "camera_two_button",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-kepler-01",
+            "missionId": "l6-robotics-v1",
+            "timestampMs": 20021,
+            "event": "control_activated",
+            "targetId": "shoulder_dial",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-kepler-01",
+            "missionId": "l6-robotics-v1",
+            "timestampMs": 25670,
+            "event": "control_activated",
+            "targetId": "wrist_dial",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-kepler-01",
+            "missionId": "l6-robotics-v1",
+            "timestampMs": 28321,
+            "event": "control_activated",
+            "targetId": "capture_lever",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-kepler-01",
+            "missionId": "l6-robotics-v1",
+            "timestampMs": 33774,
+            "event": "control_activated",
+            "targetId": "arm_brake_button",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-kepler-01",
+            "missionId": "l6-robotics-v1",
+            "timestampMs": 36393,
+            "event": "status_reported",
+            "targetId": "robotics_report_button",
+            "input": "gaze",
+            "result": "correct"
+        }
+    ],
+    "callsign": "KEPLER"
+}

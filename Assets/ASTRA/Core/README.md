@@ -1,8 +1,8 @@
 # Core: how the logic works
 
-`Assets/ASTRA/Core` holds the logic behind ASTRA Academy. It decides whether each cadet action was right, scores each attempt, runs the fictional power fault, and saves progress.
+`Assets/ASTRA/Core` holds the logic behind ASTRA Academy. It decides whether each cadet action was right, scores each attempt (pass or retry, then a 0–100 score and a medal), runs the fictional power fault, and saves progress.
 
-It's plain C# with **no Unity code** (`noEngineReferences: true`). It uses no clock, no randomness and no global state, so the same input always gives the same output (NFR-QUAL-01). AI coach output never reaches it (FR-AI-04, FR-SIM-04). The exact shapes are in [`CONTRACT.md`](../../../CONTRACT.md) §1–§6; this page explains how the code behaves.
+It's plain C# with **no Unity code** (`noEngineReferences: true`). It uses no clock and no randomness, so the same input always gives the same output (NFR-QUAL-01). The only global state is `ProgressService`, the one app-wide holder of the cadet's saved progress. AI coach output never reaches it (FR-AI-04, FR-SIM-04). The exact shapes are in [`CONTRACT.md`](../../../CONTRACT.md) §1–§6; this page explains how the code behaves.
 
 | File | What it does |
 |---|---|
@@ -14,7 +14,10 @@ It's plain C# with **no Unity code** (`noEngineReferences: true`). It uses no cl
 | `Simulation/PowerBusSimulation.cs` | The power fault: Faulted → Isolated → Restored. |
 | `Simulation/PowerPanelModel.cs` | What the L4/L7 power panel shows (state, STATUS text, caution alarm) through a whole module. |
 | `Progress/ProgressRules.cs` | What a scored attempt changes: attempts, pass, best time, next level unlocked. |
-| `Progress/FileProgressStore.cs` | Saves and loads `progress.json` so that a crash or a broken file never loses progress. |
+| `Assessment/ResultRating.cs` | The player score 0–100 and Gold/Silver/Bronze, explained line by line ([`docs/SCORING.md`](../../../docs/SCORING.md)). Never changes `passed`. |
+| `Progress/ProgressService.cs` | **The facade the app uses for progress:** unlocks, best score and medal, Academy score, "Demo: unlock all", callsign, reset. |
+| `Progress/FileProgressStore.cs` | Saves and loads `progress.json` so that a crash or a broken file never loses progress. Used on the phone. |
+| `Progress/KeyValueProgressStore.cs` | Saves progress as one string through functions the caller passes in, e.g. one PlayerPrefs key. Used in the browser build and the Editor. |
 
 ## The big picture
 
@@ -27,12 +30,12 @@ flowchart LR
     V -->|Apply, Correct only| P[PowerBusSimulation]
     L -->|end of Qualification: runner.Events| S[MissionScorer]
     S -->|SessionResult| D[Debrief and coach]
-    S -->|SessionResult| G[ProgressRules and FileProgressStore]
+    S -->|SessionResult| G[ProgressService: ResultRating, ProgressRules, store]
 ```
 
 1. During **Practice** and **Qualification**, every action the cadet takes goes to a fresh `MissionRunner`. It answers at once: correct, incorrect, out of order, or ignored, plus the hint for the step still pending. Practice shows that hint; Qualification does not.
 2. When **Qualification** ends, its events go to `MissionScorer`, which computes the result from scratch.
-3. The result goes to the debrief and the coach, then to `ProgressRules`, and finally `FileProgressStore` saves it.
+3. The result goes to the debrief (with `ResultRating`'s score and lines) and the coach, then to `ProgressService.Record`, which applies `ProgressRules`, keeps the best score and medal, and saves through the platform's store. `Assets/ASTRA/App/AcademyProgressBootstrap.cs` does this wiring at startup.
 
 ## 1. Event checks (`EventValidator`)
 
@@ -102,6 +105,13 @@ The runner and scorer share one rule, so the feedback during the attempt and the
 | `critical_step_omitted` | Presses Report without closing the cross-tie | **Fail**; `crosstie` and `verify_recovery` omitted |
 | `repeats_neutral_and_wrong` | Calibrates twice, pauses, grabs a tool, flips the wrong switch, stops | **Fail**; 5 critical steps omitted, `incorrectActions: [lights_switch]` |
 
+### The player score (`ResultRating`)
+`ResultRating.From(result, mission)` turns a `SessionResult` into a `ScoreBreakdown`: a 0–100 score, a `Rating` (None, Bronze, Silver, Gold) and the lines that explain it. Start at 100; −25 per missed critical step, −10 per out-of-order step, −8 per wrong control; −1 per full 5 s over par (8 s × steps, at most −15); +5 "Swift" under 70 % of par with no mistakes; capped at 100, at 59 when not passed, never below 0. Gold ≥ 90, Silver ≥ 75, Bronze = passed below 75, None = not passed.
+- The score always equals 100 plus the line points, so the debrief can explain every point.
+- It reads the result and never changes it; `passed` stays the scorer's (CONTRACT §5, DECISIONS D9).
+- An optional third argument names wrong controls with the layout's labels; by default the id is used (`aux_heater_toggle` → `AUX HEATER`).
+- The full explanation for judges and players is in [`docs/SCORING.md`](../../../docs/SCORING.md). The instructor dashboard (`tools/instructor-dashboard/aggregate.js`) has a JavaScript copy of the same rules.
+
 ## 5. Power-bus simulation (`PowerBusSimulation`)
 
 ```mermaid
@@ -136,9 +146,24 @@ The default control ids are L7's. A level with other ids uses `new PowerBusSimul
 - it sends the STATUS text through a `UnityEvent<string>`, which can be wired to any text component;
 - it calls `AlarmIndicator.SetAlarm` with the caption `CAUTION — POWER: BUS B FAULT`.
 
-The control ids are set in the Inspector. The view never calls the runner (CONTRACT.md §8.6). `LevelAttemptReset.cs` in the same folder resets the panel's controls at the start of each attempt. The L4 and L7 folders each have a README with the full scene-build spec.
+The control ids are set in the Inspector. The view never calls the runner (CONTRACT.md §8.6). `LevelAttemptReset.cs` in the same folder resets the panel's controls at the start of each attempt.
 
-## 6. Progress (`ProgressRules`, `FileProgressStore`)
+**In the generated scenes** (the level factory, `ASTRA → Build all level scenes from layouts`), the factory attaches `L4EmergencyView` / `L7FinaleView` instead. Both extend `Levels/L4_Emergency/PowerFaultLevelView.cs`, which drives the same `PowerPanelModel` and adds the drama: the alarm stays on from the fault until the cross-tie, the cabin lights dim to 35 %, the CAUTION light flashes at 1.5 Hz until ACK, and the BUS B and STATUS labels follow the state. The L4 and L7 folders each have a README.
+
+## 6. Progress (`ProgressService`, `ProgressRules`, the stores)
+
+**The facade.** The app talks only to `ProgressService`:
+
+| Call | What it does |
+|---|---|
+| `Initialize(store, availableLevels)` | Loads progress once at startup. Never throws: a broken or missing save gives a fresh state. |
+| `Record(level, result, mission)` | One scored Qualification: applies `ProgressRules` (below), keeps the best score and medal (a pass always beats a fail), saves. Returns the breakdown and whether it is a new best. |
+| `IsUnlocked(level)` | L0 always; level N once level N−1 is passed; any level unlocked earlier; every level while `DemoUnlockAll` is on. |
+| `IsPassed`, `Get`, `BestScore` (−1 = never scored), `BestRating`, `AcademyScore` | Reads for the Hub, debrief and certificate. They allocate nothing, so they can run every frame. |
+| `DemoUnlockAll`, `Callsign`, `ResetAll()` | Saved settings. Reset keeps the callsign. |
+| `LastSaveError`, `Changed` | A failed save is reported, never thrown; `Changed` fires after every change. |
+
+The saved fields `demoUnlockAll`, `callsign`, `scored`, `bestScore` and `bestRating` are additions to CONTRACT §6's shape, and older saves still load.
 
 **Rules.** `ProgressRules.RecordAttempt(state, level, missionId, result, availableLevels)` changes `state` in place:
 - `attempts` goes up by 1;
@@ -146,7 +171,11 @@ The control ids are set in the Inspector. The view never calls the runner (CONTR
 - a failed attempt never takes away a pass or a best time already earned;
 - `unlockedLevels` stays sorted with no duplicates, and level 0 is always unlocked.
 
-**Saving.** `new FileProgressStore(Application.persistentDataPath, JsonUtility.ToJson, JsonUtility.FromJson<ProgressState>)`. The JSON functions are passed in, so Core never touches Unity.
+**Saving.** `AcademyProgressBootstrap` picks the store per platform:
+- **Phone:** `new FileProgressStore(Application.persistentDataPath, JsonUtility.ToJson, JsonUtility.FromJson<ProgressState>)`.
+- **Browser (WebGL) and Editor:** `KeyValueProgressStore` over one PlayerPrefs key. Files in a WebGL build only reach the browser's storage after an explicit sync, so they could be lost on reload, while `PlayerPrefs.Save()` writes to the browser's storage. Unreadable or missing data loads a fresh state.
+
+The JSON functions are passed in, so Core never touches Unity. The file store works as follows.
 
 `Save` makes three moves, and each crash point leaves something `Load` can handle:
 
@@ -162,11 +191,11 @@ The control ids are set in the Inspector. The view never calls the runner (CONTR
 - **Read error:** a fresh state is returned.
 - **`LastLoadWarning`** explains why, whenever the load wasn't normal, so the caller can log it.
 
-`Save` *can* throw an `IOException`, for example when the disk is full. The caller should catch it, log it and tell the cadet.
+`Save` *can* throw an `IOException`, for example when the disk is full. `ProgressService` catches it and reports it in `LastSaveError`; the game carries on with the progress in memory.
 
 ## 7. Tests
 
-The tests are in `Assets/ASTRA/Tests/EditMode/`: 224 of them, built on the contract fixtures, the L4/L7 missions and seeded random attempts. They cover:
+The tests are in `Assets/ASTRA/Tests/EditMode/`: 319 of them, built on the contract fixtures, the L2/L4/L7 missions and seeded random attempts. They cover:
 - every fixture and all 4 scoring cases;
 - the runner and scorer agreeing on every case;
 - determinism (same input, same result);
@@ -183,14 +212,20 @@ The tests are in `Assets/ASTRA/Tests/EditMode/`: 224 of them, built on the contr
   - the runner and scorer agree;
   - scoring a prefix never contradicts the full attempt;
   - the stored `result` field is ignored;
-- **edge cases** (`EdgeCaseTests`): single-step and all-optional-but-one missions, gaps in `order`, actions after completion, attempts of only neutral actions, equal timestamps, times beyond `int.MaxValue`, and odd target ids (kept as data).
+- **edge cases** (`EdgeCaseTests`): single-step and all-optional-but-one missions, gaps in `order`, actions after completion, attempts of only neutral actions, equal timestamps, times beyond `int.MaxValue`, and odd target ids (kept as data);
+- **the player score** (`ResultRatingTests`): each rule, the caps, the medal thresholds, and 2,000 seeded results that are always explained by their lines;
+- **progress** (`ProgressServiceTests`): unlocks, best score and medal, demo mode, reset, callsign, saves that survive a reload, corrupt, empty and unreadable saves, and failed saves;
+- **L4 and L7 traces** (`L4L7TraceReplayTests`): runner, panel model, scorer and score together, plus the layout files checked against the missions;
+- **hardening** (`HardeningTests`): pausing anywhere, repeated presses, spam, the wrong bus, a second tool, the wrong tool or socket, fresh attempts, and no per-frame allocations.
+
+The generated L4 and L7 scenes have PlayMode tests in `Levels/L4_Emergency/Tests/PlayMode/`: the drama, pausing in every phase, skip/finish/retry spam, and the wrong bus scored and saved.
 
 A bug was deliberately planted in each part to confirm the tests catch it.
 
 **C# vs the Python reference.** On 2026-11-14, 4,000 random attempts on L7 and L4 (1,247 passing, 2,753 failing) were scored by this C# code and by `scripts/validate_content.py`. They gave the same result, and the same per-event `result`, on all 4,000, with 0 mismatches.
 
 ### Determinism and performance review (S4.1, S4.2)
-- **Pure:** Core uses no clock, randomness, static mutable state, `UnityEngine` or I/O. The one exception is `FileProgressStore`, which only reads and writes `progress.json`.
+- **Pure:** Core uses no clock, randomness, `UnityEngine` or I/O. The exceptions are `FileProgressStore`, which only reads and writes `progress.json`, and `ProgressService`, the one static holder of the loaded progress.
 - **Exceptions mean bad input only.** Normal play, including wrong, repeated or out-of-order actions, never throws.
 - **Allocation:** `MissionRunner.Report` makes two small objects per action, the logged `SessionEvent` and the returned `StepFeedback`, both needed. It uses no LINQ. Error-message strings are built only when input is invalid. The scorer allocates only a sorted copy of the step list and its result lists.
 - **Speed:** scoring a 500-action attempt takes a median of **0.13 ms** in Unity 6000.3.28f1 on the development laptop (0.1 ms in the .NET harness, median of 21 runs). Running the same 500 actions live takes about 0.18 ms. The budget is 5 ms on the headset; that number still has to be measured on the device.
@@ -198,7 +233,7 @@ A bug was deliberately planted in each part to confirm the tests catch it.
 ### Running the tests
 - **In Unity:** Window → General → Test Runner → EditMode → Run All. From a terminal: `"<Unity editor>" -batchmode -projectPath . -runTests -testPlatform EditMode -testResults editmode-results.xml`
 - **Outside Unity:** any .NET test project that compiles these files with NUnit 3 can run them. Set the environment variable `ASTRA_REPO_ROOT` to the repo root; `TestJson` and `FixtureLoader` switch to `System.Text.Json` automatically.
-- **Status (2026-11-14):** all 224 tests pass in **Unity 6000.3.28f1** (batch mode, no compiler warnings) and in a .NET 10 harness. Nothing has run on a headset yet.
+- **Status (2026-11-15):** all Core tests pass in **Unity 6000.3.28f1** (batch mode) and in a .NET 10 harness, and the L4/L7 PlayMode tests pass in the Editor. Nothing has run on a phone yet.
 
 ## 8. Changing a rule
 

@@ -1,0 +1,79 @@
+{
+    "sessionId": "sample-vega-01",
+    "missionId": "l0-safety-v1",
+    "result": {
+        "sessionId": "sample-vega-01",
+        "missionId": "l0-safety-v1",
+        "passed": true,
+        "completedSteps": [
+            "locate_placard",
+            "press_ready",
+            "flip_test_switch",
+            "set_test_dial",
+            "grab_check_tool",
+            "place_check_tool"
+        ],
+        "skippedSteps": [],
+        "omittedCriticalSteps": [],
+        "sequenceErrors": [],
+        "incorrectActions": [],
+        "completionTimeMs": 11169
+    },
+    "events": [
+        {
+            "sessionId": "sample-vega-01",
+            "missionId": "l0-safety-v1",
+            "timestampMs": 1659,
+            "event": "target_located",
+            "targetId": "safety_placard_panel",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-01",
+            "missionId": "l0-safety-v1",
+            "timestampMs": 3518,
+            "event": "control_activated",
+            "targetId": "ready_button",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-01",
+            "missionId": "l0-safety-v1",
+            "timestampMs": 5453,
+            "event": "control_activated",
+            "targetId": "test_switch_toggle",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-01",
+            "missionId": "l0-safety-v1",
+            "timestampMs": 7544,
+            "event": "control_activated",
+            "targetId": "test_dial",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-01",
+            "missionId": "l0-safety-v1",
+            "timestampMs": 9591,
+            "event": "object_grabbed",
+            "targetId": "check_tool",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-01",
+            "missionId": "l0-safety-v1",
+            "timestampMs": 11169,
+            "event": "object_placed",
+            "targetId": "tool_bay_slot",
+            "input": "simulator",
+            "result": "correct"
+        }
+    ],
+    "callsign": "VEGA"
+}

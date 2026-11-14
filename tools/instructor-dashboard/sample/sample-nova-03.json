@@ -1,0 +1,110 @@
+{
+    "sessionId": "sample-nova-03",
+    "missionId": "l7-restore-power-v1",
+    "result": {
+        "sessionId": "sample-nova-03",
+        "missionId": "l7-restore-power-v1",
+        "passed": true,
+        "completedSteps": [
+            "calibrate",
+            "locate_panel",
+            "ack_warning",
+            "open_checklist",
+            "identify_bus",
+            "isolate_bus",
+            "crosstie",
+            "verify_recovery"
+        ],
+        "skippedSteps": [],
+        "omittedCriticalSteps": [],
+        "sequenceErrors": [],
+        "incorrectActions": [
+            "power_bus_a"
+        ],
+        "completionTimeMs": 38401
+    },
+    "events": [
+        {
+            "sessionId": "sample-nova-03",
+            "missionId": "l7-restore-power-v1",
+            "timestampMs": 1935,
+            "event": "calibration_completed",
+            "targetId": "calibration",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-nova-03",
+            "missionId": "l7-restore-power-v1",
+            "timestampMs": 7883,
+            "event": "target_located",
+            "targetId": "power_distribution_panel",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-nova-03",
+            "missionId": "l7-restore-power-v1",
+            "timestampMs": 13856,
+            "event": "control_activated",
+            "targetId": "caution_ack_button",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-nova-03",
+            "missionId": "l7-restore-power-v1",
+            "timestampMs": 17163,
+            "event": "checklist_opened",
+            "targetId": "power_fault_checklist",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-nova-03",
+            "missionId": "l7-restore-power-v1",
+            "timestampMs": 23073,
+            "event": "target_selected",
+            "targetId": "power_bus_b",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-nova-03",
+            "missionId": "l7-restore-power-v1",
+            "timestampMs": 26570,
+            "event": "control_activated",
+            "targetId": "power_bus_b_selector",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-nova-03",
+            "missionId": "l7-restore-power-v1",
+            "timestampMs": 31621,
+            "event": "control_activated",
+            "targetId": "crosstie_breaker",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-nova-03",
+            "missionId": "l7-restore-power-v1",
+            "timestampMs": 34677,
+            "event": "control_activated",
+            "targetId": "power_bus_a",
+            "input": "gaze",
+            "result": "incorrect"
+        },
+        {
+            "sessionId": "sample-nova-03",
+            "missionId": "l7-restore-power-v1",
+            "timestampMs": 38401,
+            "event": "status_reported",
+            "targetId": "comms_report_button",
+            "input": "gaze",
+            "result": "correct"
+        }
+    ],
+    "callsign": "NOVA"
+}

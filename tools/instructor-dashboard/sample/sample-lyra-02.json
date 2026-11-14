@@ -1,0 +1,80 @@
+{
+    "sessionId": "sample-lyra-02",
+    "missionId": "l1-orientation-v1",
+    "result": {
+        "sessionId": "sample-lyra-02",
+        "missionId": "l1-orientation-v1",
+        "passed": true,
+        "completedSteps": [
+            "locate_comms",
+            "locate_power",
+            "locate_life_support",
+            "locate_stowage",
+            "open_checklist"
+        ],
+        "skippedSteps": [],
+        "omittedCriticalSteps": [],
+        "sequenceErrors": [],
+        "incorrectActions": [
+            "comms_volume_dial"
+        ],
+        "completionTimeMs": 27043
+    },
+    "events": [
+        {
+            "sessionId": "sample-lyra-02",
+            "missionId": "l1-orientation-v1",
+            "timestampMs": 2979,
+            "event": "target_located",
+            "targetId": "comms_panel",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-lyra-02",
+            "missionId": "l1-orientation-v1",
+            "timestampMs": 7774,
+            "event": "control_activated",
+            "targetId": "comms_volume_dial",
+            "input": "gaze",
+            "result": "incorrect"
+        },
+        {
+            "sessionId": "sample-lyra-02",
+            "missionId": "l1-orientation-v1",
+            "timestampMs": 10935,
+            "event": "target_located",
+            "targetId": "power_panel",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-lyra-02",
+            "missionId": "l1-orientation-v1",
+            "timestampMs": 17409,
+            "event": "target_located",
+            "targetId": "life_support_panel",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-lyra-02",
+            "missionId": "l1-orientation-v1",
+            "timestampMs": 23561,
+            "event": "target_located",
+            "targetId": "stowage_panel",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-lyra-02",
+            "missionId": "l1-orientation-v1",
+            "timestampMs": 27043,
+            "event": "checklist_opened",
+            "targetId": "orientation_checklist",
+            "input": "gaze",
+            "result": "correct"
+        }
+    ],
+    "callsign": "LYRA"
+}

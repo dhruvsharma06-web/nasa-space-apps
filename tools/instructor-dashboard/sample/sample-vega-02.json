@@ -1,0 +1,110 @@
+{
+    "sessionId": "sample-vega-02",
+    "missionId": "l2-equipment-v1",
+    "result": {
+        "sessionId": "sample-vega-02",
+        "missionId": "l2-equipment-v1",
+        "passed": true,
+        "completedSteps": [
+            "locate_bay",
+            "grab_wrench",
+            "stow_wrench",
+            "latch_bay_1",
+            "grab_scanner",
+            "stow_scanner",
+            "latch_bay_2",
+            "report"
+        ],
+        "skippedSteps": [],
+        "omittedCriticalSteps": [],
+        "sequenceErrors": [],
+        "incorrectActions": [
+            "vent_purge_button"
+        ],
+        "completionTimeMs": 45051
+    },
+    "events": [
+        {
+            "sessionId": "sample-vega-02",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 1970,
+            "event": "target_located",
+            "targetId": "tool_stowage_panel",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-02",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 7670,
+            "event": "object_grabbed",
+            "targetId": "torque_wrench_tool",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-02",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 11857,
+            "event": "object_placed",
+            "targetId": "tool_bay_socket_1",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-02",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 16978,
+            "event": "control_activated",
+            "targetId": "bay_1_latch_toggle",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-02",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 22577,
+            "event": "object_grabbed",
+            "targetId": "inspection_scanner_tool",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-02",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 28641,
+            "event": "object_placed",
+            "targetId": "tool_bay_socket_2",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-02",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 33271,
+            "event": "control_activated",
+            "targetId": "vent_purge_button",
+            "input": "simulator",
+            "result": "incorrect"
+        },
+        {
+            "sessionId": "sample-vega-02",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 38756,
+            "event": "control_activated",
+            "targetId": "bay_2_latch_toggle",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-02",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 45051,
+            "event": "status_reported",
+            "targetId": "stowage_report_button",
+            "input": "simulator",
+            "result": "correct"
+        }
+    ],
+    "callsign": "VEGA"
+}
