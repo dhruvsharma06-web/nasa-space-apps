@@ -1,34 +1,25 @@
-# TASKS
+# TASKS (final sprint)
 
-Feature IDs map to PRD requirements. Owners are filled in at kickoff.
+Checkpoints: **C1** 03:00 · **C2** 10:00 · **C3** 14:00 · **Freeze** 17:00 · submit at deadline −2 h.
+Owners: P1 XR & Interaction · P2 Core · P3 Content, AI coach & team lead · P4 Levels L5/L6, QA & ship.
 
-| ID | Feature | Priority | PRD | Owner | Acceptance check |
-|---|---|---|---|---|---|
-| F0 | Unity project + interactive cube on the headset | P0 | §8.4, G-04 | Integration Lead | Grab a cube with a controller on the physical headset |
-| F1 | Interactable prefabs + XR rig + interaction bus | P0 | FR-XR-01/02/04/05 | XR & Interaction | Every action prints a contract event; controllers only |
-| F2 | Hand-tracking support (capability-gated) | P0* | FR-XR-03/08 | XR & Interaction | Works on the headset if supported; otherwise hidden, controllers still work |
-| F3 | UI: instruction, hint, alarm, phase, debrief, pause menu | P0 | FR-APP-02/03/04, FR-AS-04 | XR & Interaction | Debrief renders `fixtures/session-result.ok.json` correctly |
-| F4 | Hub with lock/unlock | P0 | FR-APP-01 | XR & Interaction | Passing L0 unlocks L1 |
-| F5 | Phase FSM, mission runner, scorer | P0 | FR-SIM-01, FR-AS-01/02/03 | Core Logic | All `fixtures/` oracle cases pass in EditMode tests |
-| F6 | Power-bus simulation | P0 | FR-SIM-03/05 | Core Logic | Fault → isolate → cross-tie → Restored, deterministic |
-| F7 | Progress save + unlock rules | P0 | FR-APP-05 | Core Logic | Kill app mid-save; progress still loads (AT-06) |
-| F8 | LevelController + level template + session log | P0 | §8, FR-AS-01 | Integration Lead | Any level runs Briefing → Debrief with the template |
-| F9 | Content style guide + review of all missions | P0 | §10 | Content & AI Coach | Every mission file passes the validator and the style checklist |
-| F10 | Offline coach | P0 | FR-AI-01 | Content & AI Coach | Debrief advice with no network, deterministic |
-| F11 | L0 Safety, L1 Orientation | P0 | §6 | XR & Interaction | Playable on the headset |
-| F12 | L3 Cabin | P0 | §6 | Content & AI Coach | Playable on the headset |
-| F13 | L4 Emergency, L7 Finale | P0 | §6, §6.1 | Core Logic | Playable on the headset; L7 scores match the oracle rules |
-| F14 | L2 Equipment | P1 | §6 | Content & AI Coach | Playable on the headset if grab tracking is reliable |
-| F15 | Coach proxy + HTTP coach client (Gemini) | P1 | FR-AI-02/03 | Content & AI Coach | Mock + real modes; falls back offline; no state change (AT-08) |
-| F16 | Session export JSON/CSV | P1 | FR-AS-05 | Integration Lead | Export re-scores identically (AT-07) |
-| F17 | L5 EVA, L6 Robotics | P2 | §6 | Integration Lead | Only after Sync 3 passes |
-
-## M0 platform spike checklist (blocks everything else)
-- [ ] Choose the primary headset + OS version (PRD §13 Q1)
-- [ ] Create the Unity 6 LTS project in this repo root (URP template)
-- [ ] Install OpenXR Plugin, XR Plug-in Management, XR Interaction Toolkit, Input System (+ XR Hands if supported)
-- [ ] Minimal stereo scene, tracked head pose, one grabbable cube, deployed to the headset
-- [ ] Test hand tracking on the device; controller fallback works
-- [ ] Record frame timing, tracking stability, comfort notes in `docs/STATUS.md`
-- [ ] Pin package versions in `Packages/manifest.json`; write the device test matrix
-- [ ] Record the decisions in `docs/DECISIONS.md`
+| ID | Task | Owner | Due | Acceptance check |
+|---|---|---|---|---|
+| S1 | Phone gaze rig (`IGazeTarget`, `GazeInteractor`, reticle, tap + dwell, recenter) | P1 | C1 editor / C2 phone | Full L3 run on the Irusu phone via gaze + tap |
+| S2 | Android build pipeline (`ASTRA → Build Android APK`) | P3 | C2 | APK installs and starts on the phone |
+| S3 | Hub scene: level cards, previews, locks, academy score, "Demo: unlock all" | P1 | C2 | PlayMode test: 8 cards, locks respected, unlock-all works |
+| S4 | L0 Safety & Calibration + L1 Orientation (mission + layout) | P1 | C1 data / C2 play | Validator OK; playthrough test passes |
+| S5 | L4 Emergency + L7 Finale layouts, views, alarm + lights drama | P2 | C1 data / C2 play | Playthrough test passes; trace-replay tests |
+| S6 | `ProgressService` + browser persistence | P2 | C2 | Pass L2, reload page, L3 still unlocked |
+| S7 | Score 0–100 + Gold/Silver/Bronze (`ResultRating`, `docs/SCORING.md`) | P2 | C2 | Rule tests; perfect run = 100 Gold |
+| S8 | Next level / Retry / Hub flow, pause menu, progress wiring, graduation certificate | P3 + P1 (UI) | C2 | Playthrough test continues into the next level |
+| S9 | Debrief score reveal + breakdown + medal | P1 | C3 | Matches `ScoreBreakdown`; readable on the phone |
+| S10 | Coach in Unity: offline coach, HTTP client with fallback, Ask (Practice only), debrief advice | P3 | C3 | Works with the network off; never changes the score |
+| S11 | Cinematic visuals: NASA Blue Marble Earth + clouds + atmosphere, star sky, sun flare, cabin dressing, mobile tier | P3 + P1 (art) | C3 | Screenshots reviewed; ≥ 60 fps browser, ≥ 50 fps phone |
+| S12 | Audio cues | P1 (clips) + P3 (hooks) | C3 | Every action has a sound; credits listed |
+| S13 | Instructor dashboard (offline HTML, sample data, CSV) + session log download | P2 + P3 | C3 | Loads sample data; aggregation tests |
+| S14 | L5/L6 text + view scripts | P4 | C2 | Validator OK; indicators react |
+| S15 | CI (validator, scoring tests, proxy tests) | P4 | C2 | Green on a PR |
+| S16 | Public web link (GitHub Pages) + APK release | P4 + P3 | C3 | Incognito test passes |
+| S17 | QA passes + first-timer test | P4 | C2, C3, 16:00 | `docs/QA.md` bug table, no open S1/S2 |
+| S18 | README, CREDITS, SUBMISSION, video, slides, trailer | P4 + P3 | 20:00 | Submitted; every link opens |
