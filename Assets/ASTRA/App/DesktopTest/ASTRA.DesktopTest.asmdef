@@ -1,0 +1,20 @@
+{
+  "name": "ASTRA.DesktopTest",
+  "rootNamespace": "Astra.DesktopTest",
+  "references": [
+    "ASTRA.Core",
+    "ASTRA.XR",
+    "ASTRA.App",
+    "Unity.InputSystem",
+    "Unity.TextMeshPro"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

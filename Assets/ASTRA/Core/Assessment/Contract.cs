@@ -37,8 +37,10 @@ namespace Astra.Core.Assessment
         public const string HandPinch = "hand_pinch";
         public const string HandGrab = "hand_grab";
         public const string Simulator = "simulator";
+        /// <summary>Phone VR (Cardboard): gaze reticle + tap. CONTRACT v1.4.</summary>
+        public const string Gaze = "gaze";
 
-        public static readonly string[] All = { ControllerRay, ControllerGrip, HandPinch, HandGrab, Simulator };
+        public static readonly string[] All = { ControllerRay, ControllerGrip, HandPinch, HandGrab, Simulator, Gaze };
     }
 
     /// <summary>Allowed values for SessionEvent.result (CONTRACT.md §1).</summary>
