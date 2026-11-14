@@ -12,6 +12,7 @@ It's plain C# with **no Unity code** (`noEngineReferences: true`). It uses no cl
 | `Assessment/MissionScorer.cs` | Turns a finished attempt's events into a `SessionResult` (pass or retry, and what went wrong). |
 | `Assessment/InMemoryEventLog.cs` | A simple append-only list of events. |
 | `Simulation/PowerBusSimulation.cs` | The power fault: Faulted → Isolated → Restored. |
+| `Simulation/PowerPanelModel.cs` | What the L4/L7 power panel shows (state, STATUS text, caution alarm) through a whole module. |
 | `Progress/ProgressRules.cs` | What a scored attempt changes: attempts, pass, best time, next level unlocked. |
 | `Progress/FileProgressStore.cs` | Saves and loads `progress.json` so that a crash or a broken file never loses progress. |
 
@@ -69,7 +70,7 @@ StepFeedback fb = runner.Report(eventName, targetId, input, timestampMs);
 // fb.StepId:  the step it matched (Correct / OutOfOrder), else null
 // fb.Hint:    hint of the step still pending AFTER this event (null when finished)
 runner.CurrentStep;  // next step to do, null when finished
-runner.IsComplete;   // true once every step is done or skipped
+runner.IsComplete;   // true once the last step is done (optional steps before it may have been skipped)
 runner.Events;       // read-only log, each event with its result stamped
 ```
 
@@ -113,16 +114,29 @@ stateDiagram-v2
 
 - Any other event changes nothing. `Apply` returns `true` only when the state changed, and `StateChanged` fires once per real change.
 - `InjectFault()` makes the bus Faulted **from any state**, so each attempt starts with a fresh fault. `Reset()` returns it to Nominal from any state.
-- **The level script applies only events the runner judged Correct.** That way a breaker pressed out of order never restores power, even if the simulation itself would allow it:
+- **The level script applies only events the runner judged Correct.** That way a breaker pressed out of order never restores power, even if the simulation itself would allow it. `PowerPanelModel` (below) does this for L4 and L7.
 
-```csharp
-// Level script (e.g. PowerPanelView), subscribed to LevelController events:
-void OnPhaseChanged(ModulePhase p) { if (p == ModulePhase.Practice || p == ModulePhase.Qualification) sim.InjectFault(); }
-void OnEventRecorded(SessionEvent e, StepFeedback fb) { if (fb.Outcome == StepOutcome.Correct) sim.Apply(e.@event, e.targetId); }
-// sim.StateChanged drives the lights and the alarm.
-```
+The default control ids are L7's. A level with other ids uses `new PowerBusSimulation(isolateTargetId, crossTieTargetId)`. L4, for example, uses `power_bus_b_dial` and `crosstie_lever`.
 
-The default control ids are L7's. A level with other ids uses `new PowerBusSimulation(isolateTargetId, crossTieTargetId)`.
+### The power panel (`PowerPanelModel` + `PowerPanelView`)
+
+`PowerPanelModel` wraps the simulation and decides everything the panel shows. Being plain C#, it is tested like the rest of Core:
+
+| Moment | Panel |
+|---|---|
+| Practice or Qualification starts | A fresh fault: STATUS `FAULT`, caution alarm **on** |
+| Correct ACK on `caution_ack_button` | Alarm **off**; the fault is still there (acknowledging is not fixing) |
+| Correct isolate, then correct cross-tie | STATUS `ISOLATED`, then `RESTORED` |
+| Wrong, out-of-order or ignored action | Nothing changes |
+| Briefing or Demonstration (including a restart) | Back to `NOMINAL`, alarm off |
+| Debrief | Nothing changes, so the cadet sees how they left the panel |
+
+`Assets/ASTRA/Levels/L4_Emergency/PowerPanelView.cs` is the thin Unity side, used by both L4 and L7. It forwards the LevelController's `PhaseChanged` and `EventRecorded` to the model, then draws the result:
+- it shows the GameObjects listed for the current state (lights and labels);
+- it sends the STATUS text through a `UnityEvent<string>`, which can be wired to any text component;
+- it calls `AlarmIndicator.SetAlarm` with the caption `CAUTION — POWER: BUS B FAULT`.
+
+The control ids are set in the Inspector. The view never calls the runner (CONTRACT.md §8.6). `LevelAttemptReset.cs` in the same folder resets the panel's controls at the start of each attempt. The L4 and L7 folders each have a README with the full scene-build spec.
 
 ## 6. Progress (`ProgressRules`, `FileProgressStore`)
 
@@ -152,20 +166,39 @@ The default control ids are L7's. A level with other ids uses `new PowerBusSimul
 
 ## 7. Tests
 
-The tests are in `Assets/ASTRA/Tests/EditMode/`: 109 of them, all built on the contract fixtures. They cover:
+The tests are in `Assets/ASTRA/Tests/EditMode/`: 224 of them, built on the contract fixtures, the L4/L7 missions and seeded random attempts. They cover:
 - every fixture and all 4 scoring cases;
 - the runner and scorer agreeing on every case;
 - determinism (same input, same result);
 - every kind of invalid input;
 - every simulation transition and non-transition, including "only Correct events change the power";
 - the unlock and best-time rules;
-- the file store across every crash point and every kind of corrupt file.
+- the file store across every crash point and every kind of corrupt file;
+- the L4 mission played end to end, plus the style guide's countable limits on L4 and L7;
+- **rules that must always hold** (`InvariantTests`), checked on 500 random attempts per mission (seed 1234) for L7, L4 and three synthetic missions:
+  - every step ends up exactly once in completed, skipped or omitted;
+  - only critical steps are omitted;
+  - pass means nothing critical was missed;
+  - steps complete in mission order;
+  - the runner and scorer agree;
+  - scoring a prefix never contradicts the full attempt;
+  - the stored `result` field is ignored;
+- **edge cases** (`EdgeCaseTests`): single-step and all-optional-but-one missions, gaps in `order`, actions after completion, attempts of only neutral actions, equal timestamps, times beyond `int.MaxValue`, and odd target ids (kept as data).
 
 A bug was deliberately planted in each part to confirm the tests catch it.
 
+**C# vs the Python reference.** On 2026-11-14, 4,000 random attempts on L7 and L4 (1,247 passing, 2,753 failing) were scored by this C# code and by `scripts/validate_content.py`. They gave the same result, and the same per-event `result`, on all 4,000, with 0 mismatches.
+
+### Determinism and performance review (S4.1, S4.2)
+- **Pure:** Core uses no clock, randomness, static mutable state, `UnityEngine` or I/O. The one exception is `FileProgressStore`, which only reads and writes `progress.json`.
+- **Exceptions mean bad input only.** Normal play, including wrong, repeated or out-of-order actions, never throws.
+- **Allocation:** `MissionRunner.Report` makes two small objects per action, the logged `SessionEvent` and the returned `StepFeedback`, both needed. It uses no LINQ. Error-message strings are built only when input is invalid. The scorer allocates only a sorted copy of the step list and its result lists.
+- **Speed:** scoring a 500-action attempt takes a median of **0.13 ms** in Unity 6000.3.28f1 on the development laptop (0.1 ms in the .NET harness, median of 21 runs). Running the same 500 actions live takes about 0.18 ms. The budget is 5 ms on the headset; that number still has to be measured on the device.
+
+### Running the tests
 - **In Unity:** Window → General → Test Runner → EditMode → Run All. From a terminal: `"<Unity editor>" -batchmode -projectPath . -runTests -testPlatform EditMode -testResults editmode-results.xml`
 - **Outside Unity:** any .NET test project that compiles these files with NUnit 3 can run them. Set the environment variable `ASTRA_REPO_ROOT` to the repo root; `TestJson` and `FixtureLoader` switch to `System.Text.Json` automatically.
-- **Status (2026-11-14):** the tests have only run outside Unity, in a .NET 10 harness that compiles Core with Unity 6's limits (.NET Standard 2.1, C# 9). They have not run inside Unity or on a headset yet.
+- **Status (2026-11-14):** all 224 tests pass in **Unity 6000.3.28f1** (batch mode, no compiler warnings) and in a .NET 10 harness. Nothing has run on a headset yet.
 
 ## 8. Changing a rule
 
