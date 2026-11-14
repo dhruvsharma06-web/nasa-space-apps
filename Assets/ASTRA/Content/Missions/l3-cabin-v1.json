@@ -1,0 +1,16 @@
+{
+  "missionId": "l3-cabin-v1",
+  "level": 3,
+  "version": "1.0.0",
+  "title": "Cabin Familiarization: Configure the Crew Cabin",
+  "fictional": true,
+  "steps": [
+    { "stepId": "locate_panel",   "order": 1, "instruction": "Locate the CABIN CONTROL panel.",                 "hint": "It is the panel on your right at chest height, labelled CABIN CONTROL. It holds the cabin systems switches.",            "expectedEvent": "target_located",    "targetId": "cabin_control_panel",  "critical": false },
+    { "stepId": "lights_on",      "order": 2, "instruction": "Set CABIN LIGHTS to ON.",                         "hint": "The CABIN LIGHTS toggle is top-left on the CABIN CONTROL panel. Flip it up until the label shows ON.",                     "expectedEvent": "control_activated", "targetId": "cabin_lights_toggle",  "critical": true  },
+    { "stepId": "fan_low",        "order": 3, "instruction": "Set AIR FAN to LOW.",                             "hint": "Turn the AIR FAN dial until it points at LOW. Low keeps air circulating while keeping cabin noise down.",                 "expectedEvent": "control_activated", "targetId": "air_fan_dial",         "critical": true  },
+    { "stepId": "open_checklist", "order": 4, "instruction": "Open the CABIN SETUP checklist.",                  "hint": "Select the CHECKLIST tab on the display above the panels. A checklist lists every step so nothing is missed.",            "expectedEvent": "checklist_opened",  "targetId": "cabin_setup_checklist", "critical": false },
+    { "stepId": "select_comms",   "order": 5, "instruction": "Select the COMMS panel.",                          "hint": "COMMS is the panel to the left of CABIN CONTROL. Comms means communications with mission control.",                     "expectedEvent": "target_selected",   "targetId": "comms_panel",          "critical": true  },
+    { "stepId": "comms_check",    "order": 6, "instruction": "Press COMMS CHECK.",                               "hint": "COMMS CHECK is the top button on the COMMS panel. It sends a test call; the READY light turns green and shows READY.",     "expectedEvent": "control_activated", "targetId": "comms_check_button",   "critical": true  },
+    { "stepId": "report_ready",   "order": 7, "instruction": "Press REPORT to confirm the cabin is configured.", "hint": "REPORT is below COMMS CHECK on the COMMS panel. It tells mission control the cabin setup is complete.",                    "expectedEvent": "status_reported",   "targetId": "cabin_report_button",  "critical": true  }
+  ]
+}
