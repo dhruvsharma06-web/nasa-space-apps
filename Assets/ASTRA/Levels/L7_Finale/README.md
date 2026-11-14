@@ -1,0 +1,42 @@
+# L7 Integrated Mission "Restore Station Power": scene build spec
+
+**Owner:** Core Logic · **Mission:** [`l7-restore-power-v1`](../../Content/Missions/l7-restore-power-v1.json) · **Scene:** `L7_Finale.unity` (in this folder)
+
+The finale is the full power-fault procedure across several panels, with calibration first. In Qualification there are no hints. **This mission is the source of every contract fixture**, so its `stepId`s, events, targets, order and critical flags never change without a `CONTRACT CHANGE REQUEST`. Its wording can change; that's text only.
+
+The level reuses L4's scripts: `Levels/L4_Emergency/PowerPanelView.cs` and `LevelAttemptReset.cs`. Level scripts share one assembly.
+
+## Layout (seated; CONTRACT.md §8)
+Coordinates are metres from the XR rig origin: x is right, y is up, z is forward. Everything is within 0.7 m horizontally, 0.7–1.5 m high, and at least 6 cm. There are three panels: SAFETY in front, POWER on the left, COMMS on the right.
+
+| Object (label in CAPS) | P1 component | `targetId` | Event | Position (x, y, z) | Hint that refers to it |
+|---|---|---|---|---|---|
+| CALIBRATE button on the SAFETY panel | `ButtonTarget` with eventName `calibration_completed` | `calibration` | `calibration_completed` | (0, 1.00, 0.45) | "Look straight ahead, then press CALIBRATE" |
+| POWER panel (grey board, labelled POWER) | `LocatableTarget` | `power_distribution_panel` | `target_located` (1 s dwell) | (−0.42, 1.15, 0.40) | "the grey panel on your left, labelled POWER" |
+| CAUTION light + caption | UI `AlarmIndicator` prefab | (none) | (none) | (−0.48, 1.36, 0.38) | "the flashing CAUTION light" |
+| ACK button | `ButtonTarget` | `caution_ack_button` | `control_activated` | (−0.48, 1.25, 0.38) | "ACK under the flashing CAUTION light" |
+| CHECKLIST tab (display above the panel) | `ButtonTarget` with eventName `checklist_opened` | `power_fault_checklist` | `checklist_opened` | (−0.36, 1.44, 0.42) | "CHECKLIST tab on the display above the panel" |
+| BUS A display (wrong choice) | `ButtonTarget` with eventName `target_selected` | `power_bus_a` | `target_selected` | (−0.50, 1.10, 0.36) | (the fixtures' example mistake) |
+| BUS B display + FAULT light | `ButtonTarget` with eventName `target_selected` | `power_bus_b` | `target_selected` | (−0.36, 1.10, 0.40) | "the bus whose FAULT light is lit" |
+| BUS B selector (NORMAL / ISOLATE) | `DialTarget`: detents `{0, 90}`, `triggerDetent = 1` | `power_bus_b_selector` | `control_activated` on reaching ISOLATE | (−0.36, 0.98, 0.40) | "Turn the BUS B selector until it points at ISOLATE" |
+| CROSS-TIE breaker | `ButtonTarget` | `crosstie_breaker` | `control_activated` | (−0.24, 1.02, 0.44) | "Push the CROSS-TIE breaker in until it clicks" |
+| STATUS display (text) | UI `Text` fed by `PowerPanelView.onStatusText` | (none) | (none) | (−0.42, 0.90, 0.40) | "the STATUS display reads RESTORED" |
+| REPORT button on the COMMS panel | `ButtonTarget` with eventName `status_reported` | `comms_report_button` | `status_reported` | (0.40, 1.05, 0.45) | "REPORT is on the COMMS (communications) panel" |
+
+L7's target ids pre-date the style guide's naming (§5). They stay as they are because the fixtures use them. `power_bus_a` is the only id not in the mission.
+
+## Wiring
+1. **Start from the template:** copy `Levels/_Template/LevelTemplate.unity` to `L7_Finale.unity` here, and assign `missionJson = l7-restore-power-v1`.
+2. **PowerPanelView** (on the POWER panel root): keep the **default** ids (`power_bus_b_selector`, `crosstie_breaker`, `caution_ack_button`). Wire `Level Controller`, `Alarm`, the state objects and `On Status Text` as in the [L4 spec](../L4_Emergency/README.md#wiring).
+3. **LevelAttemptReset:** put it on a parent of all three panels, so every control resets each attempt.
+4. **Build Settings:** add the scene as `L7_Finale` (Integration Lead).
+
+## Done when
+- **In the Editor:** Briefing → Debrief runs end to end, and Qualification shows no hints.
+- **On the headset (Rayyan):**
+
+  | Run | Trace it should reproduce | Debrief must show |
+  |---|---|---|
+  | Demo run | `fixtures/session-events.ok.json` (Bus A first, then Bus B) | **PASS**, `incorrectActions: power_bus_a`; same as `fixtures/session-result.ok.json` |
+  | Breaker too early | Scoring case `out_of_order_then_fixed` | **PASS**, `sequenceErrors: crosstie`; power stays FAULT until the selector is turned |
+  | Stop before the breaker | Scoring case `critical_step_omitted` | **RETRY**, `crosstie` and `verify_recovery` omitted; STATUS stays `ISOLATED` |
