@@ -1,0 +1,83 @@
+{
+    "sessionId": "sample-atlas-02",
+    "missionId": "l3-cabin-v1",
+    "result": {
+        "sessionId": "sample-atlas-02",
+        "missionId": "l3-cabin-v1",
+        "passed": false,
+        "completedSteps": [
+            "locate_panel",
+            "lights_on",
+            "fan_low",
+            "open_checklist",
+            "select_comms"
+        ],
+        "skippedSteps": [],
+        "omittedCriticalSteps": [
+            "comms_check",
+            "report_ready"
+        ],
+        "sequenceErrors": [
+            "report_ready"
+        ],
+        "incorrectActions": [],
+        "completionTimeMs": 27047
+    },
+    "events": [
+        {
+            "sessionId": "sample-atlas-02",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 1947,
+            "event": "target_located",
+            "targetId": "cabin_control_panel",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-02",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 6751,
+            "event": "control_activated",
+            "targetId": "cabin_lights_toggle",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-02",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 11924,
+            "event": "control_activated",
+            "targetId": "air_fan_dial",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-02",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 18060,
+            "event": "checklist_opened",
+            "targetId": "cabin_setup_checklist",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-02",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 21368,
+            "event": "target_selected",
+            "targetId": "comms_panel",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-02",
+            "missionId": "l3-cabin-v1",
+            "timestampMs": 27047,
+            "event": "status_reported",
+            "targetId": "cabin_report_button",
+            "input": "gaze",
+            "result": "incorrect"
+        }
+    ],
+    "callsign": "ATLAS"
+}

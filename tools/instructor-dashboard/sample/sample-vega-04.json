@@ -1,0 +1,83 @@
+{
+    "sessionId": "sample-vega-04",
+    "missionId": "l4-emergency-v1",
+    "result": {
+        "sessionId": "sample-vega-04",
+        "missionId": "l4-emergency-v1",
+        "passed": false,
+        "completedSteps": [
+            "locate_panel",
+            "ack_caution",
+            "open_checklist",
+            "identify_bus",
+            "isolate_bus"
+        ],
+        "skippedSteps": [],
+        "omittedCriticalSteps": [
+            "close_crosstie",
+            "report_cleared"
+        ],
+        "sequenceErrors": [
+            "report_cleared"
+        ],
+        "incorrectActions": [],
+        "completionTimeMs": 24985
+    },
+    "events": [
+        {
+            "sessionId": "sample-vega-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 1635,
+            "event": "target_located",
+            "targetId": "power_panel",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 7358,
+            "event": "control_activated",
+            "targetId": "caution_ack_button",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 11879,
+            "event": "checklist_opened",
+            "targetId": "power_fault_checklist",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 16747,
+            "event": "target_selected",
+            "targetId": "power_bus_b_display",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 22280,
+            "event": "control_activated",
+            "targetId": "power_bus_b_dial",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-vega-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 24985,
+            "event": "status_reported",
+            "targetId": "power_report_button",
+            "input": "gaze",
+            "result": "incorrect"
+        }
+    ],
+    "callsign": "VEGA"
+}

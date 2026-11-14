@@ -1,0 +1,110 @@
+{
+    "sessionId": "sample-lyra-03",
+    "missionId": "l2-equipment-v1",
+    "result": {
+        "sessionId": "sample-lyra-03",
+        "missionId": "l2-equipment-v1",
+        "passed": true,
+        "completedSteps": [
+            "locate_bay",
+            "grab_wrench",
+            "stow_wrench",
+            "latch_bay_1",
+            "grab_scanner",
+            "stow_scanner",
+            "latch_bay_2",
+            "report"
+        ],
+        "skippedSteps": [],
+        "omittedCriticalSteps": [],
+        "sequenceErrors": [
+            "stow_wrench"
+        ],
+        "incorrectActions": [],
+        "completionTimeMs": 36116
+    },
+    "events": [
+        {
+            "sessionId": "sample-lyra-03",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 1732,
+            "event": "target_located",
+            "targetId": "tool_stowage_panel",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-lyra-03",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 4879,
+            "event": "object_placed",
+            "targetId": "tool_bay_socket_1",
+            "input": "gaze",
+            "result": "incorrect"
+        },
+        {
+            "sessionId": "sample-lyra-03",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 9016,
+            "event": "object_grabbed",
+            "targetId": "torque_wrench_tool",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-lyra-03",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 11653,
+            "event": "object_placed",
+            "targetId": "tool_bay_socket_1",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-lyra-03",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 17370,
+            "event": "control_activated",
+            "targetId": "bay_1_latch_toggle",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-lyra-03",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 21834,
+            "event": "object_grabbed",
+            "targetId": "inspection_scanner_tool",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-lyra-03",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 25907,
+            "event": "object_placed",
+            "targetId": "tool_bay_socket_2",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-lyra-03",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 30207,
+            "event": "control_activated",
+            "targetId": "bay_2_latch_toggle",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-lyra-03",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 36116,
+            "event": "status_reported",
+            "targetId": "stowage_report_button",
+            "input": "gaze",
+            "result": "correct"
+        }
+    ],
+    "callsign": "LYRA"
+}

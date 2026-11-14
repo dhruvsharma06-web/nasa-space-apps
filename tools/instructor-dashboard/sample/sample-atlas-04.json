@@ -1,0 +1,111 @@
+{
+    "sessionId": "sample-atlas-04",
+    "missionId": "l4-emergency-v1",
+    "result": {
+        "sessionId": "sample-atlas-04",
+        "missionId": "l4-emergency-v1",
+        "passed": true,
+        "completedSteps": [
+            "locate_panel",
+            "ack_caution",
+            "open_checklist",
+            "identify_bus",
+            "isolate_bus",
+            "close_crosstie",
+            "report_cleared"
+        ],
+        "skippedSteps": [],
+        "omittedCriticalSteps": [],
+        "sequenceErrors": [
+            "isolate_bus"
+        ],
+        "incorrectActions": [
+            "power_bus_a_display"
+        ],
+        "completionTimeMs": 37630
+    },
+    "events": [
+        {
+            "sessionId": "sample-atlas-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 1794,
+            "event": "target_located",
+            "targetId": "power_panel",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 5289,
+            "event": "control_activated",
+            "targetId": "caution_ack_button",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 8697,
+            "event": "checklist_opened",
+            "targetId": "power_fault_checklist",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 15105,
+            "event": "control_activated",
+            "targetId": "power_bus_b_dial",
+            "input": "simulator",
+            "result": "incorrect"
+        },
+        {
+            "sessionId": "sample-atlas-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 18210,
+            "event": "target_selected",
+            "targetId": "power_bus_b_display",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 23922,
+            "event": "control_activated",
+            "targetId": "power_bus_b_dial",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 28375,
+            "event": "control_activated",
+            "targetId": "power_bus_a_display",
+            "input": "simulator",
+            "result": "incorrect"
+        },
+        {
+            "sessionId": "sample-atlas-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 33525,
+            "event": "control_activated",
+            "targetId": "crosstie_lever",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 37630,
+            "event": "status_reported",
+            "targetId": "power_report_button",
+            "input": "simulator",
+            "result": "correct"
+        }
+    ],
+    "callsign": "ATLAS"
+}

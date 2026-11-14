@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ASTRA Academy · Instructor dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <div class="crest" aria-hidden="true">A</div>
+      <div>
+        <h1>Instructor dashboard</h1>
+        <p class="sub">ASTRA Academy · session logs stay on this computer · fictional training</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="load-sample" class="primary">Load sample data</button>
+      <label class="button" for="file-input" tabindex="0" role="button">Add session logs…</label>
+      <input id="file-input" type="file" accept=".json,application/json" multiple hidden>
+      <button id="export-csv" disabled>Export CSV</button>
+      <button id="clear" class="ghost" disabled>Clear</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="empty" class="card empty">
+      <h2>Drop session logs here</h2>
+      <p>Drag one or many session log files (<code>.json</code>) onto this page, or use <b>Add session logs…</b>.</p>
+      <ul>
+        <li><b>Phone:</b> the app's files folder, <code>SessionLogs/</code>.</li>
+        <li><b>Browser build:</b> the <b>Download session log</b> button in the debrief.</li>
+      </ul>
+      <p>To see the dashboard straight away, press <b>Load sample data</b> (24 fictional attempts).</p>
+    </section>
+
+    <div id="notice" class="notice" role="status" hidden></div>
+
+    <div id="content" hidden>
+      <div class="filters">
+        <label>Level <select id="filter-level"><option value="">All levels</option></select></label>
+        <label>Callsign <select id="filter-callsign"><option value="">All trainees</option></select></label>
+      </div>
+
+      <section class="card">
+        <h2>Cohort overview</h2>
+        <div id="kpis" class="kpis"></div>
+        <div class="medal-row">
+          <span class="label">Medals</span>
+          <div id="medal-bar" class="medal-bar"></div>
+        </div>
+        <table class="levels">
+          <thead><tr><th>Level</th><th>Attempts</th><th>Pass rate</th><th>Avg score</th><th>Avg time</th><th>Medals</th></tr></thead>
+          <tbody id="level-rows"></tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h2>Where trainees struggle</h2>
+        <div class="struggles">
+          <div><h3><span class="dot red"></span>Missed critical steps</h3><ol id="missed" class="rank"></ol></div>
+          <div><h3><span class="dot amber"></span>Out-of-order steps</h3><ol id="order" class="rank"></ol></div>
+          <div><h3><span class="dot red"></span>Wrong controls</h3><ol id="wrong" class="rank"></ol></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Attempts</h2>
+        <p class="hint">Select an attempt to see its timeline.</p>
+        <table class="attempts">
+          <thead><tr><th>Callsign</th><th>Level</th><th>Result</th><th>Score</th><th>Medal</th><th>Time</th><th>Mistakes</th></tr></thead>
+          <tbody id="attempt-rows"></tbody>
+        </table>
+        <div id="timeline" class="timeline" hidden>
+          <h3 id="timeline-title"></h3>
+          <div class="legend">
+            <span><span class="dot green"></span>correct</span>
+            <span><span class="dot amber"></span>out of order</span>
+            <span><span class="dot red"></span>wrong control</span>
+            <span><span class="dot grey"></span>no effect</span>
+          </div>
+          <div id="timeline-chart"></div>
+          <div class="timeline-cols">
+            <ol id="timeline-events" class="events"></ol>
+            <div>
+              <h4>Score breakdown</h4>
+              <ul id="timeline-lines" class="lines"></ul>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="drop" class="drop" hidden><div>Drop session logs to add them</div></div>
+
+  <script src="data/missions.js"></script>
+  <script src="sample/sample-data.js"></script>
+  <script src="aggregate.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+{
+    "sessionId": "sample-orion-02",
+    "missionId": "l1-orientation-v1",
+    "result": {
+        "sessionId": "sample-orion-02",
+        "missionId": "l1-orientation-v1",
+        "passed": true,
+        "completedSteps": [
+            "locate_comms",
+            "locate_power",
+            "locate_life_support",
+            "locate_stowage",
+            "open_checklist"
+        ],
+        "skippedSteps": [],
+        "omittedCriticalSteps": [],
+        "sequenceErrors": [],
+        "incorrectActions": [],
+        "completionTimeMs": 24959
+    },
+    "events": [
+        {
+            "sessionId": "sample-orion-02",
+            "missionId": "l1-orientation-v1",
+            "timestampMs": 1863,
+            "event": "target_located",
+            "targetId": "comms_panel",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-orion-02",
+            "missionId": "l1-orientation-v1",
+            "timestampMs": 8348,
+            "event": "target_located",
+            "targetId": "power_panel",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-orion-02",
+            "missionId": "l1-orientation-v1",
+            "timestampMs": 14068,
+            "event": "target_located",
+            "targetId": "life_support_panel",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-orion-02",
+            "missionId": "l1-orientation-v1",
+            "timestampMs": 18782,
+            "event": "target_located",
+            "targetId": "stowage_panel",
+            "input": "simulator",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-orion-02",
+            "missionId": "l1-orientation-v1",
+            "timestampMs": 24959,
+            "event": "checklist_opened",
+            "targetId": "orientation_checklist",
+            "input": "simulator",
+            "result": "correct"
+        }
+    ],
+    "callsign": "ORION"
+}

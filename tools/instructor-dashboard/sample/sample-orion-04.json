@@ -1,0 +1,89 @@
+{
+    "sessionId": "sample-orion-04",
+    "missionId": "l4-emergency-v1",
+    "result": {
+        "sessionId": "sample-orion-04",
+        "missionId": "l4-emergency-v1",
+        "passed": true,
+        "completedSteps": [
+            "locate_panel",
+            "ack_caution",
+            "open_checklist",
+            "identify_bus",
+            "isolate_bus",
+            "close_crosstie",
+            "report_cleared"
+        ],
+        "skippedSteps": [],
+        "omittedCriticalSteps": [],
+        "sequenceErrors": [],
+        "incorrectActions": [],
+        "completionTimeMs": 28483
+    },
+    "events": [
+        {
+            "sessionId": "sample-orion-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 1854,
+            "event": "target_located",
+            "targetId": "power_panel",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-orion-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 6475,
+            "event": "control_activated",
+            "targetId": "caution_ack_button",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-orion-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 10160,
+            "event": "checklist_opened",
+            "targetId": "power_fault_checklist",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-orion-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 15704,
+            "event": "target_selected",
+            "targetId": "power_bus_b_display",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-orion-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 20704,
+            "event": "control_activated",
+            "targetId": "power_bus_b_dial",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-orion-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 25669,
+            "event": "control_activated",
+            "targetId": "crosstie_lever",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-orion-04",
+            "missionId": "l4-emergency-v1",
+            "timestampMs": 28483,
+            "event": "status_reported",
+            "targetId": "power_report_button",
+            "input": "gaze",
+            "result": "correct"
+        }
+    ],
+    "callsign": "ORION"
+}

@@ -1,0 +1,99 @@
+{
+    "sessionId": "sample-atlas-01",
+    "missionId": "l2-equipment-v1",
+    "result": {
+        "sessionId": "sample-atlas-01",
+        "missionId": "l2-equipment-v1",
+        "passed": true,
+        "completedSteps": [
+            "locate_bay",
+            "grab_wrench",
+            "stow_wrench",
+            "latch_bay_1",
+            "grab_scanner",
+            "stow_scanner",
+            "latch_bay_2",
+            "report"
+        ],
+        "skippedSteps": [],
+        "omittedCriticalSteps": [],
+        "sequenceErrors": [],
+        "incorrectActions": [],
+        "completionTimeMs": 29506
+    },
+    "events": [
+        {
+            "sessionId": "sample-atlas-01",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 2193,
+            "event": "target_located",
+            "targetId": "tool_stowage_panel",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-01",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 8358,
+            "event": "object_grabbed",
+            "targetId": "torque_wrench_tool",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-01",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 10995,
+            "event": "object_placed",
+            "targetId": "tool_bay_socket_1",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-01",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 14540,
+            "event": "control_activated",
+            "targetId": "bay_1_latch_toggle",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-01",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 17797,
+            "event": "object_grabbed",
+            "targetId": "inspection_scanner_tool",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-01",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 23236,
+            "event": "object_placed",
+            "targetId": "tool_bay_socket_2",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-01",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 26624,
+            "event": "control_activated",
+            "targetId": "bay_2_latch_toggle",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-atlas-01",
+            "missionId": "l2-equipment-v1",
+            "timestampMs": 29506,
+            "event": "status_reported",
+            "targetId": "stowage_report_button",
+            "input": "gaze",
+            "result": "correct"
+        }
+    ],
+    "callsign": "ATLAS"
+}

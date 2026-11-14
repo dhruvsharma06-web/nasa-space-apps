@@ -1,0 +1,109 @@
+{
+    "sessionId": "sample-nova-02",
+    "missionId": "l5-eva-v1",
+    "result": {
+        "sessionId": "sample-nova-02",
+        "missionId": "l5-eva-v1",
+        "passed": true,
+        "completedSteps": [
+            "locate_airlock",
+            "open_checklist",
+            "grab_tether",
+            "clip_tether",
+            "tether_check",
+            "suit_pressure",
+            "grab_tool",
+            "stow_tool",
+            "report_ready"
+        ],
+        "skippedSteps": [],
+        "omittedCriticalSteps": [],
+        "sequenceErrors": [],
+        "incorrectActions": [],
+        "completionTimeMs": 37855
+    },
+    "events": [
+        {
+            "sessionId": "sample-nova-02",
+            "missionId": "l5-eva-v1",
+            "timestampMs": 2142,
+            "event": "target_located",
+            "targetId": "airlock_panel",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-nova-02",
+            "missionId": "l5-eva-v1",
+            "timestampMs": 4776,
+            "event": "checklist_opened",
+            "targetId": "eva_checklist",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-nova-02",
+            "missionId": "l5-eva-v1",
+            "timestampMs": 11033,
+            "event": "object_grabbed",
+            "targetId": "tether_hook_tool",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-nova-02",
+            "missionId": "l5-eva-v1",
+            "timestampMs": 14732,
+            "event": "object_placed",
+            "targetId": "tether_anchor_socket",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-nova-02",
+            "missionId": "l5-eva-v1",
+            "timestampMs": 20487,
+            "event": "control_activated",
+            "targetId": "tether_check_button",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-nova-02",
+            "missionId": "l5-eva-v1",
+            "timestampMs": 25534,
+            "event": "control_activated",
+            "targetId": "suit_pressure_dial",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-nova-02",
+            "missionId": "l5-eva-v1",
+            "timestampMs": 29896,
+            "event": "object_grabbed",
+            "targetId": "pistol_grip_tool",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-nova-02",
+            "missionId": "l5-eva-v1",
+            "timestampMs": 33709,
+            "event": "object_placed",
+            "targetId": "tool_caddy_socket",
+            "input": "gaze",
+            "result": "correct"
+        },
+        {
+            "sessionId": "sample-nova-02",
+            "missionId": "l5-eva-v1",
+            "timestampMs": 37855,
+            "event": "status_reported",
+            "targetId": "eva_report_button",
+            "input": "gaze",
+            "result": "correct"
+        }
+    ],
+    "callsign": "NOVA"
+}

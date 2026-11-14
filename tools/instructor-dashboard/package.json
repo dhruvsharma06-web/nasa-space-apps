@@ -1,0 +1,10 @@
+{
+  "name": "astra-instructor-dashboard",
+  "private": true,
+  "type": "commonjs",
+  "description": "Offline instructor dashboard for ASTRA Academy session logs (open index.html; no build step)",
+  "scripts": {
+    "test": "node test.mjs",
+    "sample": "node make-sample.mjs"
+  }
+}
