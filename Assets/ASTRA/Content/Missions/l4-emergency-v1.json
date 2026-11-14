@@ -1,0 +1,16 @@
+{
+  "missionId": "l4-emergency-v1",
+  "level": 4,
+  "version": "1.0.0",
+  "title": "Emergency Response: Clear a Power Bus Fault",
+  "fictional": true,
+  "steps": [
+    { "stepId": "locate_panel",   "order": 1, "instruction": "Locate the POWER panel.",                            "hint": "The POWER panel is straight ahead at chest height. It shows each power bus, a line that feeds power to a group of systems.", "expectedEvent": "target_located",    "targetId": "power_panel",           "critical": false },
+    { "stepId": "ack_caution",    "order": 2, "instruction": "Acknowledge the POWER caution.",                     "hint": "Press ACK under the flashing CAUTION light on the POWER panel. Acknowledging confirms you have seen the alarm; it does not fix the fault.", "expectedEvent": "control_activated", "targetId": "caution_ack_button",    "critical": true  },
+    { "stepId": "open_checklist", "order": 3, "instruction": "Open the POWER FAULT checklist.",                    "hint": "Select the CHECKLIST tab on the display above the POWER panel. The checklist lists every step of the procedure, so nothing is missed.", "expectedEvent": "checklist_opened",  "targetId": "power_fault_checklist", "critical": false },
+    { "stepId": "identify_bus",   "order": 4, "instruction": "Select the faulted power bus.",                      "hint": "Read the caption under the CAUTION light: it names the bus. Select that bus display, the one whose FAULT light is lit.", "expectedEvent": "target_selected",   "targetId": "power_bus_b_display",   "critical": true  },
+    { "stepId": "isolate_bus",    "order": 5, "instruction": "Set BUS B to ISOLATE.",                              "hint": "Turn the BUS B dial below the bus display until it points at ISOLATE. Isolating disconnects the faulted bus so the fault cannot spread.", "expectedEvent": "control_activated", "targetId": "power_bus_b_dial",      "critical": true  },
+    { "stepId": "close_crosstie", "order": 6, "instruction": "Set CROSS-TIE to CLOSED.",                           "hint": "Pull the CROSS-TIE lever on the right of the POWER panel down to CLOSED. The cross-tie lets healthy Bus A feed Bus B systems.", "expectedEvent": "control_activated", "targetId": "crosstie_lever",        "critical": true  },
+    { "stepId": "report_cleared", "order": 7, "instruction": "Press REPORT when the STATUS display shows RESTORED.", "hint": "First check that the STATUS display reads RESTORED. REPORT is the button below it; pressing it tells mission control the fault is cleared.", "expectedEvent": "status_reported",   "targetId": "power_report_button",   "critical": true  }
+  ]
+}
