@@ -1,4 +1,4 @@
-# CONTRACT v1.1 — ASTRA Academy
+# CONTRACT v1.2 — ASTRA Academy
 
 **Owner:** Integration Lead. Nobody else edits this file. To change it, open an issue titled `CONTRACT CHANGE REQUEST` (see §11).
 **Rule:** every boundary between owners is coded against this file from day one. Mocks and stubs return these exact shapes.
@@ -208,12 +208,13 @@ The proxy holds `GEMINI_API_KEY`; the Unity app never does (NFR-SEC-02). Coach o
 ```json
 { "error": { "code": "UPSTREAM_UNAVAILABLE", "message": "Readable message", "details": [] } }
 ```
-Codes: `INVALID_INPUT 400 | PAYLOAD_TOO_LARGE 413 | RATE_LIMITED 429 | UPSTREAM_UNAVAILABLE 503 | INTERNAL 500`. Fixture: `fixtures/coach-debrief.error.json`.
+Codes: `INVALID_INPUT 400 | NOT_FOUND 404 | PAYLOAD_TOO_LARGE 413 | RATE_LIMITED 429 | UPSTREAM_UNAVAILABLE 503 | INTERNAL 500`. (`INVALID_INPUT` is also used with 405 for a wrong HTTP method.) Fixture: `fixtures/coach-debrief.error.json`.
 
 ## 11. Changing this contract
 Open an issue `CONTRACT CHANGE REQUEST` with: section, old → new, why, who is affected. Keep coding against the current version until it's approved.
 Adding an optional field is a minor bump (v1.2). Renaming, removing, or changing a field's meaning or type is a major bump (v2.0): every consumer is updated in the same merge.
 
 ## Changelog
+- **v1.2** (2026-11-14): added error code `NOT_FOUND 404` (§10). Minor, additive.
 - **v1.1** (2026-11-14): 8 levels with mission IDs/owners; `level` + step `hint`; interaction bus (§3); runner + step-matching rule (§4); scoring rule + `skippedSteps` + oracle fixtures (§5); progress (§6); UI API (§7); level scene + LevelController (§8); coach client + `modelVersion` (§9). Finale renamed `l7-restore-power-v1`.
 - **v1.0** (2026-11-14): initial.

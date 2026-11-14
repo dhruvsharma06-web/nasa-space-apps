@@ -1,7 +1,7 @@
 # Product Requirements Document (PRD)
 ## ASTRA Academy — OpenXR Astronaut Training Simulator
 **Document ID:** ASTRA-PRD-002  
-**Revision:** D — 8-level curriculum, 4-person team split, tech stack, contract v1.1  
+**Revision:** D.1 — 8-level curriculum, 4-person team split, tech stack, contract v1.2, junior-professional audience  
 **Date:** 14 November 2026  
 **Status:** Approved for build; headset choice (M0) and subject-matter review pending  
 **Companion documents:** `CONTRACT.md` (exact interfaces, wins on any conflict), `docs/TEAM.md`, `docs/TASKS.md`  
@@ -35,7 +35,7 @@ Traditional astronaut-themed learning is often passive, while professional space
 **MVP pilot targets (proposed, not validated):** at least 5 internal testers; ≥80% complete orientation without developer intervention; ≥90% of scored interactions recorded; no critical crashes in a 10-minute demonstration. Frame-rate and latency thresholds will be set after hardware profiling.
 
 ## 4. Audience and personas
-**Primary:** students/teen learners and beginners interested in space STEM and hands-on XR activities. **Secondary:** teachers, demo operators, and facilitators. **Future:** advanced trainees using more technically rigorous scenarios after subject-matter validation.
+**Primary (Rev D.1):** junior professionals who are learning, such as early-career engineers, technicians and trainees. They are technically literate and comfortable with procedures, but new to spacecraft operations. **Secondary:** instructors, demo operators and facilitators. **Future:** advanced trainees using more technically rigorous scenarios after subject-matter validation. Writing rules for this audience: `docs/content-style-guide.md`.
 
 - **Cadet:** learns through guided physical interactions, practices and earns skill badges.
 - **Instructor/operator:** launches sessions, observes progress, resets scenarios and optionally injects approved faults.
@@ -274,7 +274,7 @@ Dates are planning estimates, not commitments. Replan after M0. Stage details pe
 2. **Which OpenXR extensions and interaction profiles are available on the selected headset?**
 3. ~~Will hand tracking be mandatory?~~ **Decided (Rev D):** no. Controllers are the guaranteed path; hand tracking is a capability-gated target.
 4. ~~Will Gemini be required?~~ **Decided (Rev D):** no. Gemini coaching is P1; the offline coach is P0.
-5. What is the final age group, session duration and supervision model?
+5. ~~What is the final age group?~~ **Decided (Rev D.1):** junior professionals who are learning (adults). Session duration and supervision model are still open.
 6. Is a low-cost physical panel mock-up in scope?
 7. ~~Who owns mission-content validation?~~ **Decided (Rev D):** Content & AI Coach owns the style guide and reviews every mission file; final safety review is still open.
 
@@ -317,6 +317,7 @@ Each level owner writes their own mission file and scene. Folder ownership and h
 | Rev | Date | Change |
 |---|---|---|
 | C | 2026-11-14 | Standalone Unity OpenXR application |
+| D.1 | 2026-11-14 | Primary audience changed to junior professionals who are learning; content style guide added (`docs/content-style-guide.md`) |
 | D | 2026-11-14 | 8 levels (L5 EVA and L6 Robotics split; finale is L7); priorities per level; 4-person ownership; tech stack table; layout with `Levels/` and `App/`; open decisions 3, 4, 7 resolved; roadmap mapped to sync points; contract v1.1 |
 
 ---

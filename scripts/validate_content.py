@@ -35,7 +35,7 @@ RESULT_KEYS = {
     "omittedCriticalSteps", "sequenceErrors", "incorrectActions", "completionTimeMs",
 }
 COACH_KEYS = {"sessionId", "missionId", "advisory", "summary", "hints", "modelVersion"}
-ERROR_CODES = {"INVALID_INPUT", "PAYLOAD_TOO_LARGE", "RATE_LIMITED", "UPSTREAM_UNAVAILABLE", "INTERNAL"}
+ERROR_CODES = {"INVALID_INPUT", "NOT_FOUND", "PAYLOAD_TOO_LARGE", "RATE_LIMITED", "UPSTREAM_UNAVAILABLE", "INTERNAL"}
 
 
 # ---------------------------------------------------------------- validation
