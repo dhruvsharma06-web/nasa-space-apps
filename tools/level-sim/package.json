@@ -1,0 +1,9 @@
+{
+  "name": "astra-level-sim",
+  "private": true,
+  "type": "module",
+  "description": "Browser level simulator and reference scoring/offline-coach logic for ASTRA Academy",
+  "scripts": {
+    "test": "node --test test_scoring.mjs"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "missionId": "l5-eva-v1",
+  "level": 5,
+  "version": "1.0.0",
+  "title": "EVA Preparation: Tether and Tool Check",
+  "fictional": true,
+  "steps": [
+    { "stepId": "locate_airlock",  "order": 1, "instruction": "Locate the AIRLOCK control panel.",            "hint": "It is the panel on your right, labelled AIRLOCK. All EVA preparation controls are grouped there.",                  "expectedEvent": "target_located",    "targetId": "airlock_panel",        "critical": false },
+    { "stepId": "open_checklist",  "order": 2, "instruction": "Open the EVA PREP checklist.",                  "hint": "Select the CHECKLIST tab on the display ahead of you. EVA steps are always worked from the checklist.",            "expectedEvent": "checklist_opened",  "targetId": "eva_checklist",        "critical": false },
+    { "stepId": "grab_tether",     "order": 3, "instruction": "Grab the TETHER HOOK.",                         "hint": "The orange TETHER HOOK floats on your left. A tether keeps you attached to the vehicle at all times.",            "expectedEvent": "object_grabbed",    "targetId": "tether_hook_tool",     "critical": true  },
+    { "stepId": "clip_tether",     "order": 4, "instruction": "Place the hook on the TETHER ANCHOR.",          "hint": "TETHER ANCHOR is the left bay on the TOOL RACK panel. Only the tether hook fits that anchor.",                     "expectedEvent": "object_placed",     "targetId": "tether_anchor_socket", "critical": true  },
+    { "stepId": "tether_check",    "order": 5, "instruction": "Press TETHER CHECK.",                           "hint": "TETHER CHECK is the top-left button on the AIRLOCK panel. It confirms the hook is locked before you continue.",     "expectedEvent": "control_activated", "targetId": "tether_check_button",  "critical": true  },
+    { "stepId": "suit_pressure",   "order": 6, "instruction": "Set SUIT PRESSURE to NOMINAL.",                 "hint": "Turn the SUIT PRESSURE dial on the AIRLOCK panel to NOMINAL. Nominal means the expected operating value.",         "expectedEvent": "control_activated", "targetId": "suit_pressure_dial",   "critical": true  },
+    { "stepId": "grab_tool",       "order": 7, "instruction": "Grab the PISTOL GRIP tool.",                    "hint": "The PISTOL GRIP tool floats above the tether hook on your left. Never release a tool without securing it.",       "expectedEvent": "object_grabbed",    "targetId": "pistol_grip_tool",     "critical": true  },
+    { "stepId": "stow_tool",       "order": 8, "instruction": "Place the tool in the TOOL CADDY.",             "hint": "TOOL CADDY is the right bay on the TOOL RACK panel. A secured tool cannot drift away.",                            "expectedEvent": "object_placed",     "targetId": "tool_caddy_socket",    "critical": true  },
+    { "stepId": "report_ready",    "order": 9, "instruction": "Press REPORT to confirm EVA preparation.",      "hint": "REPORT is below TETHER CHECK on the AIRLOCK panel. Do not use DEPRESS VALVE; depressurising is a later step.",     "expectedEvent": "status_reported",   "targetId": "eva_report_button",    "critical": true  }
+  ]
+}

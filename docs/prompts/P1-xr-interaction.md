@@ -1,6 +1,6 @@
 =====================================================================
 MASTER PROMPT — XR & Interaction Developer — ASTRA Academy
-Contract: v1.2    PRD: ASTRA-PRD-002 Rev D.1    Issued: 2026-11-14
+Contract: v1.3    PRD: ASTRA-PRD-002 Rev D.1    Issued: 2026-11-14
 =====================================================================
 
 > **FOR THE HUMAN: read this box, then paste the whole file to your AI**
@@ -72,7 +72,7 @@ Day 1 = the day the team starts. The Integration Lead writes the real calendar d
 Tags: `sync-0` … `sync-4`, `rc-1`, `final`. The last tag is always the fallback if something breaks.
 Until Sync 1, **everyone works alone** against the contract, stubs and fixtures. Nobody waits for anybody.
 
-## 4. CONTRACT v1.2: WHAT YOU MUST KNOW
+## 4. CONTRACT v1.3: WHAT YOU MUST KNOW
 `CONTRACT.md` is the single source of truth; this is a summary. **If they differ, `CONTRACT.md` wins.**
 - **SessionEvent** (§1): `{sessionId, missionId, timestampMs, event, targetId, input, result}`. Use the constants in `Astra.Core.Assessment`: `EventNames`, `InputModality`, `EventResults`, `SystemTargets`. Never retype the strings.
 - **Mission file** (§2): `Assets/ASTRA/Content/Missions/<missionId>.json` with `missionId, level, version, title, fictional:true, steps[{stepId, order, instruction, hint, expectedEvent, targetId, critical}]`. IDs: `l0-safety-v1`, `l1-orientation-v1`, `l2-equipment-v1`, `l3-cabin-v1`, `l4-emergency-v1`, `l5-eva-v1`, `l6-robotics-v1`, `l7-restore-power-v1`.

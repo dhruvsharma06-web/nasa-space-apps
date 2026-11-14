@@ -1,0 +1,17 @@
+{
+  "missionId": "l2-equipment-v1",
+  "level": 2,
+  "version": "1.0.0",
+  "title": "Equipment Handling: Stow and Secure Tools",
+  "fictional": true,
+  "steps": [
+    { "stepId": "locate_bay",     "order": 1, "instruction": "Locate the TOOL STOWAGE panel.",          "hint": "It is the panel ahead of you, labelled TOOL STOWAGE. Every loose item in the cabin is stowed there.",               "expectedEvent": "target_located",    "targetId": "tool_stowage_panel",  "critical": false },
+    { "stepId": "grab_wrench",    "order": 2, "instruction": "Grab the TORQUE WRENCH.",                 "hint": "The orange TORQUE WRENCH floats on your left. In microgravity, a released tool drifts until you stow it.",         "expectedEvent": "object_grabbed",    "targetId": "torque_wrench_tool",  "critical": true  },
+    { "stepId": "stow_wrench",    "order": 3, "instruction": "Place the wrench in BAY 1.",              "hint": "BAY 1 is the left bay on the TOOL STOWAGE panel. Each bay only accepts the tool drawn on its label.",            "expectedEvent": "object_placed",     "targetId": "tool_bay_socket_1",   "critical": true  },
+    { "stepId": "latch_bay_1",    "order": 4, "instruction": "Set BAY 1 LATCH to ON.",                  "hint": "The BAY 1 LATCH toggle is below BAY 1. A latch holds the tool so it cannot float out.",                          "expectedEvent": "control_activated", "targetId": "bay_1_latch_toggle",  "critical": true  },
+    { "stepId": "grab_scanner",   "order": 5, "instruction": "Grab the INSPECTION SCANNER.",            "hint": "The INSPECTION SCANNER floats on your right. Finish one tool before you pick up the next.",                     "expectedEvent": "object_grabbed",    "targetId": "inspection_scanner_tool", "critical": true },
+    { "stepId": "stow_scanner",   "order": 6, "instruction": "Place the scanner in BAY 2.",             "hint": "BAY 2 is the right bay on the TOOL STOWAGE panel. The wrong tool will not fit and is released.",                "expectedEvent": "object_placed",     "targetId": "tool_bay_socket_2",   "critical": true  },
+    { "stepId": "latch_bay_2",    "order": 7, "instruction": "Set BAY 2 LATCH to ON.",                  "hint": "The BAY 2 LATCH toggle is below BAY 2. Check that both latch labels now show ON.",                               "expectedEvent": "control_activated", "targetId": "bay_2_latch_toggle",  "critical": true  },
+    { "stepId": "report",         "order": 8, "instruction": "Press REPORT to confirm all tools are stowed.", "hint": "REPORT is on the STATUS panel on your right. Report only when every tool is stowed and latched.",            "expectedEvent": "status_reported",   "targetId": "stowage_report_button", "critical": true }
+  ]
+}

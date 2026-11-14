@@ -1,0 +1,25 @@
+{
+  "missionId": "l5-eva-v1",
+  "scene": "L5_EVA",
+  "panels": [
+    { "id": "airlock_panel", "title": "AIRLOCK", "position": [0.40, 1.05, 0.50], "size": [0.40, 0.30], "tilt": 15, "target": true },
+    { "id": "eva_display", "title": "EVA PREP", "position": [0.00, 1.42, 0.62], "size": [0.42, 0.20], "tilt": -10, "target": false },
+    { "id": "tool_rack_panel", "title": "TOOL RACK", "position": [-0.42, 1.00, 0.50], "size": [0.38, 0.30], "tilt": 15, "target": false }
+  ],
+  "controls": [
+    { "targetId": "eva_checklist", "type": "checklist", "label": "CHECKLIST", "panel": "eva_display", "at": [-0.12, -0.04] },
+    { "targetId": "tether_check_button", "type": "button", "label": "TETHER CHECK", "panel": "airlock_panel", "at": [-0.10, 0.05] },
+    { "targetId": "suit_pressure_dial", "type": "dial", "label": "SUIT PRESSURE", "panel": "airlock_panel", "at": [0.09, 0.05], "positions": ["LOW", "NOMINAL", "HIGH"] },
+    { "targetId": "eva_report_button", "type": "button", "label": "REPORT", "panel": "airlock_panel", "at": [-0.10, -0.07] },
+    { "targetId": "tether_anchor_socket", "type": "socket", "label": "TETHER ANCHOR", "panel": "tool_rack_panel", "at": [-0.09, 0.02], "accepts": "tether_hook_tool" },
+    { "targetId": "tool_caddy_socket", "type": "socket", "label": "TOOL CADDY", "panel": "tool_rack_panel", "at": [0.09, 0.02], "accepts": "pistol_grip_tool" }
+  ],
+  "tools": [
+    { "targetId": "tether_hook_tool", "label": "TETHER HOOK", "position": [-0.20, 0.95, 0.42] },
+    { "targetId": "pistol_grip_tool", "label": "PISTOL GRIP", "position": [-0.26, 1.18, 0.40] }
+  ],
+  "indicators": [],
+  "decoys": [
+    { "targetId": "depress_valve_toggle", "type": "toggle", "label": "DEPRESS VALVE", "panel": "airlock_panel", "at": [0.09, -0.08] }
+  ]
+}

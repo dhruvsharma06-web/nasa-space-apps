@@ -1,13 +1,10 @@
 using System;
-using System.Collections.Generic;
+using System.Collections;
 using System.IO;
-using System.Text;
 using Astra.Core.Assessment;
 using Astra.Core.Mission;
-using Astra.Core.Progress;
 using Astra.Integrations.Coach;
 using Astra.UI;
-using Astra.UI.Hub;
 using Astra.XR.Interactables;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -16,535 +13,280 @@ namespace Astra.App
 {
     /// <summary>
     /// One per level scene. Loads the mission, runs the phases, forwards InteractionEvents to the
-    /// mission runner, scores Qualification, shows the debrief, saves progress (CONTRACT.md §8).
-    /// OWNER: Integration Lead. Implemented by P1 against CONTRACT.md §8 for the L0/L1 desktop build;
-    /// handed off to the Integration Lead for review. Public surface is fixed by the contract.
-    /// Level-specific scripts may subscribe to PhaseChanged / EventRecorded but must not drive the runner.
+    /// mission runner, scores Qualification, shows the debrief, calls the coach (CONTRACT.md §8).
+    /// OWNER: Integration Lead. Level scripts may subscribe to the events but never drive the runner.
     /// </summary>
     public class LevelController : MonoBehaviour
     {
-        public const string HubSceneName = "Hub";
-        private const double PracticeToQualificationSeconds = 3.0;
-
+        [Header("Mission")]
         [SerializeField] private TextAsset missionJson;
-        [SerializeField] private CoachProvider coachProvider;
-        [SerializeField] private float briefingSeconds = 6f;
-        [SerializeField] private float demoSecondsPerStep = 4f;
 
-        [Header("Scene UI (CONTRACT.md §7)")]
+        [Header("UI (XR & Interaction provides; all optional)")]
         [SerializeField] private InstructionPanel instructionPanel;
         [SerializeField] private PhaseBanner phaseBanner;
         [SerializeField] private DebriefPanel debriefPanel;
-        [SerializeField] private PauseMenu pauseMenu;
 
+        [Header("Coach (Content & AI Coach provides; optional)")]
+        [SerializeField] private CoachProvider coachProvider;
+
+        [Header("Timing (CONTRACT.md §8)")]
+        [SerializeField] private float briefingSeconds = 6f;
+        [SerializeField] private float demoSecondsPerStep = 4f;
+        [SerializeField] private float practiceToQualificationSeconds = 3f;
+
+        [Header("Runner")]
+        [Tooltip("Use the stand-in runner/scorer even if Core's real classes exist.")]
+        [SerializeField] private bool forceMockRunner;
+
+        // ---- contract surface (§8) ----
         public event Action<ModulePhase> PhaseChanged;
         public event Action<SessionEvent, StepFeedback> EventRecorded;
         public event Action<SessionResult> QualificationScored;
-
         public MissionDefinition Mission { get; private set; }
-        public ModulePhase Phase { get; private set; } = ModulePhase.Briefing;
+        public ModulePhase Phase => _fsm.Current;
 
-        private readonly ModulePhaseMachine machine = new ModulePhaseMachine();
-        private readonly IMissionScorer scorer = new MissionScorer();
-        private IMissionRunner runner;
-        private double attemptSeconds;
-        private double phaseTimer;
-        private int demoIndex;
-        private bool attemptPaused;
-        private bool practiceComplete;
-        private bool subscribed;
-        private bool started;
-        private bool leaving;
-        private bool reporting;
+        // ---- additive, read-only helpers for test tools and level scripts ----
+        public event Action<MissionStep> DemonstrationStep;
+        public IMissionRunner Runner { get; private set; }
+        public SessionResult LastResult { get; private set; }
+        public bool IsPaused { get; private set; }
+        public bool UsingMockRunner { get; private set; }
+        public long AttemptTimeMs => _attemptActive ? NowMs() : 0;
 
-        // Composition hooks (tests and alternative hosts). Defaults follow CONTRACT.md §6 and §8.
-        internal string DataDirectory { get; set; }
-        internal Func<string, bool> SceneAvailable { get; set; } = Application.CanStreamedLevelBeLoaded;
-        internal Action<string> LoadScene { get; set; } = name => SceneManager.LoadScene(name);
-        internal IMissionRunner Runner => runner;
-        internal bool IsAttemptPaused => attemptPaused;
-        internal SessionResult LastResult { get; private set; }
+        private readonly ModulePhaseMachine _fsm = new ModulePhaseMachine();
+        private IMissionScorer _scorer;
+        private Coroutine _phaseRoutine;
+        private double _attemptStart, _pausedAt, _pausedTotal;
+        private bool _attemptActive;
 
         protected virtual void Awake()
         {
             if (missionJson == null)
             {
-                Debug.LogError($"[LevelController] {name}: assign the mission JSON.", this);
+                Debug.LogError($"[LevelController] '{name}': missionJson is not assigned. The level stays paused.", this);
+                IsPaused = true;
                 enabled = false;
                 return;
             }
-            try
-            {
-                Mission = JsonUtility.FromJson<MissionDefinition>(missionJson.text);
-            }
-            catch (Exception exception)
-            {
-                Debug.LogException(exception, this);
-            }
-            if (Mission == null || Mission.steps == null || Mission.steps.Count == 0 || string.IsNullOrEmpty(Mission.missionId))
-            {
-                Debug.LogError($"[LevelController] {name}: mission JSON could not be read.", this);
-                Mission = null;
-                enabled = false;
-                return;
-            }
-            Mission.steps.Sort((a, b) => a.order.CompareTo(b.order));
-        }
-
-        protected virtual void OnEnable()
-        {
-            if (Mission == null)
-                return;
-            InteractionEvents.Reported += HandleReport;
-            if (pauseMenu != null)
-            {
-                pauseMenu.onPause.AddListener(HandlePause);
-                pauseMenu.onResume.AddListener(HandleResume);
-                pauseMenu.onRestart.AddListener(RestartModule);
-                pauseMenu.onExit.AddListener(ExitToHub);
-                pauseMenu.onFinish.AddListener(FinishAttempt);
-            }
+            Mission = JsonUtility.FromJson<MissionDefinition>(missionJson.text);
+            _scorer = CreateScorer();
             if (debriefPanel != null)
             {
-                debriefPanel.onRetry.AddListener(Retry);
-                debriefPanel.onBackToHub.AddListener(ExitToHub);
+                debriefPanel.onRetry.AddListener(Retry);          // RETRY button -> Practice
+                debriefPanel.onBackToHub.AddListener(BackToHub);  // HUB button -> Hub scene
             }
-            subscribed = true;
         }
 
-        protected virtual void OnDisable()
+        private void OnEnable() => InteractionEvents.Reported += OnInteraction;
+        private void OnDisable() => InteractionEvents.Reported -= OnInteraction;
+        private void Start() { if (Mission != null) EnterBriefing(); }
+
+        // ---------------- public commands (wired to the pause menu / debrief / test HUD) ----------------
+        public void Skip()
         {
-            if (!subscribed)
-                return;
-            InteractionEvents.Reported -= HandleReport;
-            if (pauseMenu != null)
-            {
-                pauseMenu.onPause.RemoveListener(HandlePause);
-                pauseMenu.onResume.RemoveListener(HandleResume);
-                pauseMenu.onRestart.RemoveListener(RestartModule);
-                pauseMenu.onExit.RemoveListener(ExitToHub);
-                pauseMenu.onFinish.RemoveListener(FinishAttempt);
-            }
-            if (debriefPanel != null)
-            {
-                debriefPanel.onRetry.RemoveListener(Retry);
-                debriefPanel.onBackToHub.RemoveListener(ExitToHub);
-            }
-            subscribed = false;
+            if (Phase == ModulePhase.Briefing) Enter(ModulePhase.Demonstration);
+            else if (Phase == ModulePhase.Demonstration) Enter(ModulePhase.Practice);
         }
+        public void SkipToPractice() { if (Phase == ModulePhase.Briefing || Phase == ModulePhase.Demonstration) Enter(ModulePhase.Practice); }
+        public void Finish() { if (Phase == ModulePhase.Qualification) Enter(ModulePhase.Debrief); }
+        public void Retry() { if (Phase == ModulePhase.Debrief) Enter(ModulePhase.Practice); }
+        public void Restart() => EnterBriefing();
+        public void Recenter() => InteractionEvents.Raise(EventNames.Recentered, SystemTargets.System, InputModality.Simulator);
 
-        protected virtual void Start()
+        public void Pause()
         {
-            if (Mission == null)
-                return;
-            if (string.IsNullOrEmpty(DataDirectory))
-                DataDirectory = Application.persistentDataPath;
-            started = true;
-            EnterBriefing();
+            if (IsPaused) return;
+            if (_attemptActive) InteractionEvents.Raise(EventNames.Paused, SystemTargets.System, InputModality.Simulator);
+            IsPaused = true; _pausedAt = Clock();
         }
 
-        protected virtual void Update()
+        public void Resume()
         {
-            if (!started || attemptPaused || leaving)
-                return;
-            var delta = (double)Time.unscaledDeltaTime;
-            if (Phase == ModulePhase.Practice || Phase == ModulePhase.Qualification)
-                attemptSeconds += delta;
-
-            switch (Phase)
-            {
-                case ModulePhase.Briefing:
-                    phaseTimer -= delta;
-                    if (phaseTimer <= 0.0)
-                        EnterDemonstration();
-                    break;
-                case ModulePhase.Demonstration:
-                    phaseTimer -= delta;
-                    if (phaseTimer <= 0.0)
-                        AdvanceDemonstration();
-                    break;
-                case ModulePhase.Practice:
-                    if (practiceComplete)
-                    {
-                        phaseTimer -= delta;
-                        if (phaseTimer <= 0.0)
-                            EnterQualification();
-                    }
-                    break;
-            }
+            if (!IsPaused) return;
+            _pausedTotal += Clock() - _pausedAt; IsPaused = false;
+            if (_attemptActive) InteractionEvents.Raise(EventNames.Resumed, SystemTargets.System, InputModality.Simulator);
         }
 
-        /// <summary>Pause menu RESTART: back to Briefing (FR-APP-03).</summary>
-        public void RestartModule()
+        public void BackToHub()
         {
-            if (!started || leaving)
-                return;
-            machine.Reset();
-            EnterBriefing();
+            if (Application.CanStreamedLevelBeLoaded("Hub")) SceneManager.LoadScene("Hub");
+            else Debug.Log("[LevelController] Hub scene is not in Build Settings yet; staying in the level.");
         }
 
-        /// <summary>Debrief RETRY: a fresh Practice attempt.</summary>
-        public void Retry()
-        {
-            if (!started || leaving || Phase != ModulePhase.Debrief)
-                return;
-            machine.TransitionTo(ModulePhase.Practice);
-            EnterPractice();
-        }
-
-        /// <summary>Pause menu FINISH (Qualification only): end the attempt and score what was done.</summary>
-        public void FinishAttempt()
-        {
-            if (started && !leaving && Phase == ModulePhase.Qualification)
-                CompleteQualification();
-        }
-
-        public void ExitToHub()
-        {
-            if (leaving)
-                return;
-            leaving = true;
-            try
-            {
-                LoadScene(HubSceneName);
-            }
-            catch (Exception exception)
-            {
-                leaving = false;
-                Debug.LogException(exception, this);
-            }
-        }
-
-        private void HandlePause() => attemptPaused = true;
-        private void HandleResume() => attemptPaused = false;
-
-        private void HandleReport(InteractionReport report)
-        {
-            if (!started || leaving || reporting || runner == null)
-                return;
-            if (Phase != ModulePhase.Practice && Phase != ModulePhase.Qualification)
-            {
-                TrackPauseReport(report);
-                return;
-            }
-            if (Phase == ModulePhase.Practice && practiceComplete)
-            {
-                TrackPauseReport(report);
-                return;
-            }
-
-            var appEvent = report.EventName == EventNames.Paused || report.EventName == EventNames.Resumed ||
-                           report.EventName == EventNames.Recentered;
-            // Ordinary interaction is suppressed while paused; app-level events are still recorded.
-            if (attemptPaused && !appEvent)
-                return;
-
-            StepFeedback feedback;
-            reporting = true;
-            try
-            {
-                feedback = runner.Report(report.EventName, report.TargetId, report.Input, AttemptTimestampMs());
-            }
-            catch (ArgumentException exception)
-            {
-                Debug.LogWarning($"[LevelController] Rejected interaction {report}: {exception.Message}", this);
-                return;
-            }
-            finally
-            {
-                reporting = false;
-            }
-
-            TrackPauseReport(report);
-            var recorded = runner.Events[runner.Events.Count - 1];
-            EventRecorded?.Invoke(recorded, feedback);
-            if (this == null || runner == null)
-                return;
-
-            if (Phase == ModulePhase.Practice)
-                ShowPracticeFeedback(feedback);
-            else if (feedback.Outcome == StepOutcome.Correct)
-            {
-                if (runner.IsComplete)
-                    CompleteQualification();
-                else
-                    ShowInstruction(runner.CurrentStep.instruction);
-            }
-        }
-
-        private void TrackPauseReport(InteractionReport report)
-        {
-            // The bus report precedes PauseMenu.onPause / onResume, so the clock is updated after the
-            // event is stamped: paused time is excluded and timestamps never decrease.
-            if (report.EventName == EventNames.Paused)
-                attemptPaused = true;
-            else if (report.EventName == EventNames.Resumed)
-                attemptPaused = false;
-        }
-
-        private void ShowPracticeFeedback(StepFeedback feedback)
-        {
-            switch (feedback.Outcome)
-            {
-                case StepOutcome.Incorrect:
-                case StepOutcome.OutOfOrder:
-                    if (instructionPanel != null && !string.IsNullOrEmpty(feedback.Hint))
-                        instructionPanel.ShowHint(feedback.Hint);
-                    break;
-                case StepOutcome.Correct:
-                    if (instructionPanel != null)
-                        instructionPanel.ClearHint();
-                    if (runner.IsComplete)
-                    {
-                        practiceComplete = true;
-                        phaseTimer = PracticeToQualificationSeconds;
-                        ShowInstruction("Practice complete. Qualification starts in 3 seconds; no hints are shown.");
-                    }
-                    else
-                        ShowInstruction(runner.CurrentStep.instruction);
-                    break;
-            }
-        }
-
+        // ---------------- phases ----------------
         private void EnterBriefing()
         {
-            runner = null;
-            practiceComplete = false;
-            attemptPaused = false;
-            LastResult = null;
-            ResetAttemptState(ModulePhase.Briefing);
-            SetDebriefVisible(false);
-            SetPhase(ModulePhase.Briefing);
-            if (instructionPanel != null)
-                instructionPanel.ClearHint();
-            ShowInstruction(Mission.title + "\n" + Mission.steps[0].instruction);
-            phaseTimer = Math.Max(0.0, briefingSeconds);
+            _fsm.Reset();
+            _attemptActive = false; Runner = null; IsPaused = false;
+            Announce(ModulePhase.Briefing);
+            Run(BriefingRoutine());
         }
 
-        private void EnterDemonstration()
+        private void Enter(ModulePhase next)
         {
-            if (demoSecondsPerStep <= 0f)
+            if (!_fsm.CanTransitionTo(next)) { Debug.LogWarning($"[LevelController] ignored illegal transition {Phase} -> {next}"); return; }
+            _fsm.TransitionTo(next);
+            Announce(next);
+            switch (next)
             {
-                machine.TransitionTo(ModulePhase.Practice);
-                EnterPractice();
-                return;
-            }
-            machine.TransitionTo(ModulePhase.Demonstration);
-            SetPhase(ModulePhase.Demonstration);
-            demoIndex = -1;
-            AdvanceDemonstration();
-        }
-
-        private void AdvanceDemonstration()
-        {
-            demoIndex++;
-            if (demoIndex >= Mission.steps.Count)
-            {
-                machine.TransitionTo(ModulePhase.Practice);
-                EnterPractice();
-                return;
-            }
-            var step = Mission.steps[demoIndex];
-            ShowInstruction($"Step {demoIndex + 1} of {Mission.steps.Count}: {step.instruction}");
-            phaseTimer = demoSecondsPerStep;
-        }
-
-        private void EnterPractice()
-        {
-            BeginAttempt(ModulePhase.Practice);
-            ShowInstruction(runner.CurrentStep.instruction);
-        }
-
-        private void EnterQualification()
-        {
-            machine.TransitionTo(ModulePhase.Qualification);
-            BeginAttempt(ModulePhase.Qualification);
-            ShowInstruction(runner.CurrentStep.instruction);
-        }
-
-        private void BeginAttempt(ModulePhase phase)
-        {
-            LastResult = null;
-            practiceComplete = false;
-            attemptPaused = false;
-            attemptSeconds = 0.0;
-            SetDebriefVisible(false);
-            ResetAttemptState(phase);
-            runner = new MissionRunner(Mission, Guid.NewGuid().ToString());
-            SetPhase(phase);
-            if (instructionPanel != null)
-                instructionPanel.ClearHint();
-        }
-
-        private void CompleteQualification()
-        {
-            if (Phase != ModulePhase.Qualification || runner == null)
-                return;
-            SessionResult result;
-            try
-            {
-                result = scorer.Score(Mission, runner.SessionId, runner.Events);
-            }
-            catch (ArgumentException exception)
-            {
-                Debug.LogException(exception, this);
-                return;
-            }
-
-            var trace = new List<SessionEvent>(runner.Events);
-            machine.TransitionTo(ModulePhase.Debrief);
-            attemptPaused = false;
-            SetPhase(ModulePhase.Debrief);
-            LastResult = result;
-            if (instructionPanel != null)
-                instructionPanel.ClearHint();
-            ShowInstruction(result.passed ? "Level complete. Review your debrief." : "Review your debrief, then select RETRY.");
-
-            QualificationScored?.Invoke(result);
-            if (this == null || Phase != ModulePhase.Debrief)
-                return;
-            SetDebriefVisible(true);
-            if (debriefPanel != null)
-                debriefPanel.Show(result, Mission);
-            WriteSessionLog(result.sessionId, trace);
-            RequestCoach(result, trace);
-            SaveProgress(result);
-        }
-
-        private void RequestCoach(SessionResult result, List<SessionEvent> trace)
-        {
-            ICoachClient client;
-            try
-            {
-                client = coachProvider != null ? coachProvider.Client : null;
-            }
-            catch (Exception exception)
-            {
-                Debug.LogException(exception, this);
-                return;
-            }
-            if (client == null || debriefPanel == null)
-                return;
-
-            var request = new CoachRequest { sessionId = result.sessionId, missionId = result.missionId, result = result, events = trace };
-            try
-            {
-                client.RequestDebrief(request, Mission, response =>
-                {
-                    // Advisory text only: it never changes the result or saved progress (FR-AI-04).
-                    if (this == null || response == null || Phase != ModulePhase.Debrief ||
-                        LastResult == null || LastResult.sessionId != result.sessionId)
-                        return;
-                    var text = new StringBuilder(response.summary ?? string.Empty);
-                    if (response.hints != null)
-                        foreach (var hint in response.hints)
-                            if (!string.IsNullOrWhiteSpace(hint))
-                                text.Append(text.Length > 0 ? "\n• " : "• ").Append(hint);
-                    var isAi = response.modelVersion == null ||
-                               !response.modelVersion.StartsWith("offline", StringComparison.Ordinal);
-                    debriefPanel.ShowCoachText(text.ToString(), isAi);
-                });
-            }
-            catch (Exception exception)
-            {
-                Debug.LogException(exception, this);
+                case ModulePhase.Demonstration: _attemptActive = false; Run(DemoRoutine()); break;
+                case ModulePhase.Practice:
+                case ModulePhase.Qualification: StartAttempt(); break;
+                case ModulePhase.Debrief: _attemptActive = false; Debrief(); break;
             }
         }
 
-        private void SaveProgress(SessionResult result)
+        private void Announce(ModulePhase phase)
         {
-            try
-            {
-                var store = new FileProgressStore(DataDirectory, state => JsonUtility.ToJson(state, true),
-                    JsonUtility.FromJson<ProgressState>);
-                var progress = store.Load();
-                if (store.LastLoadWarning != null)
-                    Debug.LogWarning("[LevelController] " + store.LastLoadWarning, this);
-                ProgressRules.RecordAttempt(progress, Mission.level, Mission.missionId, result, AvailableLevels());
-                store.Save(progress);
-            }
-            catch (Exception exception)
-            {
-                Debug.LogException(new InvalidOperationException("[LevelController] Progress could not be saved.", exception), this);
-            }
-        }
-
-        private List<int> AvailableLevels()
-        {
-            var levels = new List<int>();
-            foreach (var entry in LevelCatalog.Levels)
-            {
-                bool available;
-                try
-                {
-                    available = SceneAvailable(entry.SceneName);
-                }
-                catch (Exception)
-                {
-                    available = false;
-                }
-                if (available)
-                    levels.Add(entry.Level);
-            }
-            return levels;
-        }
-
-        private void WriteSessionLog(string sessionId, List<SessionEvent> trace)
-        {
-            try
-            {
-                var directory = Path.Combine(DataDirectory, "SessionLogs");
-                Directory.CreateDirectory(directory);
-                var json = new StringBuilder("[\n");
-                for (var i = 0; i < trace.Count; i++)
-                    json.Append("  ").Append(JsonUtility.ToJson(trace[i])).Append(i + 1 < trace.Count ? ",\n" : "\n");
-                json.Append("]\n");
-                File.WriteAllText(Path.Combine(directory, sessionId + ".json"), json.ToString(), new UTF8Encoding(false));
-            }
-            catch (Exception exception)
-            {
-                Debug.LogWarning($"[LevelController] Session log not written: {exception.Message}", this);
-            }
-        }
-
-        private long AttemptTimestampMs() => (long)Math.Floor(attemptSeconds * 1000.0);
-
-        private void SetPhase(ModulePhase phase)
-        {
-            Phase = phase;
-            if (pauseMenu != null)
-                pauseMenu.SetPhase(phase);
-            if (phaseBanner != null)
-                phaseBanner.Show(phase);
+            if (_phaseRoutine != null) { StopCoroutine(_phaseRoutine); _phaseRoutine = null; }
+            if (phaseBanner != null) phaseBanner.Show(phase);
+            if (debriefPanel != null) debriefPanel.gameObject.SetActive(phase == ModulePhase.Debrief);   // only during Debrief
+            ClearHint();
             PhaseChanged?.Invoke(phase);
         }
 
-        private void ShowInstruction(string text)
+        private IEnumerator BriefingRoutine()
         {
-            if (instructionPanel != null)
-                instructionPanel.ShowInstruction(text);
+            ShowInstruction(Mission.title);
+            yield return WaitUnpaused(briefingSeconds);
+            Enter(ModulePhase.Demonstration);
         }
 
-        private void SetDebriefVisible(bool visible)
+        private IEnumerator DemoRoutine()
         {
-            if (debriefPanel != null && debriefPanel.gameObject.activeSelf != visible)
-                debriefPanel.gameObject.SetActive(visible);
-        }
-
-        /// <summary>Fresh attempt: interactable latches, cooldowns, tools and the pause overlay reset silently.</summary>
-        private void ResetAttemptState(ModulePhase phase)
-        {
-            if (pauseMenu != null)
-                pauseMenu.ResetForAttempt(phase);
-            foreach (var root in gameObject.scene.GetRootGameObjects())
+            foreach (var step in Sorted())
             {
-                foreach (var control in root.GetComponentsInChildren<ControlTarget>(true))
-                    control.ResetForAttempt();
-                foreach (var tool in root.GetComponentsInChildren<GrabbableTool>(true))
-                    tool.ResetForAttempt();
-                foreach (var locatable in root.GetComponentsInChildren<LocatableTarget>(true))
-                    locatable.ResetForAttempt();
+                ShowInstruction(step.instruction);
+                DemonstrationStep?.Invoke(step);
+                yield return WaitUnpaused(demoSecondsPerStep);
             }
+            DemonstrationStep?.Invoke(null);
+            Enter(ModulePhase.Practice);
+        }
+
+        private void StartAttempt()
+        {
+            Runner = CreateRunner(Guid.NewGuid().ToString("N"));
+            _attemptStart = Clock(); _pausedTotal = 0; IsPaused = false; _attemptActive = true;
+            ShowInstruction(Runner.CurrentStep?.instruction ?? "");
+        }
+
+        private void OnInteraction(InteractionReport report)
+        {
+            if (!_attemptActive || Runner == null) return;
+            bool lifecycle = report.EventName == EventNames.Paused || report.EventName == EventNames.Resumed;
+            if (IsPaused && !lifecycle) return;
+
+            StepFeedback fb;
+            try { fb = Runner.Report(report.EventName, report.TargetId, report.Input, NowMs()); }
+            catch (ArgumentException ex) { Debug.LogWarning($"[LevelController] rejected {report}: {ex.Message}"); return; }
+
+            var events = Runner.Events;
+            EventRecorded?.Invoke(events[events.Count - 1], fb);
+
+            if (Phase == ModulePhase.Practice)
+            {
+                if (fb.Outcome == StepOutcome.Incorrect || fb.Outcome == StepOutcome.OutOfOrder) { if (fb.Hint != null) ShowHint(fb.Hint); }
+                else if (fb.Outcome == StepOutcome.Correct) { ClearHint(); ShowInstruction(Runner.CurrentStep?.instruction ?? ""); }
+                if (Runner.IsComplete) Run(PracticeCompleteRoutine());
+            }
+            else if (Phase == ModulePhase.Qualification)
+            {
+                if (fb.Outcome == StepOutcome.Correct) ShowInstruction(Runner.CurrentStep?.instruction ?? "");
+                if (Runner.IsComplete) Enter(ModulePhase.Debrief);
+            }
+        }
+
+        private IEnumerator PracticeCompleteRoutine()
+        {
+            _attemptActive = false;
+            ShowInstruction("Practice complete. Qualification is next: it is scored and gives no hints.");
+            yield return WaitUnpaused(practiceToQualificationSeconds);
+            Enter(ModulePhase.Qualification);
+        }
+
+        private void Debrief()
+        {
+            var trace = Runner != null ? Runner.Events : (System.Collections.Generic.IReadOnlyList<SessionEvent>)Array.Empty<SessionEvent>();
+            string sessionId = Runner?.SessionId ?? Guid.NewGuid().ToString("N");
+            try { LastResult = _scorer.Score(Mission, sessionId, trace); }
+            catch (ArgumentException ex) { Debug.LogError($"[LevelController] scoring failed: {ex.Message}"); return; }
+
+            QualificationScored?.Invoke(LastResult);
+            if (debriefPanel != null) debriefPanel.Show(LastResult, Mission);
+            WriteSessionLog(LastResult, trace);
+
+            var client = coachProvider != null ? coachProvider.Client : null;
+            if (client == null || debriefPanel == null) return;
+            var request = new CoachRequest { sessionId = sessionId, missionId = Mission.missionId, result = LastResult };
+            request.events.AddRange(trace);
+            client.RequestDebrief(request, Mission, r =>
+            {
+                if (r == null || string.IsNullOrEmpty(r.summary)) return;
+                string text = r.summary + (r.hints != null && r.hints.Count > 0 ? "\n• " + string.Join("\n• ", r.hints) : "");
+                bool isAi = r.modelVersion != null && !r.modelVersion.StartsWith("offline");
+                debriefPanel.ShowCoachText(text, isAi);
+            });
+        }
+
+        // UnityEngine.Object fields: use explicit != null (Unity's fake-null objects defeat ?.)
+        private void ShowInstruction(string text) { if (instructionPanel != null) instructionPanel.ShowInstruction(text); }
+        private void ShowHint(string text) { if (instructionPanel != null) instructionPanel.ShowHint(text); }
+        private void ClearHint() { if (instructionPanel != null) instructionPanel.ClearHint(); }
+
+        // ---------------- helpers ----------------
+        private System.Collections.Generic.List<MissionStep> Sorted()
+        {
+            var list = new System.Collections.Generic.List<MissionStep>(Mission.steps);
+            list.Sort((a, b) => a.order.CompareTo(b.order));
+            return list;
+        }
+
+        private void Run(IEnumerator routine)
+        {
+            if (_phaseRoutine != null) StopCoroutine(_phaseRoutine);
+            _phaseRoutine = StartCoroutine(routine);
+        }
+
+        private IEnumerator WaitUnpaused(float seconds)
+        {
+            float elapsed = 0f;
+            while (elapsed < seconds) { if (!IsPaused) elapsed += Time.unscaledDeltaTime; yield return null; }
+        }
+
+        private static double Clock() => Time.realtimeSinceStartupAsDouble * 1000.0;
+        private long NowMs()
+        {
+            double now = IsPaused ? _pausedAt : Clock();
+            return Math.Max(0L, (long)Math.Round(now - _attemptStart - _pausedTotal));
+        }
+
+        private IMissionRunner CreateRunner(string sessionId)
+        {
+            var real = forceMockRunner ? null : Type.GetType("Astra.Core.Mission.MissionRunner, ASTRA.Core");
+            UsingMockRunner = real == null;
+            return real != null
+                ? (IMissionRunner)Activator.CreateInstance(real, Mission, sessionId)
+                : new MockMissionRunner(Mission, sessionId);
+        }
+
+        private IMissionScorer CreateScorer()
+        {
+            var real = forceMockRunner ? null : Type.GetType("Astra.Core.Assessment.MissionScorer, ASTRA.Core");
+            return real != null ? (IMissionScorer)Activator.CreateInstance(real) : new MockMissionScorer();
+        }
+
+        private void WriteSessionLog(SessionResult result, System.Collections.Generic.IReadOnlyList<SessionEvent> trace)
+        {
+            try
+            {
+                var log = new CoachRequest { sessionId = result.sessionId, missionId = result.missionId, result = result };
+                log.events.AddRange(trace);
+                string dir = Path.Combine(Application.persistentDataPath, "SessionLogs");
+                Directory.CreateDirectory(dir);
+                File.WriteAllText(Path.Combine(dir, result.sessionId + ".json"), JsonUtility.ToJson(log, true));
+            }
+            catch (Exception ex) { Debug.LogWarning($"[LevelController] could not write session log: {ex.Message}"); }
         }
     }
 }

@@ -1,4 +1,4 @@
-# CONTRACT v1.2 — ASTRA Academy
+# CONTRACT v1.4 — ASTRA Academy
 
 **Owner:** Integration Lead. Nobody else edits this file. To change it, open an issue titled `CONTRACT CHANGE REQUEST` (see §11).
 **Rule:** every boundary between owners is coded against this file from day one. Mocks and stubs return these exact shapes.
@@ -32,7 +32,7 @@ C# `Astra.Core.Assessment.SessionEvent` · Created by the mission runner (§4) �
 }
 ```
 - `event`: `calibration_completed | target_located | target_selected | control_activated | checklist_opened | object_grabbed | object_released | object_placed | status_reported | paused | resumed | recentered`
-- `input`: `controller_ray | controller_grip | hand_pinch | hand_grab | simulator`
+- `input`: `controller_ray | controller_grip | hand_pinch | hand_grab | simulator | gaze`
 - `result`: `correct | incorrect | neutral`
 - App-level events (`paused`, `resumed`, `recentered`) use `targetId: "system"`. Calibration uses `targetId: "calibration"`.
 
@@ -72,6 +72,21 @@ Rules (enforced by the validator):
 | L6 Robotics Arm | `l6-robotics-v1` | `L6_Robotics` | Integration Lead |
 | L7 Integrated Mission | `l7-restore-power-v1` | `L7_Finale` | Core Logic |
 
+### 2.1 Level layout files (v1.4): the "level factory"
+`Assets/ASTRA/Content/Layouts/l<level>-layout.json` places each target in the scene; a generator builds the playable scene from mission + layout.
+```json
+{ "missionId": "l3-cabin-v1", "scene": "L3_Cabin",
+  "panels":   [ { "id": "cabin_control_panel", "title": "CABIN CONTROL", "position": [0.45, 1.0, 0.45], "size": [0.40, 0.30], "tilt": 15, "target": true } ],
+  "controls": [ { "targetId": "cabin_lights_toggle", "type": "toggle", "label": "CABIN LIGHTS", "panel": "cabin_control_panel", "at": [-0.11, 0.05] } ],
+  "tools":    [ { "targetId": "torque_wrench_tool", "label": "TORQUE WRENCH", "position": [-0.25, 1.05, 0.40] } ],
+  "decoys":   [ { "targetId": "aux_heater_toggle", "type": "toggle", "label": "AUX HEATER", "panel": "cabin_control_panel", "at": [-0.11, -0.09] } ] }
+```
+- Metres; seat eye at (0, 1.2, 0) facing +Z (x right, y up, z forward). `at` = offset on the panel face (x right, y up).
+- `type`: `button | toggle | dial | lever | checklist | socket` (socket needs `accepts` = a tool targetId; dial may list `positions`).
+- Every mission `targetId` appears exactly once (a control, a tool, or a panel with `"target": true`); decoys must not be mission targets.
+- Reach (§8): every panel/tool ≤ 0.7 m horizontally from the seat and 0.7–1.5 m high. The validator checks all of this.
+- The event a target raises comes from the mission step that uses it; decoys raise `control_activated`.
+
 ## 3. Interaction events: XR → LevelController
 C# `Astra.XR.Interactables.InteractionEvents` (static bus) and `InteractionReport { EventName, TargetId, Input }`.
 
@@ -91,7 +106,9 @@ C# `Astra.XR.Interactables.InteractionEvents` (static bus) and `InteractionRepor
 
 `targetId` for grabbing: `object_grabbed` / `object_released` use the **object's** id (e.g. `multimeter_tool`); `object_placed` uses the **socket's** id (e.g. `tool_bay_slot_1`). A socket accepts only its matching object, so a wrong object dropped near a socket produces `object_released`, not `object_placed`.
 
-`input` = the modality that performed the action: ray → `controller_ray`, controller grip → `controller_grip`, hand pinch/poke → `hand_pinch`, hand grab → `hand_grab`, XR Device Simulator → `simulator`.
+Phone VR (v1.4, Irusu Ultra + Google Cardboard): a gaze reticle at the view centre plus a tap (screen or headset button). Tap on a target → its event with `input: "gaze"`; dwell 1.0 s → `target_located`; grabbing = tap tool (`object_grabbed`), then tap matching socket (`object_placed`, socket id).
+
+`input` = the modality that performed the action: ray → `controller_ray`, controller grip → `controller_grip`, hand pinch/poke → `hand_pinch`, hand grab → `hand_grab`, XR Device Simulator and the desktop/WebGL test rig → `simulator`; phone gaze + tap → `gaze`.
 
 ## 4. Mission runner: live step tracking
 C# `Astra.Core.Mission.IMissionRunner` (implemented by Core Logic as `MissionRunner`).
@@ -204,6 +221,35 @@ Empty (valid, not an error): `summary: null`, `hints: []`, `reason: "NO_EVENTS"`
 `USE_MOCK_AI=true` → the proxy returns the ok/empty fixture shape without calling Gemini.
 The proxy holds `GEMINI_API_KEY`; the Unity app never does (NFR-SEC-02). Coach output never changes scoring or simulation (FR-SIM-04, FR-AI-04).
 
+### 9.1 Real AI mode (v1.3)
+- Model pinned by `GEMINI_MODEL` (currently `gemini-3.5-flash-lite`, measured ~1 s). Upstream timeout 6 s, no SDK retries; the client's 8 s timeout still applies.
+- **The verdict is never written by the AI.** `summary` = server-written verdict (`"Passed."` / `"Not passed."`) + one space + the AI's advice, together ≤ 600 chars. `hints` ≤ 3, each ≤ 200 chars (longer AI text is cut at a word boundary).
+- The AI receives **only**: the mission title and steps (stepId, order, instruction, hint, critical) from the server's own copy of the mission file, the `SessionResult`, and the mistake lists. It never receives raw free text from the client in the debrief. A system instruction is kept separate from the data, and data is wrapped as data.
+- AI output must match a JSON schema. Invalid output → one retry → `503 UPSTREAM_UNAVAILABLE` (the client shows the offline coach).
+
+### 9.2 Ask the coach: `POST /api/v1/coach/ask` (v1.3, Practice only)
+Request:
+```json
+{ "sessionId": "string", "missionId": "known mission", "phase": "Practice",
+  "currentStepId": "stepId in the mission, or null when all steps are done",
+  "question": "1-300 chars of trainee text" }
+```
+Response 200 (`fixtures/coach-ask.ok.json`):
+```json
+{ "sessionId": "string", "missionId": "string", "advisory": true, "answer": "<= 400 chars",
+  "stepId": "the currentStepId", "modelVersion": "string" }
+```
+- `phase` other than `"Practice"` → `400 INVALID_INPUT`. Never available in Qualification.
+- Answers only from the mission's own steps. Off-topic or unanswerable → the fixed answer `"I can only help with the current procedure. Check the checklist for the current step."`
+- `question` is untrusted text: it is passed as data and never followed as instructions; the answer can't change state or score.
+- Mock mode: `answer` = the current step's `hint` (or `"All steps are complete."`), `modelVersion: "coach-mock-0"`.
+- **Consent:** before the first Ask, the client shows: *"Your question is sent to Google Gemini. Do not include personal information."* (NFR-SEC-01).
+
+### 9.3 Input checks and limits (both coach endpoints, v1.3)
+- `missionId` must be a known mission file; every event's `missionId` and the result's `missionId`/`sessionId` must match the request's.
+- `targetId`, `stepId` and every id in the result lists match `^[a-z0-9_]{1,64}$`; `sessionId` matches `^[A-Za-z0-9_-]{1,64}$`. Anything else → `400 INVALID_INPUT`.
+- Rate limit: 10 requests per minute per client IP across both coach endpoints → `429 RATE_LIMITED` with a `Retry-After` header.
+
 ## 10. Error shape (every HTTP endpoint)
 ```json
 { "error": { "code": "UPSTREAM_UNAVAILABLE", "message": "Readable message", "details": [] } }
@@ -215,6 +261,8 @@ Open an issue `CONTRACT CHANGE REQUEST` with: section, old → new, why, who is 
 Adding an optional field is a minor bump (v1.2). Renaming, removing, or changing a field's meaning or type is a major bump (v2.0): every consumer is updated in the same merge.
 
 ## Changelog
+- **v1.4** (2026-11-14): input modality `gaze` (phone VR, Cardboard); level layout files `Assets/ASTRA/Content/Layouts/l<N>-layout.json` (§2.1). Additive.
+- **v1.3** (2026-11-14): coach real AI mode rules (§9.1), Ask-the-coach endpoint for Practice (§9.2), input checks and rate limit (§9.3), fixtures `coach-ask.{ok,error}.json`. Additive.
 - **v1.2** (2026-11-14): added error code `NOT_FOUND 404` (§10). Minor, additive.
 - **v1.1** (2026-11-14): 8 levels with mission IDs/owners; `level` + step `hint`; interaction bus (§3); runner + step-matching rule (§4); scoring rule + `skippedSteps` + oracle fixtures (§5); progress (§6); UI API (§7); level scene + LevelController (§8); coach client + `modelVersion` (§9). Finale renamed `l7-restore-power-v1`.
 - **v1.0** (2026-11-14): initial.

@@ -1,0 +1,26 @@
+{
+  "name": "ASTRA.App.Editor",
+  "rootNamespace": "Astra.App.EditorTools",
+  "references": [
+    "ASTRA.Core",
+    "ASTRA.XR",
+    "ASTRA.App",
+    "ASTRA.DesktopTest",
+    "Unity.TextMeshPro",
+    "Unity.RenderPipelines.Core.Runtime",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "ASTRA.UI",
+    "UnityEngine.UI"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

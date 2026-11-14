@@ -57,6 +57,7 @@ def test_ok(client, payload):
 
 def test_session_id_echoed(client, payload):
     payload["sessionId"] = "other-session-xyz"
+    payload["result"]["sessionId"] = "other-session-xyz"
     r = client.post(URL, json=payload)
     assert r.status_code == 200
     assert r.json()["sessionId"] == "other-session-xyz"
@@ -127,12 +128,12 @@ def test_payload_too_large_no_content_length(client):
 
 
 def test_real_mode_unavailable(payload):
-    c = TestClient(create_app(Settings(USE_MOCK_AI=False)))
+    c = TestClient(create_app(Settings(USE_MOCK_AI=False, GEMINI_API_KEY=None, GEMINI_MODEL="")))
     r = c.post(URL, json=payload)
     assert r.status_code == 503
     body = r.json()
     assert_error_shape(body, "UPSTREAM_UNAVAILABLE")
-    assert body["error"]["message"] == "AI coach is not configured yet."
+    assert body["error"]["message"] == "AI coach is not configured."
 
 
 def test_internal_error_shape(payload):

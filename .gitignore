@@ -21,6 +21,7 @@ ExportedObj/
 *.csproj
 *.unityproj
 *.sln
+*.slnx
 *.suo
 *.tmp
 *.user
@@ -67,5 +68,6 @@ __pycache__/
 .venv/
 
 # ---- Local AI tooling (kept out of the repo) ----
-.claude/
-CLAUDE.md
+
+# WebGL/Burst build leftovers written to the project root
+/Data/
