@@ -1,0 +1,28 @@
+{
+  "missionId": "l4-emergency-v1",
+  "scene": "L4_Emergency",
+  "panels": [
+    { "id": "power_panel", "title": "POWER", "position": [0.0, 1.06, 0.58], "size": [0.56, 0.32], "tilt": 15, "target": true },
+    { "id": "checklist_display", "title": "POWER FAULT", "position": [0.0, 1.38, 0.60], "size": [0.32, 0.12], "tilt": -10, "target": false },
+    { "id": "status_display", "title": "STATUS", "position": [0.44, 1.00, 0.46], "size": [0.24, 0.22], "tilt": 15, "target": false }
+  ],
+  "controls": [
+    { "targetId": "caution_ack_button", "type": "button", "label": "ACK", "panel": "power_panel", "at": [-0.20, -0.015] },
+    { "targetId": "power_bus_b_display", "type": "button", "label": "BUS B", "panel": "power_panel", "at": [0.06, 0.025] },
+    { "targetId": "power_bus_b_dial", "type": "dial", "label": "BUS B", "panel": "power_panel", "at": [0.06, -0.095], "positions": ["NORMAL", "ISOLATE"] },
+    { "targetId": "crosstie_lever", "type": "lever", "label": "CROSS-TIE", "panel": "power_panel", "at": [0.20, -0.03] },
+    { "targetId": "power_fault_checklist", "type": "checklist", "label": "CHECKLIST", "panel": "checklist_display", "at": [0.0, -0.015] },
+    { "targetId": "power_report_button", "type": "button", "label": "REPORT", "panel": "status_display", "at": [0.0, -0.05] }
+  ],
+  "indicators": [
+    { "id": "caution_light", "label": "CAUTION", "panel": "power_panel", "at": [-0.20, 0.085] },
+    { "id": "bus_a_light", "label": "NORMAL", "panel": "power_panel", "at": [-0.07, 0.085] },
+    { "id": "bus_b_light", "label": "FAULT", "panel": "power_panel", "at": [0.06, 0.085] },
+    { "id": "status_light", "label": "STATUS", "panel": "status_display", "at": [0.0, 0.025] }
+  ],
+  "tools": [],
+  "decoys": [
+    { "targetId": "power_bus_a_display", "type": "button", "label": "BUS A", "panel": "power_panel", "at": [-0.07, 0.025] },
+    { "targetId": "power_bus_a_dial", "type": "dial", "label": "BUS A", "panel": "power_panel", "at": [-0.07, -0.095], "positions": ["NORMAL", "ISOLATE"] }
+  ]
+}
