@@ -26,7 +26,7 @@ namespace Astra.XR.Input
         {
             return value == InputModality.ControllerRay || value == InputModality.ControllerGrip ||
                    value == InputModality.HandPinch || value == InputModality.HandGrab ||
-                   value == InputModality.Simulator;
+                   value == InputModality.Simulator || value == InputModality.Gaze;
         }
 
         public static bool TryResolve(Component interactor, out string input)

@@ -1,4 +1,5 @@
 using System;
+using Astra.UI.Gaze;
 using UnityEditor;
 using UnityEditor.Events;
 using UnityEngine;
@@ -7,23 +8,30 @@ using Object = UnityEngine.Object;
 
 namespace Astra.UI.Editor
 {
-    /// <summary>Creates the P1-owned UI assets without modifying project or package settings.</summary>
+    /// <summary>
+    /// Creates the P1-owned UI assets without modifying project or package settings.
+    /// Prefabs are transparent-backed: the level factory adds the dark-glass backplate and glowing edge, and scales each
+    /// panel to its physical width (PhaseBanner 0.34 m, InstructionPanel 0.42 m, DebriefPanel 0.46 m, AlarmIndicator 0.28 m).
+    /// Font sizes are chosen from those widths so body text is ≥ 12 mm and titles ≥ 18 mm tall (cap height) on the phone.
+    /// Every button carries a <see cref="GazeButton"/>.
+    /// </summary>
     public static class UiPrefabBuilder
     {
         private const string OutputDirectory = "Assets/ASTRA/UI/Prefabs";
-        // Sizes target the phone headset: ~13 px per degree after HEVC, so body text is >= ~1.4 degrees tall and bold.
-        internal static readonly Color Background = new Color(0.03f, 0.055f, 0.095f, 0.95f);
-        internal static readonly Color Surface = new Color(0.07f, 0.12f, 0.18f, 1f);
+        internal static readonly Color Background = new Color(0.02f, 0.035f, 0.06f, 0f);   // transparent: factory backplate
+        internal static readonly Color Glass = new Color(0.02f, 0.035f, 0.06f, 0.9f);       // for panels without a backplate
+        internal static readonly Color Surface = new Color(0.07f, 0.12f, 0.18f, 0.6f);
         internal static readonly Color Foreground = new Color(0.97f, 0.98f, 1f, 1f);
-        internal static readonly Color Accent = new Color(0.55f, 0.92f, 1f, 1f);
-        internal static readonly Color AccentBar = new Color(0.2f, 0.72f, 0.95f, 1f);
-        internal static readonly Color HintInk = new Color(1f, 0.84f, 0.5f, 1f);
-        internal static readonly Color ButtonFill = new Color(0.13f, 0.3f, 0.47f, 1f);
+        internal static readonly Color Accent = Theme.AccentInk;
+        internal static readonly Color AccentBar = Theme.Accent;
+        internal static readonly Color HintInk = Theme.WarningInk;
+        internal static readonly Color ButtonFill = Theme.ButtonFill;
 
         [MenuItem("ASTRA/P1/Create shared UI prefabs")]
         public static void BuildUiPrefabs() => BuildInDirectory(OutputDirectory);
 
         /// <summary>P1's own rebuild: regenerates the shared UI prefabs in place (GUIDs kept).</summary>
+        [MenuItem("ASTRA/P1/Rebuild shared UI prefabs (overwrites)")]
         public static void RebuildUiPrefabs() => BuildInDirectory(OutputDirectory, true);
 
         public static void BuildInDirectory(string directory) => BuildInDirectory(directory, false);
@@ -43,6 +51,7 @@ namespace Astra.UI.Editor
             Save(directory, "AlarmIndicator", BuildAlarm, overwrite);
             Save(directory, "PhaseBanner", BuildPhase, overwrite);
             Save(directory, "DebriefPanel", BuildDebrief, overwrite);
+            Save(directory, "Certificate", BuildCertificate, overwrite);
             AssetDatabase.SaveAssets();
         }
 
@@ -66,19 +75,21 @@ namespace Astra.UI.Editor
             }
         }
 
+        // 1000 px → 0.42 m: 0.42 mm/px. Instruction 46 px bold (cap ≈ 13.5 mm), hint 42 px (≈ 12.4 mm).
         private static GameObject BuildInstruction()
         {
-            var root = Root("InstructionPanel", 1000f, 410f);
+            var root = Root("InstructionPanel", 1000f, 500f);
             AccentHeader(root.transform);
-            Heading(Label(root.transform, "Heading", "INSTRUCTION", 26, 22f, 34f), Accent);
-            var instruction = Label(root.transform, "Instruction", string.Empty, 44, 62f, 150f);
+            Heading(Label(root.transform, "Heading", "INSTRUCTION", 30, 18f, 38f), Accent);
+            var instruction = Label(root.transform, "Instruction", string.Empty, 46, 60f, 170f);
             instruction.fontStyle = FontStyle.Bold;
-            Heading(Label(root.transform, "HintHeading", "PRACTICE HINT", 24, 226f, 30f), HintInk);
-            var hint = Label(root.transform, "Hint", string.Empty, 34, 260f, 136f);
+            Heading(Label(root.transform, "HintHeading", "PRACTICE HINT", 30, 236f, 36f), HintInk);
+            var hint = Label(root.transform, "Hint", string.Empty, 42, 276f, 210f);
             root.AddComponent<InstructionPanel>().Configure(instruction, hint);
             return root;
         }
 
+        // 900 px → 0.28 m: 0.31 mm/px. Caption 60 px bold (cap ≈ 13 mm).
         private static GameObject BuildAlarm()
         {
             var root = Root("AlarmIndicator", 900f, 180f);
@@ -86,22 +97,23 @@ namespace Astra.UI.Editor
             var light = Rect("AlarmLight", root.transform);
             light.anchorMin = light.anchorMax = new Vector2(0f, 0.5f);
             light.pivot = new Vector2(0f, 0.5f);
-            light.anchoredPosition = new Vector2(35f, 0f);
-            light.sizeDelta = new Vector2(70f, 70f);
+            light.anchoredPosition = new Vector2(30f, 0f);
+            light.sizeDelta = new Vector2(90f, 90f);
             var graphic = light.gameObject.AddComponent<Image>();
-            graphic.color = new Color(1f, 0.55f, 0.12f, 1f);
+            Rounded(graphic, Theme.Warning);
             graphic.raycastTarget = false;
-            var caption = Label(root.transform, "Caption", string.Empty, 36, 35f, 110f);
+            var caption = Label(root.transform, "Caption", string.Empty, 60, 20f, 150f);
             caption.fontStyle = FontStyle.Bold;
-            caption.rectTransform.offsetMin = new Vector2(135f, caption.rectTransform.offsetMin.y);
+            caption.rectTransform.offsetMin = new Vector2(145f, caption.rectTransform.offsetMin.y);
             root.AddComponent<AlarmIndicator>().Configure(caption, graphic, 1.5f);
             return root;
         }
 
+        // 560 px → 0.34 m: 0.61 mm/px. Phase title 52 px bold (cap ≈ 22 mm).
         private static GameObject BuildPhase()
         {
             var root = Root("PhaseBanner", 560f, 100f);
-            var label = Label(root.transform, "Phase", string.Empty, 42, 18f, 64f);
+            var label = Label(root.transform, "Phase", string.Empty, 52, 14f, 72f);
             label.alignment = TextAnchor.MiddleCenter;
             label.fontStyle = FontStyle.Bold;
             label.color = Accent;
@@ -109,24 +121,99 @@ namespace Astra.UI.Editor
             return root;
         }
 
+        // 960 px → 0.46 m: 0.48 mm/px. Body 36 px (cap ≈ 12.1 mm), result 64 px bold (≈ 21 mm), score 96 px.
         private static GameObject BuildDebrief()
         {
-            var root = Root("DebriefPanel", 960f, 880f);
+            var root = Root("DebriefPanel", 960f, 1060f);
             AccentHeader(root.transform);
-            Heading(Label(root.transform, "Heading", "DEBRIEF", 26, 22f, 36f), Accent);
-            var outcome = Label(root.transform, "Outcome", string.Empty, 54, 60f, 70f);
+            Heading(Label(root.transform, "Heading", "DEBRIEF", 30, 16f, 38f), Accent);
+            var outcome = Label(root.transform, "Outcome", string.Empty, 64, 58f, 80f);
             outcome.fontStyle = FontStyle.Bold;
-            var details = ScrollingText(root.transform, "Details", 145f, 340f, 30);
-            var coachHeading = Label(root.transform, "CoachHeading", string.Empty, 26, 500f, 36f);
+
+            // Score row: score (counts up), medal badge with a soft glow, NEW BEST.
+            var score = Placed(root.transform, "Score", "0", 96, -300f, 140f, 300f, 112f, TextAnchor.MiddleLeft);
+            score.fontStyle = FontStyle.Bold;
+            var glow = Box(root.transform, "MedalGlow", 60f, 140f, 280f, 120f, new Color(1f, 0.8f, 0.25f, 0f));
+            var badge = Box(root.transform, "MedalBadge", 60f, 150f, 240f, 92f, Theme.Gold);
+            var medal = Placed(badge.transform, "MedalLabel", string.Empty, 44, 0f, 0f, 240f, 92f, TextAnchor.MiddleCenter, true);
+            medal.fontStyle = FontStyle.Bold;
+            var outline = medal.gameObject.AddComponent<UnityEngine.UI.Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.8f);
+            outline.effectDistance = new Vector2(2f, -2f);
+            var newBest = Placed(root.transform, "NewBest", "NEW BEST", 40, 320f, 154f, 240f, 80f, TextAnchor.MiddleCenter);
+            newBest.fontStyle = FontStyle.Bold;
+            newBest.color = HintInk;
+
+            var lines = new Text[5];
+            for (var i = 0; i < lines.Length; i++)
+                lines[i] = Label(root.transform, "Breakdown" + i, string.Empty, 36, 266f + i * 46f, 44f);
+
+            var details = ScrollingText(root.transform, "Details", 500f, 220f, 36);
+            var coachHeading = Label(root.transform, "CoachHeading", string.Empty, 30, 730f, 38f);
             coachHeading.fontStyle = FontStyle.Bold;
-            var coach = ScrollingText(root.transform, "Coach", 545f, 175f, 28);
+            coachHeading.color = Accent;
+            var coach = ScrollingText(root.transform, "Coach", 772f, 150f, 36);
             var panel = root.AddComponent<DebriefPanel>();
             panel.Configure(outcome, details, coachHeading, coach);
+            panel.ConfigureReveal(score, medal, badge, glow, newBest, lines);
 
-            var retry = CreateButton(root.transform, "Retry", "RETRY", -175f, 752f);
-            var hub = CreateButton(root.transform, "BackToHub", "HUB", 175f, 752f);
+            var retry = CreateButton(root.transform, "Retry", "RETRY", -260f, 942f, 400f);
+            var next = CreateButton(root.transform, "NextLevel", "NEXT LEVEL", 110f, 942f, 260f);
+            var hub = CreateButton(root.transform, "BackToHub", "HUB", 360f, 942f, 200f);
             UnityEventTools.AddPersistentListener(retry.onClick, panel.RequestRetry);
+            UnityEventTools.AddPersistentListener(next.onClick, panel.RequestNextLevel);
             UnityEventTools.AddPersistentListener(hub.onClick, panel.RequestBackToHub);
+            Gaze(retry, "debrief_retry", "RETRY");
+            Gaze(next, "debrief_next_level", "NEXT LEVEL");
+            Gaze(hub, "debrief_hub", "HUB");
+            panel.ConfigureButtons(retry, next, hub);
+            return root;
+        }
+
+        /// <summary>Graduation certificate (shown over the debrief of the last level). Has its own glass background.</summary>
+        private static GameObject BuildCertificate()
+        {
+            var root = Root("Certificate", 1200f, 860f);
+            var certificate = root.AddComponent<CertificatePanel>();
+            var panel = Rect("CertificateRoot", root.transform);
+            panel.anchorMin = Vector2.zero;
+            panel.anchorMax = Vector2.one;
+            panel.offsetMin = panel.offsetMax = Vector2.zero;
+            Rounded(panel.gameObject.AddComponent<Image>(), Glass);
+            AccentHeader(panel);
+            var crest = Box(panel, "Crest", 0f, 40f, 150f, 150f, new Color(1f, 1f, 1f, 0.9f));
+            crest.sprite = P1Art.Outline;
+            Placed(crest.transform, "CrestText", "ASTRA\nSTATION", 26, 0f, 0f, 150f, 150f, TextAnchor.MiddleCenter, true).fontStyle = FontStyle.Bold;
+            var heading = Label(panel, "Heading", CertificatePanel.Heading, 56, 200f, 70f);
+            heading.alignment = TextAnchor.MiddleCenter;
+            heading.fontStyle = FontStyle.Bold;
+            var callsign = Label(panel, "Callsign", "CADET", 64, 280f, 80f);
+            callsign.alignment = TextAnchor.MiddleCenter;
+            callsign.fontStyle = FontStyle.Bold;
+            callsign.color = Accent;
+            var date = Label(panel, "Date", string.Empty, 34, 366f, 44f);
+            date.alignment = TextAnchor.MiddleCenter;
+            var score = Label(panel, "Score", string.Empty, 40, 416f, 52f);
+            score.alignment = TextAnchor.MiddleCenter;
+            score.fontStyle = FontStyle.Bold;
+            var medals = new Text[8];
+            var badges = new Graphic[8];
+            for (var i = 0; i < 8; i++)
+            {
+                var badge = Box(panel, "Medal" + i, -490f + i * 140f, 500f, 120f, 120f, new Color(0.25f, 0.28f, 0.33f));
+                badges[i] = badge;
+                medals[i] = Placed(badge.transform, "Label", "L" + i + "\n-", 26, 0f, 0f, 120f, 120f, TextAnchor.MiddleCenter, true);
+                medals[i].fontStyle = FontStyle.Bold;
+                var o = medals[i].gameObject.AddComponent<UnityEngine.UI.Outline>();
+                o.effectColor = new Color(0f, 0f, 0f, 0.8f);
+            }
+            var disclaimer = Label(panel, "Disclaimer", CertificatePanel.Disclaimer, 30, 650f, 40f);
+            disclaimer.alignment = TextAnchor.MiddleCenter;
+            disclaimer.color = new Color(0.82f, 0.86f, 0.92f);
+            var close = CreateButton(panel, "Close", "CLOSE", 0f, 720f, 280f);
+            UnityEventTools.AddPersistentListener(close.onClick, certificate.Close);
+            Gaze(close, "certificate_close", "CLOSE");
+            certificate.Configure(panel.gameObject, callsign, date, score, medals, badges);
             return root;
         }
 
@@ -139,10 +226,19 @@ namespace Astra.UI.Editor
             rect.localScale = Vector3.one * 0.001f;
             var canvas = root.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
-            root.AddComponent<CanvasScaler>().dynamicPixelsPerUnit = 2f;
+            root.AddComponent<CanvasScaler>().dynamicPixelsPerUnit = 3f;
             root.AddComponent<GraphicRaycaster>();
-            Rounded(root.AddComponent<Image>(), Background);
+            var image = root.AddComponent<Image>();
+            Rounded(image, Background);
+            image.raycastTarget = false;
             return root;
+        }
+
+        internal static void Gaze(Button button, string id, string label)
+        {
+            var gaze = button.gameObject.AddComponent<GazeButton>();
+            gaze.Configure(id, label);
+            gaze.FitCollider();
         }
 
         private static Text Label(Transform parent, string name, string value, int size, float top, float height)
@@ -154,6 +250,33 @@ namespace Astra.UI.Editor
             rect.anchoredPosition = new Vector2(0f, -top);
             rect.sizeDelta = new Vector2(-70f, height);
             return CreateText(rect, value, size);
+        }
+
+        /// <summary>Text centred at (x, -top) from the parent's top centre, or at (x, y) from its centre when <paramref name="centred"/>.</summary>
+        private static Text Placed(Transform parent, string name, string value, int size, float x, float top, float width, float height,
+            TextAnchor anchor, bool centred = false)
+        {
+            var rect = Rect(name, parent);
+            rect.anchorMin = rect.anchorMax = centred ? new Vector2(0.5f, 0.5f) : new Vector2(0.5f, 1f);
+            rect.pivot = centred ? new Vector2(0.5f, 0.5f) : new Vector2(0.5f, 1f);
+            rect.anchoredPosition = centred ? new Vector2(x, top) : new Vector2(x, -top);
+            rect.sizeDelta = new Vector2(width, height);
+            var text = CreateText(rect, value, size);
+            text.alignment = anchor;
+            return text;
+        }
+
+        private static Image Box(Transform parent, string name, float x, float top, float width, float height, Color color)
+        {
+            var rect = Rect(name, parent);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(x, -top);
+            rect.sizeDelta = new Vector2(width, height);
+            var image = rect.gameObject.AddComponent<Image>();
+            Rounded(image, color);
+            image.raycastTarget = false;
+            return image;
         }
 
         private static Text CreateText(RectTransform rect, string value, int size)
@@ -203,15 +326,16 @@ namespace Astra.UI.Editor
             return text;
         }
 
-        private static Button CreateButton(Transform parent, string name, string caption, float x, float top)
+        private static Button CreateButton(Transform parent, string name, string caption, float x, float top, float width)
         {
             var rect = Rect(name, parent);
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
             rect.pivot = new Vector2(0.5f, 1f);
             rect.anchoredPosition = new Vector2(x, -top);
-            rect.sizeDelta = new Vector2(300f, 96f);
+            rect.sizeDelta = new Vector2(width, 100f);
             var button = StyleButton(rect.gameObject);
-            var text = Label(rect, name + "Label", caption, 36, 0f, 96f);
+            var text = Label(rect, name + "Label", caption, 36, 0f, 100f);
+            text.rectTransform.sizeDelta = new Vector2(-24f, 100f);
             text.alignment = TextAnchor.MiddleCenter;
             text.fontStyle = FontStyle.Bold;
             return button;
@@ -226,21 +350,21 @@ namespace Astra.UI.Editor
             button.targetGraphic = image;
             var colors = button.colors;
             colors.normalColor = ButtonFill;
-            colors.highlightedColor = new Color(0.2f, 0.55f, 0.8f, 1f);
+            colors.highlightedColor = Color.Lerp(ButtonFill, Theme.Accent, 0.6f);
             colors.selectedColor = ButtonFill;
-            colors.pressedColor = new Color(0.25f, 0.75f, 0.5f, 1f);
-            colors.disabledColor = new Color(0.2f, 0.23f, 0.28f, 0.85f);
+            colors.pressedColor = Theme.Success;
+            colors.disabledColor = new Color(0.16f, 0.18f, 0.22f, 0.85f);
             colors.colorMultiplier = 1f;
             colors.fadeDuration = 0.08f;
             button.colors = colors;
-            var outline = Rect("Outline", target.transform);
+            var outline = Rect("Edge", target.transform);
             outline.anchorMin = Vector2.zero;
             outline.anchorMax = Vector2.one;
             outline.offsetMin = outline.offsetMax = Vector2.zero;
             var frame = outline.gameObject.AddComponent<Image>();
             frame.sprite = P1Art.Outline;
             frame.type = Image.Type.Sliced;
-            frame.color = new Color(0.55f, 0.85f, 1f, 0.45f);
+            frame.color = new Color(Theme.Accent.r, Theme.Accent.g, Theme.Accent.b, 0.55f);
             frame.raycastTarget = false;
             return button;
         }
@@ -265,7 +389,7 @@ namespace Astra.UI.Editor
             bar.anchorMin = new Vector2(0f, 1f);
             bar.anchorMax = new Vector2(1f, 1f);
             bar.pivot = new Vector2(0.5f, 1f);
-            bar.anchoredPosition = new Vector2(0f, -6f);
+            bar.anchoredPosition = new Vector2(0f, -4f);
             bar.sizeDelta = new Vector2(-60f, 6f);
             var image = bar.gameObject.AddComponent<Image>();
             image.color = AccentBar;

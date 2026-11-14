@@ -129,3 +129,32 @@ Missing: canonical project/packages, real XRI bindings/rig/XR prefabs, pause inp
 Next: real XR input adapters/rig; obtain space or an existing 6.3 editor path to rerun on target stream.
 Goal: active; full P1 implementation remains incomplete.
 ```
+
+## Phone VR (Irusu + Cardboard) P1 spec: gaze rig, Hub, L0/L1, UI polish, audio (2026-11-15)
+
+**Scope:** `P1-XR-UI-HUB-L0-L1.md` tasks 1–5. `origin/main` was merged into `feat/xr-shared-foundations` with `--no-commit`, as authorized; nothing is committed.
+- Conflicts resolved: the Integration Lead's `LevelController`, App test assembly and level folder metas come from `main`. My stopgap `LevelControllerTests` and `AssemblyInfo` were removed.
+- My hand-built L0/L1 scenes were deleted; the factory now builds them from the layouts.
+
+**Verification mode:** code only. The user chose not to run Unity: 6000.3.28f1 and Android Build Support are not installed, the disk has 3.8 GB free, and no phone is attached.
+
+| Check | Result |
+|---|---|
+| `python3 scripts/validate_content.py` (all missions, the new L0/L1 missions and layouts, reach rules) | **OK** |
+| Static C# type-check of all 13 ASTRA assemblies (Core, XR, UI, Coach, App, DesktopTest, Assembly-CSharp levels, UI.Editor, the factory App.Editor, and the XR/UI/App test assemblies) with Unity's bundled Roslyn, against 6000.6.5f1 engine/editor DLLs, Input System 1.20.1, UGUI/TMP, URP and NUnit | **0 errors** (it caught and fixed an ambiguous `CommonUsages` reference and the error-level obsolete TMP `enableWordWrapping`) |
+| Unity import, EditMode/PlayMode runs, factory scene build, Hub generation, APK build, Irusu device run, fps/comfort | **Not run.** Needed: open the 6.3 project, run **ASTRA → P1 → Rebuild P1 assets and Hub scene**, then **ASTRA → Build all level scenes from layouts**, then both test suites, then the APK |
+
+A type-check against 6.6 DLLs is not evidence of Unity 6.3 compilation, asset import or runtime behaviour.
+
+**Hand-offs**
+- **Integration Lead:**
+  - add `GazeRig.AttachTo` to the factory camera;
+  - make `TestTarget` implement `IGazeTarget`, with `IGazeLocatable` for panels;
+  - wire `DebriefPanel.onNextLevel` and `onGraduate`;
+  - add the pause menu and `onEmptyTap`;
+  - hook up `AudioCues`.
+
+  See `Assets/ASTRA/XR/Phone/README.md`.
+- **P2:** set `ScoreReports.Source` (ResultRating/ScoreBreakdown) and `AcademyProgress.Current` (ProgressService), and call `RecordScore` after scoring.
+- **P4:** add the audio line to the root `CREDITS.md`.
+- **Team lead:** approve or reject the Cardboard proposal (`.agents/evidence/cardboard-proposal.md`).

@@ -69,7 +69,11 @@ namespace Astra.XR.Rig
         }
 
         /// <summary>Forces the next query to rescan scenes, e.g. after enabling a menu.</summary>
-        public static void Invalidate() => nextRefresh = float.NegativeInfinity;
+        public static void Invalidate()
+        {
+            nextRefresh = float.NegativeInfinity;
+            cachedFrame = -1; // also rescan within the current frame
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()

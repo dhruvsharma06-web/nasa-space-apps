@@ -1,15 +1,14 @@
 {
   "missionId": "l1-orientation-v1",
   "level": 1,
-  "version": "1.0.1",
-  "title": "Cadet Orientation: Basic Controls",
+  "version": "2.0.0",
+  "title": "Cadet Orientation: Learn the Cabin",
   "fictional": true,
   "steps": [
-    { "stepId": "locate_target", "order": 1, "instruction": "Locate the TARGET panel.",             "hint": "TARGET is the upright panel on your left. Look or point at it for one second; locating finds a control before you use it.", "expectedEvent": "target_located",    "targetId": "orientation_target_panel",  "critical": false },
-    { "stepId": "select_target", "order": 2, "instruction": "Select the TARGET panel.",             "hint": "Look at TARGET and tap, or point and pinch or click. Selecting chooses a panel; its frame glows while you aim at it.",             "expectedEvent": "target_selected",   "targetId": "orientation_target_panel",  "critical": true },
-    { "stepId": "press_start",   "order": 3, "instruction": "Press START.",                         "hint": "START is the round button in the middle of the desk. The cap sinks and lights up while it is pressed.",                                "expectedEvent": "control_activated", "targetId": "orientation_start_button",  "critical": true },
-    { "stepId": "grab_tool",     "order": 4, "instruction": "Grab the TOOL.",                       "hint": "TOOL is on the left of the desk. Look at it and tap, make a fist, or hold the mouse button to pick it up.",                                     "expectedEvent": "object_grabbed",    "targetId": "orientation_practice_tool", "critical": true },
-    { "stepId": "release_tool",  "order": 5, "instruction": "Release the TOOL away from the TOOL BAY.", "hint": "Tap again, open your hand or let go over the empty desk, not the TOOL BAY tray. A released item stays where you leave it.",                 "expectedEvent": "object_released",   "targetId": "orientation_practice_tool", "critical": true },
-    { "stepId": "place_tool",    "order": 6, "instruction": "Place the TOOL in the TOOL BAY.",      "hint": "TOOL BAY is the tray on the right of the desk. Pick up the TOOL again, then release it above the tray; it snaps in.",                    "expectedEvent": "object_placed",     "targetId": "orientation_tool_socket",   "critical": true }
+    { "stepId": "locate_comms",         "order": 1, "instruction": "Find the COMMS panel.",          "hint": "Turn your head to the far left. COMMS holds the radio controls; look at it until the ring fills.",              "expectedEvent": "target_located",  "targetId": "comms_panel",         "critical": true },
+    { "stepId": "locate_power",         "order": 2, "instruction": "Find the POWER panel.",          "hint": "POWER is ahead, slightly left. It feeds every system in the cabin; hold your gaze on it for one second.",       "expectedEvent": "target_located",  "targetId": "power_panel",         "critical": true },
+    { "stepId": "locate_life_support",  "order": 3, "instruction": "Find the LIFE SUPPORT panel.",   "hint": "LIFE SUPPORT is ahead, slightly right. It keeps cabin air and temperature safe; look at it until the ring fills.", "expectedEvent": "target_located", "targetId": "life_support_panel",  "critical": true },
+    { "stepId": "locate_stowage",       "order": 4, "instruction": "Find the STOWAGE panel.",        "hint": "Turn your head to the far right. STOWAGE is where tools are kept; hold your gaze on it for one second.",      "expectedEvent": "target_located",  "targetId": "stowage_panel",       "critical": true },
+    { "stepId": "open_checklist",       "order": 5, "instruction": "Open the CHECKLIST tab.",        "hint": "CHECKLIST is the tab on the display above the panels. A checklist lists every step of a task in order.",      "expectedEvent": "checklist_opened", "targetId": "orientation_checklist", "critical": true }
   ]
 }

@@ -151,7 +151,7 @@ namespace Astra.UI.Tests.PlayMode
             var panel = NewDebrief(out var outcome, out var details, out var heading, out var coach);
 
             panel.Show(passingResult, mission);
-            Assert.AreEqual("PASS", outcome.text);
+            Assert.AreEqual("PASSED", outcome.text);
             Assert.That(details.text, Does.Contain(FindInstruction(mission, "calibrate")));
             Assert.That(details.text, Does.Contain(FindInstruction(mission, "isolate_bus")));
             Assert.That(details.text, Does.Contain("Power Bus A"));
@@ -167,7 +167,7 @@ namespace Astra.UI.Tests.PlayMode
             var panel = NewDebrief(out var outcome, out var details, out _, out _);
 
             panel.Show(emptyResult, mission);
-            Assert.AreEqual("RETRY", outcome.text);
+            Assert.AreEqual("NOT PASSED", outcome.text);
             Assert.That(details.text, Does.Contain("Required steps missed:"));
             Assert.That(details.text, Does.Contain(FindInstruction(mission, "calibrate")));
             Assert.That(details.text, Does.Contain(FindInstruction(mission, "verify_recovery")));

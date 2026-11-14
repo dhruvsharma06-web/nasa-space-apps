@@ -1,5 +1,6 @@
 using System;
 using Astra.Core.Progress;
+using Astra.UI.Progress;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -11,6 +12,9 @@ namespace Astra.UI.Hub
     {
         [SerializeField] private LevelCard[] cards;
         [SerializeField] private Text progressNotice;
+        [SerializeField] private LevelCardPresenter[] presenters = new LevelCardPresenter[0];
+        [SerializeField] private Texture[] previews = new Texture[0];
+        private IAcademyProgress academy;
         private IProgressStore progressStore;
         private ProgressState progress;
         private Func<string, bool> sceneAvailable = Application.CanStreamedLevelBeLoaded;
@@ -35,6 +39,36 @@ namespace Astra.UI.Hub
                 Subscribe();
                 Refresh();
             }
+        }
+
+        /// <summary>Unlocks, best scores and medals from P2's progress API (placeholder until it ships).</summary>
+        public IAcademyProgress Academy => academy;
+
+        /// <summary>Raised after every Refresh (header, settings and cards update from it).</summary>
+        public event Action Refreshed;
+
+        /// <summary>The next recommended level: the lowest unlocked, not-yet-passed level (-1 when all are passed).</summary>
+        public int RecommendedLevel { get; private set; } = -1;
+
+        /// <summary>Optional premium presenters (one per card, any order) and preview textures indexed by level.</summary>
+        public void ConfigurePresentation(LevelCardPresenter[] cardPresenters, Texture[] previewTextures)
+        {
+            presenters = cardPresenters ?? new LevelCardPresenter[0];
+            previews = previewTextures ?? new Texture[0];
+        }
+
+        public void UseAcademyProgress(IAcademyProgress progressApi)
+        {
+            academy = progressApi ?? throw new ArgumentNullException(nameof(progressApi));
+            Refresh();
+        }
+
+        /// <summary>Judges' "Demo: unlock all": every level with a scene in the build becomes selectable.</summary>
+        public void DemoUnlockAll()
+        {
+            (academy ?? AcademyProgress.Current).UnlockAll();
+            if (academy == null) academy = AcademyProgress.Current;
+            Refresh();
         }
 
         public void UseProgressStore(IProgressStore store)
@@ -71,9 +105,48 @@ namespace Astra.UI.Hub
                     for (var j = 0; j < progress.records.Count; j++)
                         if (progress.records[j] != null && progress.records[j].level == card.Level && progress.records[j].passed)
                             passed = true;
+                if (!passed && academy != null && academy.IsPassed(card.Level))
+                    passed = true;
                 card.SetState(unlocked, sceneAvailable(LevelCatalog.Levels[card.Level].SceneName), passed);
                 card.SetBusy(loading);
             }
+            PresentCards();
+            Refreshed?.Invoke();
+        }
+
+        private void PresentCards()
+        {
+            RecommendedLevel = -1;
+            for (var level = 0; level < LevelCatalog.Levels.Count; level++)
+            {
+                var done = academy != null ? academy.IsPassed(level) : IsPassedInState(level);
+                if (IsUnlocked(level) && !done && sceneAvailable(LevelCatalog.Levels[level].SceneName))
+                {
+                    RecommendedLevel = level;
+                    break;
+                }
+            }
+            if (presenters == null) return;
+            foreach (var presenter in presenters)
+            {
+                if (presenter == null) continue;
+                var card = presenter.GetComponentInParent<LevelCard>() ?? presenter.GetComponentInChildren<LevelCard>(true);
+                if (card == null) continue;
+                var level = card.Level;
+                var entry = LevelCatalog.Levels[level];
+                var preview = previews != null && level < previews.Length ? previews[level] : null;
+                presenter.Present(entry, IsUnlocked(level), academy != null ? academy.BestScore(level) : -1,
+                    academy != null ? academy.BestMedal(level) : Medal.None, preview);
+                presenter.SetRecommended(level == RecommendedLevel);
+            }
+        }
+
+        private bool IsPassedInState(int level)
+        {
+            if (progress?.records == null) return false;
+            foreach (var record in progress.records)
+                if (record != null && record.level == level && record.passed) return true;
+            return false;
         }
 
         private void Awake()
@@ -127,8 +200,9 @@ namespace Astra.UI.Hub
             }
         }
 
-        private bool IsUnlocked(int level) => progress != null && progress.unlockedLevels != null &&
-                                               progress.unlockedLevels.Contains(level);
+        private bool IsUnlocked(int level) => (academy != null && academy.IsUnlocked(level)) ||
+                                              (progress != null && progress.unlockedLevels != null &&
+                                               progress.unlockedLevels.Contains(level));
 
         private void Subscribe()
         {

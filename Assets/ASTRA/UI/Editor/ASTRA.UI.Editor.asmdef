@@ -6,7 +6,8 @@
     "ASTRA.XR",
     "ASTRA.UI",
     "ASTRA.App",
-    "UnityEngine.UI"
+    "UnityEngine.UI",
+    "Unity.TextMeshPro"
   ],
   "includePlatforms": [
     "Editor"

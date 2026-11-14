@@ -3,7 +3,9 @@
   "rootNamespace": "Astra.XR",
   "references": [
     "ASTRA.Core",
-    "UnityEngine.UI"
+    "UnityEngine.UI",
+    "Unity.InputSystem",
+    "Unity.TextMeshPro"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

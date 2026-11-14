@@ -1,0 +1,23 @@
+{
+  "missionId": "l0-safety-v1",
+  "scene": "L0_Safety",
+  "panels": [
+    { "id": "safety_placard_panel", "title": "SAFETY", "position": [0.00, 1.02, 0.60], "size": [0.48, 0.32], "tilt": 15, "target": true },
+    { "id": "tool_stowage_panel", "title": "TOOL STOWAGE", "position": [0.45, 1.02, 0.45], "size": [0.28, 0.24], "tilt": 15, "target": false }
+  ],
+  "controls": [
+    { "targetId": "ready_button", "type": "button", "label": "READY", "panel": "safety_placard_panel", "at": [-0.15, 0.04] },
+    { "targetId": "test_switch_toggle", "type": "toggle", "label": "TEST SWITCH", "panel": "safety_placard_panel", "at": [0.00, 0.04] },
+    { "targetId": "test_dial", "type": "dial", "label": "TEST DIAL", "panel": "safety_placard_panel", "at": [0.15, 0.04], "positions": ["1", "2", "3"] },
+    { "targetId": "tool_bay_slot", "type": "socket", "label": "TOOL BAY", "panel": "tool_stowage_panel", "at": [0.00, 0.00], "accepts": "check_tool" }
+  ],
+  "tools": [
+    { "targetId": "check_tool", "label": "CHECK TOOL", "position": [-0.42, 1.02, 0.42] }
+  ],
+  "indicators": [
+    { "id": "ready_light", "label": "STATUS", "panel": "safety_placard_panel", "at": [0.15, -0.09] }
+  ],
+  "decoys": [
+    { "targetId": "alarm_test_button", "type": "button", "label": "ALARM TEST", "panel": "safety_placard_panel", "at": [-0.15, -0.09] }
+  ]
+}

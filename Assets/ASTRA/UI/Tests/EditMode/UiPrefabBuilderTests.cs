@@ -53,7 +53,7 @@ namespace Astra.UI.Tests.EditMode
                 var coach = debrief.transform.Find("CoachViewport/CoachContent").GetComponent<Text>();
                 Assert.That(coach.text, Is.EqualTo("<b>advice</b>"));
                 Assert.That(coach.supportRichText, Is.False);
-                Assert.That(debrief.transform.Find("Outcome").GetComponent<Text>().text, Is.EqualTo("PASS"));
+                Assert.That(debrief.transform.Find("Outcome").GetComponent<Text>().text, Is.EqualTo("PASSED"));
                 var retries = 0;
                 var exits = 0;
                 panel.onRetry.AddListener(() => retries++);
@@ -68,6 +68,8 @@ namespace Astra.UI.Tests.EditMode
                 Assert.That(hub.onClick.GetPersistentTarget(0), Is.SameAs(panel));
                 Assert.That(retry.onClick.GetPersistentMethodName(0), Is.EqualTo(nameof(DebriefPanel.RequestRetry)));
                 Assert.That(hub.onClick.GetPersistentMethodName(0), Is.EqualTo(nameof(DebriefPanel.RequestBackToHub)));
+                var next = debrief.transform.Find("NextLevel").GetComponent<Button>();
+                Assert.That(next.onClick.GetPersistentMethodName(0), Is.EqualTo(nameof(DebriefPanel.RequestNextLevel)));
                 panel.RequestRetry();
                 panel.RequestBackToHub();
                 Assert.That(retries, Is.EqualTo(1));
@@ -92,7 +94,9 @@ namespace Astra.UI.Tests.EditMode
                 Assert.That(scroll.horizontal, Is.False);
             }
             var buttons = prefab.GetComponentsInChildren<Button>(true);
-            Assert.That(buttons.Length, Is.EqualTo(2));
+            Assert.That(buttons.Length, Is.EqualTo(3), "RETRY, NEXT LEVEL and HUB");
+            foreach (var button in buttons)
+                Assert.That(button.GetComponent<Astra.UI.Gaze.GazeButton>(), Is.Not.Null, button.name + " must be gaze-selectable");
             foreach (var button in buttons)
             {
                 var rect = (RectTransform)button.transform;
@@ -101,6 +105,29 @@ namespace Astra.UI.Tests.EditMode
                 Assert.That(Vector3.Distance(corners[0], corners[3]), Is.GreaterThanOrEqualTo(0.06f));
                 Assert.That(Vector3.Distance(corners[0], corners[1]), Is.GreaterThanOrEqualTo(0.06f));
             }
+        }
+
+        [TestCase("InstructionPanel", 0.42f, "Instruction", Theme.MinBodyMetres)]
+        [TestCase("InstructionPanel", 0.42f, "Hint", Theme.MinBodyMetres)]
+        [TestCase("PhaseBanner", 0.34f, "Phase", Theme.MinTitleMetres)]
+        [TestCase("DebriefPanel", 0.46f, "Outcome", Theme.MinTitleMetres)]
+        [TestCase("DebriefPanel", 0.46f, "DetailsViewport/DetailsContent", Theme.MinBodyMetres)]
+        [TestCase("AlarmIndicator", 0.28f, "Caption", Theme.MinBodyMetres)]
+        public void TextIsLegibleOnThePhoneAtTheFactoryWidth(string prefabName, float factoryWidth, string path, float minimumMetres)
+        {
+            var prefab = Load(prefabName);
+            var rect = (RectTransform)prefab.transform;
+            var metresPerUnit = factoryWidth / rect.sizeDelta.x;
+            var text = prefab.transform.Find(path).GetComponent<Text>();
+            // Cap height of the built-in sans font is about 0.7 em.
+            Assert.That(text.fontSize * 0.7f * metresPerUnit, Is.GreaterThanOrEqualTo(minimumMetres), $"{prefabName}/{path}");
+        }
+
+        [Test]
+        public void PanelsAreTransparentBackedForTheFactoryBackplate()
+        {
+            foreach (var name in new[] { "InstructionPanel", "PhaseBanner", "DebriefPanel", "AlarmIndicator" })
+                Assert.That(Load(name).GetComponent<Image>().color.a, Is.LessThan(0.05f), name);
         }
 
         [Test]

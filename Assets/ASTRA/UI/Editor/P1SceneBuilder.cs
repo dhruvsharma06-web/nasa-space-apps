@@ -1,16 +1,14 @@
 using System;
-using Astra.App;
-using Astra.Core.Assessment;
+using System.IO;
+using System.Linq;
+using Astra.UI.Gaze;
 using Astra.UI.Hub;
-using Astra.XR.Feedback;
-using Astra.XR.Input;
-using Astra.XR.Interactables;
-using Astra.XR.Rig;
+using Astra.XR.Phone;
+using TMPro;
 using UnityEditor;
 using UnityEditor.Events;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -19,185 +17,96 @@ using Object = UnityEngine.Object;
 namespace Astra.UI.Editor
 {
     /// <summary>
-    /// Generates P1's rig and pause prefabs, shared materials/art and the Hub, L0 and L1 scenes.
-    /// Layout follows CONTRACT.md §8 comfort rules: seated rig at the origin facing +Z, every target within
-    /// 0.7 m horizontally and 0.7–1.5 m high, nothing behind the cadet, interactables at least 6 cm.
-    /// The positions are documented in each level folder's README (scene build spec).
-    /// Scenes and P1 prefabs are generated artifacts: rebuilding overwrites them in place (GUIDs kept).
+    /// P1 generator: shared UI prefabs, PauseMenu prefab, the phone GazeRig prefab + reticle material, the AudioCues asset
+    /// and the Hub scene. L0/L1 are built by the Integration Lead's level factory from their layout files
+    /// (Content/Layouts/l0-layout.json, l1-layout.json); this builder does not touch level scenes.
+    /// Layout follows CONTRACT.md §8 comfort rules: seated eye at (0, 1.2, 0) facing +Z, nothing behind the cadet.
+    /// Generated assets are overwritten in place (GUIDs kept).
     /// </summary>
     public static class P1SceneBuilder
     {
         public const string HubScene = "Assets/ASTRA/Scenes/Hub.unity";
-        public const string L0Scene = "Assets/ASTRA/Levels/L0_Safety/L0_Safety.unity";
-        public const string L1Scene = "Assets/ASTRA/Levels/L1_Orientation/L1_Orientation.unity";
-        public static readonly string[] Scenes = { HubScene, L0Scene, L1Scene };
+        public static readonly string[] Scenes = { HubScene };
 
-        private const string RigPrefab = "Assets/ASTRA/XR/Prefabs/AstraXRRig.prefab";
         private const string PausePrefab = "Assets/ASTRA/UI/Prefabs/PauseMenu.prefab";
-        private const string Materials = "Assets/ASTRA/XR/Materials";
-        private const string Missions = "Assets/ASTRA/Content/Missions";
+        private const string HubDir = "Assets/ASTRA/UI/Hub";
+        private const string PreviewDir = HubDir + "/Previews";
+        private const string AudioDir = "Assets/ASTRA/Audio";
+        private const string TmpFont = "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset";
+        private const string EarthTexture = "Assets/ASTRA/Levels/_Shared/Earth_Procedural.png";
         private const float EyeHeight = 1.2f;
-        private const float DeskTop = 0.78f;
         private static readonly Vector3 Eye = new Vector3(0f, EyeHeight, 0f);
+        private static readonly Color Plate = new Color(0.02f, 0.035f, 0.06f, 0.9f);
 
-        private static readonly Color LabelPlate = new Color(0.02f, 0.035f, 0.06f, 0.88f);
-
-        [MenuItem("ASTRA/P1/Rebuild Hub, L0 and L1 scenes (overwrites scenes)")]
+        [MenuItem("ASTRA/P1/Rebuild P1 assets and Hub scene (overwrites)")]
         public static void BuildAll()
         {
             UiPrefabBuilder.RebuildUiPrefabs();
-            EnsureMaterials();
+            var reticle = EnsureReticleMaterial();
+            BuildGazeRigPrefab(reticle);
             BuildPausePrefab();
-            BuildRigPrefab();
-            BuildHub();
-            BuildL0();
-            BuildL1();
+            CreateAudioCues();
+            BuildHub(reticle);
             AssetDatabase.SaveAssets();
-            Debug.Log("[P1SceneBuilder] Built " + string.Join(", ", Scenes));
+            Debug.Log("[P1SceneBuilder] Built P1 prefabs, AudioCues and " + HubScene);
         }
 
-        // ------------------------------------------------------------------ materials
-
-        private static Material Mat(string name) => AssetDatabase.LoadAssetAtPath<Material>(Materials + "/" + name + ".mat");
-
-        private static void EnsureMaterials()
+        /// <summary>Batch entry: -executeMethod Astra.UI.Editor.P1SceneBuilder.BuildAllBatch (exits 0/1).</summary>
+        public static void BuildAllBatch()
         {
-            EnsureFolder(Materials);
-            var urp = GraphicsSettings.defaultRenderPipeline != null;
-            var lit = Shader.Find(urp ? "Universal Render Pipeline/Lit" : "Standard");
-            var unlit = Shader.Find(urp ? "Universal Render Pipeline/Unlit" : "Unlit/Texture");
-            var vertexColor = Shader.Find("Sprites/Default");
-            if (lit == null || unlit == null || vertexColor == null)
-                throw new InvalidOperationException("Required lit/unlit shaders are unavailable in this render pipeline.");
-            Material(lit, "Floor", new Color(0.07f, 0.085f, 0.11f), 0.55f);
-            Material(lit, "Wall", new Color(0.16f, 0.19f, 0.24f), 0.3f);
-            Material(lit, "Trim", new Color(0.28f, 0.36f, 0.46f), 0.5f, 0.4f);
-            Material(lit, "Desk", new Color(0.3f, 0.34f, 0.4f), 0.45f, 0.2f);
-            Material(lit, "Housing", new Color(0.07f, 0.085f, 0.11f), 0.6f, 0.3f);
-            Material(lit, "Control", Color.white, 0.6f);
-            Material(lit, "Target", Color.white, 0.4f);
-            Material(lit, "Tool", new Color(0.98f, 0.6f, 0.12f), 0.55f);
-            Material(lit, "Metal", new Color(0.72f, 0.75f, 0.8f), 0.8f, 0.9f);
-            Material(lit, "Bay", new Color(0.12f, 0.24f, 0.32f), 0.4f);
-            Material(lit, "Planet", new Color(0.22f, 0.48f, 0.72f), 0.2f);
-            Material(unlit, "Ray", new Color(0.35f, 0.9f, 1f));
-            Material(unlit, "Light", new Color(0.85f, 0.93f, 1f));
-            Material(unlit, "Glow", new Color(0.3f, 0.85f, 1f));
-            Material(unlit, "Amber", new Color(1f, 0.62f, 0.2f));
-            Material(unlit, "Screen", new Color(0.05f, 0.22f, 0.3f));
-            Material(vertexColor, "Reticle", Color.white);
-            var stars = Material(unlit, "Starfield", Color.white);
-            var texture = P1Art.Starfield;
-            if (stars.HasProperty("_BaseMap"))
-                stars.SetTexture("_BaseMap", texture);
-            if (stars.HasProperty("_MainTex"))
-                stars.SetTexture("_MainTex", texture);
-            EditorUtility.SetDirty(stars);
+            try { BuildAll(); EditorApplication.Exit(0); }
+            catch (Exception ex) { Debug.LogError(ex); EditorApplication.Exit(1); }
         }
 
-        /// <summary>Creates the material, or updates an existing one in place so its GUID is kept.</summary>
-        private static Material Material(Shader shader, string name, Color color, float smoothness = 0.25f, float metallic = 0f)
+        // ------------------------------------------------------------------ gaze rig
+
+        public static Material EnsureReticleMaterial()
         {
-            var path = Materials + "/" + name + ".mat";
-            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            var shader = Shader.Find("ASTRA/ReticleOverlay");
+            if (shader == null)
+                throw new InvalidOperationException("Shader ASTRA/ReticleOverlay is missing (XR/Phone/Shaders).");
+            var material = AssetDatabase.LoadAssetAtPath<Material>(GazeRig.ReticleMaterialPath);
             if (material == null)
             {
-                material = new Material(shader) { name = name };
-                AssetDatabase.CreateAsset(material, path);
+                material = new Material(shader) { name = "ReticleOverlay" };
+                AssetDatabase.CreateAsset(material, GazeRig.ReticleMaterialPath);
             }
-            else if (material.shader != shader)
-                material.shader = shader;
-            if (material.HasProperty("_BaseColor"))
-                material.SetColor("_BaseColor", color);
-            if (material.HasProperty("_Color"))
-                material.SetColor("_Color", color);
-            if (material.HasProperty("_Smoothness"))
-                material.SetFloat("_Smoothness", smoothness);
-            if (material.HasProperty("_Metallic"))
-                material.SetFloat("_Metallic", metallic);
+            material.shader = shader;
+            material.renderQueue = 4010;
             EditorUtility.SetDirty(material);
             return material;
         }
 
-        // ------------------------------------------------------------------ prefabs
+        [MenuItem("ASTRA/P1/Build GazeRig prefab")]
+        public static void BuildGazeRigPrefabMenu() => BuildGazeRigPrefab(EnsureReticleMaterial());
 
-        private static void BuildRigPrefab()
+        private static void BuildGazeRigPrefab(Material reticle)
         {
-            EnsureFolder("Assets/ASTRA/XR/Prefabs");
-            var root = new GameObject("AstraXRRig");
+            var root = new GameObject("GazeRig");
             try
             {
-                var space = Child(root.transform, "TrackingSpace", new Vector3(0f, EyeHeight, 0f));
-                var head = Child(space, "Head", Vector3.zero);
-                head.localRotation = Quaternion.Euler(12f, 0f, 0f);
-                head.gameObject.tag = "MainCamera";
-                var camera = head.gameObject.AddComponent<Camera>();
-                camera.nearClipPlane = 0.03f;
-                camera.farClipPlane = 60f;
-                camera.fieldOfView = 75f;
+                var head = new GameObject("Head");
+                head.transform.SetParent(root.transform, false);
+                head.transform.localPosition = Eye;
+                head.tag = "MainCamera";
+                var camera = head.AddComponent<Camera>();
+                camera.fieldOfView = 70f;
+                camera.nearClipPlane = 0.02f;
+                camera.farClipPlane = 200f;
                 camera.clearFlags = CameraClearFlags.SolidColor;
-                camera.backgroundColor = new Color(0.01f, 0.015f, 0.035f, 1f);
-                head.gameObject.AddComponent<AudioListener>();
-                var headPose = head.gameObject.AddComponent<HeadPoseDriver>();
-
-                var desktop = Child(root.transform, "DesktopPointer", Vector3.zero);
-                var desktopTag = desktop.gameObject.AddComponent<InputModalityTag>();
-                desktopTag.Configure(InputModality.ControllerRay, isSimulator: true);
-                var desktopRay = desktop.gameObject.AddComponent<RayInteractor>();
-                var desktopInput = desktop.gameObject.AddComponent<DesktopMouseInput>();
-                desktopInput.Configure(desktopRay, desktopTag, camera, headPose);
-
-                // Phone headset baseline: head gaze + headset-button tap.
-                var gaze = Child(root.transform, "GazeTap", Vector3.zero);
-                var gazeRay = gaze.gameObject.AddComponent<RayInteractor>();
-                var gazeTag = Child(gaze, "Gaze Ray", Vector3.zero).gameObject.AddComponent<InputModalityTag>();
-                gazeTag.Configure(InputModality.ControllerRay);
-                var previewTag = Child(gaze, "Desktop Preview", Vector3.zero).gameObject.AddComponent<InputModalityTag>();
-                previewTag.Configure(InputModality.ControllerRay, isSimulator: true);
-                var ring = Child(gaze, "Reticle", Vector3.zero).gameObject.AddComponent<LineRenderer>();
-                ring.shadowCastingMode = ShadowCastingMode.Off;
-                ring.receiveShadows = false;
-                ring.sharedMaterial = Mat("Reticle");
-                ring.numCornerVertices = 2;
-                ring.enabled = false;
-                var reticle = ring.gameObject.AddComponent<GazeReticle>();
-                gaze.gameObject.AddComponent<GazeTapInput>().Configure(gazeRay, gazeTag, previewTag, headPose, head, reticle);
-
-                var hand = Child(root.transform, "HandAim", Vector3.zero);
-                var handRay = hand.gameObject.AddComponent<RayInteractor>();
-                var pinch = Child(hand, "Pinch", Vector3.zero).gameObject.AddComponent<InputModalityTag>();
-                pinch.Configure(InputModality.HandPinch);
-                var grab = Child(hand, "Grab", Vector3.zero).gameObject.AddComponent<InputModalityTag>();
-                grab.Configure(InputModality.HandGrab);
-                var line = hand.gameObject.AddComponent<LineRenderer>();
-                line.positionCount = 2;
-                line.useWorldSpace = true;
-                line.startWidth = 0.004f;
-                line.endWidth = 0.002f;
-                line.shadowCastingMode = ShadowCastingMode.Off;
-                line.receiveShadows = false;
-                line.sharedMaterial = Mat("Ray");
-                line.enabled = false;
-                var cursor = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                cursor.name = "Cursor";
-                Object.DestroyImmediate(cursor.GetComponent<Collider>());
-                cursor.transform.SetParent(hand, false);
-                cursor.transform.localScale = Vector3.one * 0.012f;
-                cursor.GetComponent<Renderer>().sharedMaterial = Mat("Ray");
-                cursor.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
-                cursor.SetActive(false);
-                var handInput = hand.gameObject.AddComponent<HandAimInput>();
-                handInput.Configure(handRay, pinch, grab, space, headPose, line, cursor.transform);
-                handInput.HandleMenuButton = false; // the gaze route owns the headset button
-
-                root.AddComponent<RigRecenterService>().Configure(headPose, desktopInput);
-                Save(root, RigPrefab);
+                camera.backgroundColor = new Color(0f, 0f, 0.01f);
+                head.AddComponent<AudioListener>();
+                GazeRig.AttachTo(camera, reticle, AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(TmpFont));
+                if (PrefabUtility.SaveAsPrefabAsset(root, GazeRig.PrefabPath) == null)
+                    throw new InvalidOperationException("Could not save " + GazeRig.PrefabPath);
             }
             finally
             {
                 Object.DestroyImmediate(root);
             }
         }
+
+        // ------------------------------------------------------------------ pause menu
 
         private static void BuildPausePrefab()
         {
@@ -207,23 +116,24 @@ namespace Astra.UI.Editor
                 var pause = root.AddComponent<PauseMenu>();
 
                 var pauseCanvas = WorldCanvas(root.transform, "PauseButton", new Vector3(0.34f, 1.02f, 0.44f), 280f, 120f, 0.0006f);
-                var pauseButton = MakeButton(pauseCanvas, "Pause", "PAUSE", 0f, 0f, 280f, 120f, 40);
+                var pauseButton = MakeButton(pauseCanvas, "Pause", "PAUSE", 0f, 0f, 280f, 120f, 44, "pause_button");
                 UnityEventTools.AddPersistentListener(pauseButton.onClick, pause.Pause);
 
-                var menu = WorldCanvas(root.transform, "MenuRoot", new Vector3(0f, 1.1f, 0.5f), 640f, 780f, 0.0006f);
-                UiPrefabBuilder.Rounded(menu.gameObject.AddComponent<Image>(), UiPrefabBuilder.Background);
+                var menu = WorldCanvas(root.transform, "MenuRoot", new Vector3(0f, 1.15f, 0.5f), 640f, 760f, 0.0006f);
+                UiPrefabBuilder.Rounded(menu.gameObject.AddComponent<Image>(), Plate);
                 UiPrefabBuilder.AccentHeader(menu);
-                var title = MakeLabel(menu, "Title", "PAUSED", 48, 0f, 318f, 580f, 74f, TextAnchor.MiddleCenter);
+                var title = MakeLabel(menu, "Title", "PAUSED", 56, 0f, 304f, 580f, 80f, TextAnchor.MiddleCenter);
                 title.fontStyle = FontStyle.Bold;
-                title.color = UiPrefabBuilder.Accent;
-                var resume = MakeButton(menu, "Resume", "RESUME", 0f, 200f, 500f, 96f, 38);
-                var recenter = MakeButton(menu, "Recenter", "RECENTER", 0f, 88f, 500f, 96f, 38);
-                var restart = MakeButton(menu, "Restart", "RESTART", 0f, -24f, 500f, 96f, 38);
-                var exit = MakeButton(menu, "Exit", "EXIT TO HUB", 0f, -136f, 500f, 96f, 38);
-                var finish = MakeButton(menu, "Finish", "FINISH", 0f, -280f, 500f, 96f, 38);
+                title.color = Theme.AccentInk;
+                // 0.6 mm/px at 0.5 m: 44 px bold ≈ 18 mm cap, large gaze targets (≥ 6 cm tall).
+                var resume = MakeButton(menu, "Resume", "RESUME", 0f, 180f, 520f, 110f, 44, "pause_resume");
+                var recenter = MakeButton(menu, "Recenter", "RECENTER", 0f, 55f, 520f, 110f, 44, "pause_recenter");
+                var restart = MakeButton(menu, "Restart", "RESTART", 0f, -70f, 520f, 110f, 44, "pause_restart");
+                var exit = MakeButton(menu, "Exit", "HUB", 0f, -195f, 520f, 110f, 44, "pause_hub");
+                var finish = MakeButton(menu, "Finish", "FINISH", 0f, -320f, 520f, 90f, 40, "pause_finish");
                 var colors = finish.colors;
-                colors.normalColor = new Color(0.5f, 0.28f, 0.1f, 1f);
-                colors.highlightedColor = new Color(0.72f, 0.42f, 0.15f, 1f);
+                colors.normalColor = new Color(0.5f, 0.3f, 0.08f, 1f);
+                colors.highlightedColor = Theme.Warning;
                 colors.selectedColor = colors.normalColor;
                 finish.colors = colors;
                 UnityEventTools.AddPersistentListener(resume.onClick, pause.Resume);
@@ -232,7 +142,8 @@ namespace Astra.UI.Editor
                 UnityEventTools.AddPersistentListener(exit.onClick, pause.RequestExit);
                 UnityEventTools.AddPersistentListener(finish.onClick, pause.RequestFinish);
                 pause.Configure(menu.gameObject, finish.gameObject, null);
-                Save(root, PausePrefab);
+                if (PrefabUtility.SaveAsPrefabAsset(root, PausePrefab) == null)
+                    throw new InvalidOperationException("Could not save " + PausePrefab);
             }
             finally
             {
@@ -240,403 +151,329 @@ namespace Astra.UI.Editor
             }
         }
 
-        // ------------------------------------------------------------------ scenes
+        // ------------------------------------------------------------------ audio
 
-        private sealed class LevelRig
+        [MenuItem("ASTRA/P1/Create AudioCues asset")]
+        public static void CreateAudioCues()
         {
-            public GameObject Rig;
-            public Camera Camera;
-            public InputModalityTag DesktopTag;
-            public DesktopMouseInput Desktop;
-            public HandAimInput Hand;
-            public GazeTapInput Gaze;
-            public HeadPoseDriver Head;
-            public RigRecenterService Recenter;
+            if (!AssetDatabase.IsValidFolder(AudioDir))
+                return;
+            var path = AudioDir + "/AudioCues.asset";
+            var cues = AssetDatabase.LoadAssetAtPath<AudioCues>(path);
+            if (cues == null)
+            {
+                cues = ScriptableObject.CreateInstance<AudioCues>();
+                AssetDatabase.CreateAsset(cues, path);
+            }
+            AudioClip Clip(string name) => AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioDir}/{name}.wav");
+            cues.hover = Clip("hover");
+            cues.select = Clip("select");
+            cues.toggle = Clip("toggle");
+            cues.button = Clip("button");
+            cues.dialTick = Clip("dial_tick");
+            cues.grab = Clip("grab");
+            cues.place = Clip("place");
+            cues.correct = Clip("correct");
+            cues.wrong = Clip("wrong");
+            cues.phaseChange = Clip("phase_change");
+            cues.alarm = Clip("alarm");
+            cues.success = Clip("success");
+            cues.fail = Clip("fail");
+            cues.ambientHum = Clip("ambient_hum");
+            EditorUtility.SetDirty(cues);
+            var hum = AssetImporter.GetAtPath(AudioDir + "/ambient_hum.wav") as AudioImporter;
+            if (hum != null && !hum.loadInBackground)
+            {
+                hum.loadInBackground = true;
+                hum.SaveAndReimport();
+            }
         }
 
-        private static LevelRig NewScene(string path)
+        // ------------------------------------------------------------------ hub
+
+        private static void BuildHub(Material reticle)
         {
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            EnsureFolder("Assets/ASTRA/Scenes");
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             RenderSettings.skybox = null;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.42f, 0.48f, 0.58f);
-            RenderSettings.ambientEquatorColor = new Color(0.3f, 0.33f, 0.4f);
-            RenderSettings.ambientGroundColor = new Color(0.14f, 0.15f, 0.18f);
-
-            var sun = new GameObject("Key Light").AddComponent<Light>();
+            RenderSettings.ambientSkyColor = new Color(0.35f, 0.4f, 0.5f);
+            RenderSettings.ambientEquatorColor = new Color(0.2f, 0.22f, 0.28f);
+            RenderSettings.ambientGroundColor = new Color(0.05f, 0.05f, 0.07f);
+            var sun = new GameObject("Sun").AddComponent<Light>();
             sun.type = LightType.Directional;
-            sun.intensity = 1.15f;
-            sun.color = new Color(1f, 0.97f, 0.92f);
-            sun.shadows = LightShadows.Soft;
-            sun.transform.rotation = Quaternion.Euler(52f, -28f, 0f);
-            var fill = new GameObject("Fill Light").AddComponent<Light>();
-            fill.type = LightType.Point;
-            fill.range = 4.5f;
-            fill.intensity = 0.7f;
-            fill.color = new Color(0.65f, 0.82f, 1f);
-            fill.shadows = LightShadows.None;
-            fill.transform.position = new Vector3(0f, 2.3f, 0.9f);
+            sun.intensity = 1.3f;
+            sun.color = new Color(1f, 0.96f, 0.9f);
+            sun.transform.rotation = Quaternion.LookRotation(new Vector3(-0.6f, -0.25f, 1f).normalized);
+            BuildSpaceBackdrop();
 
-            var events = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
-            // Keyboard submit would re-click the last selected button (Space is the gaze-preview tap).
-            events.GetComponent<EventSystem>().sendNavigationEvents = false;
-            events.transform.SetAsLastSibling();
+            // Camera + phone gaze rig (mouse click + right-drag look in the editor and browser).
+            var head = new GameObject("Seat_Eye (Gaze Rig)");
+            head.transform.position = Eye;
+            head.tag = "MainCamera";
+            var camera = head.AddComponent<Camera>();
+            camera.fieldOfView = 70f;
+            camera.nearClipPlane = 0.02f;
+            camera.farClipPlane = 200f;
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = new Color(0f, 0f, 0.01f);
+            head.AddComponent<AudioListener>();
+            var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(TmpFont);
+            GazeRig.AttachTo(camera, reticle, font);
 
-            var rigInstance = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(RigPrefab), scene);
-            var rig = new LevelRig
-            {
-                Rig = rigInstance,
-                Camera = rigInstance.GetComponentInChildren<Camera>(true),
-                Desktop = rigInstance.GetComponentInChildren<DesktopMouseInput>(true),
-                Hand = rigInstance.GetComponentInChildren<HandAimInput>(true),
-                Gaze = rigInstance.GetComponentInChildren<GazeTapInput>(true),
-                Head = rigInstance.GetComponentInChildren<HeadPoseDriver>(true),
-                Recenter = rigInstance.GetComponent<RigRecenterService>()
-            };
-            rig.DesktopTag = rig.Desktop.GetComponent<InputModalityTag>();
-            BuildRoom();
-            EnsureFolder(path.Substring(0, path.LastIndexOf('/')));
-            return rig;
-        }
+            var hubObject = new GameObject("Hub");
+            var controller = hubObject.AddComponent<HubController>();
 
-        /// <summary>Fictional ASTRA station module: hidden in AR so only the desk, controls and panels remain.</summary>
-        private static void BuildRoom()
-        {
-            var room = new GameObject("Environment (hidden in AR)");
-            room.AddComponent<PassthroughHidden>();
-            var t = room.transform;
-            Box(t, "Floor", new Vector3(0f, -0.01f, 0.6f), new Vector3(6f, 0.02f, 5f), "Floor");
-            for (var i = -1; i <= 1; i += 2)
-                Box(t, "Floor Guide", new Vector3(i * 0.95f, 0.002f, 0.9f), new Vector3(0.03f, 0.004f, 3.2f), "Glow");
-
-            // Front wall with an observation window onto a fictional planet.
-            const float windowBottom = 0.75f, windowTop = 2.25f, windowHalf = 1.7f, wallZ = 2.6f;
-            Box(t, "Front Wall Lower", new Vector3(0f, windowBottom * 0.5f, wallZ), new Vector3(6f, windowBottom, 0.05f), "Wall");
-            Box(t, "Front Wall Upper", new Vector3(0f, (windowTop + 3f) * 0.5f, wallZ), new Vector3(6f, 3f - windowTop, 0.05f), "Wall");
-            var pillarWidth = 3f - windowHalf;
-            for (var i = -1; i <= 1; i += 2)
-                Box(t, "Front Wall Pillar", new Vector3(i * (windowHalf + pillarWidth * 0.5f), 1.5f, wallZ),
-                    new Vector3(pillarWidth, windowTop - windowBottom, 0.05f), "Wall");
-            var middle = (windowTop + windowBottom) * 0.5f;
-            Box(t, "Window Sill", new Vector3(0f, windowBottom, wallZ - 0.03f), new Vector3(windowHalf * 2f + 0.12f, 0.06f, 0.1f), "Trim");
-            Box(t, "Window Head", new Vector3(0f, windowTop, wallZ - 0.03f), new Vector3(windowHalf * 2f + 0.12f, 0.06f, 0.1f), "Trim");
-            for (var i = -1; i <= 1; i += 2)
-            {
-                Box(t, "Window Jamb", new Vector3(i * windowHalf, middle, wallZ - 0.03f), new Vector3(0.06f, windowTop - windowBottom, 0.1f), "Trim");
-                Box(t, "Window Mullion", new Vector3(i * windowHalf / 3f, middle, wallZ - 0.02f), new Vector3(0.035f, windowTop - windowBottom, 0.05f), "Trim");
-            }
-            Box(t, "Window Light Strip", new Vector3(0f, windowBottom + 0.035f, wallZ - 0.085f), new Vector3(windowHalf * 2f, 0.012f, 0.012f), "Glow");
-
-            var stars = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            stars.name = "Starfield";
-            stars.transform.SetParent(t, false);
-            stars.transform.position = new Vector3(0f, 1.6f, 16f);
-            stars.transform.localScale = new Vector3(40f, 20f, 1f);
-            Finish(stars, "Starfield");
-            var planet = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            planet.name = "Planet (fictional)";
-            planet.transform.SetParent(t, false);
-            planet.transform.position = new Vector3(2.8f, -0.6f, 11f);
-            planet.transform.localScale = Vector3.one * 8f;
-            Finish(planet, "Planet");
-
-            Box(t, "Left Wall", new Vector3(-2.4f, 1.5f, 0.6f), new Vector3(0.05f, 3f, 5f), "Wall");
-            Box(t, "Right Wall", new Vector3(2.4f, 1.5f, 0.6f), new Vector3(0.05f, 3f, 5f), "Wall");
-            Box(t, "Back Wall", new Vector3(0f, 1.5f, -1.9f), new Vector3(6f, 3f, 0.05f), "Wall");
-            Box(t, "Ceiling", new Vector3(0f, 3f, 0.6f), new Vector3(6f, 0.05f, 5f), "Wall");
-            for (var side = -1; side <= 1; side += 2)
-            {
-                for (var z = -1; z <= 2; z++)
-                    Box(t, "Wall Rib", new Vector3(side * 2.37f, 1.5f, z * 0.9f + 0.4f), new Vector3(0.06f, 3f, 0.1f), "Trim");
-                Box(t, "Wall Light Strip", new Vector3(side * 2.36f, 2.4f, 0.6f), new Vector3(0.02f, 0.03f, 4.6f), "Glow");
-                // Side consoles give the module depth; decoration only, out of reach.
-                var console = new GameObject("Side Console").transform;
-                console.SetParent(t, false);
-                console.position = new Vector3(side * 1.55f, 0f, 1.25f);
-                console.rotation = Quaternion.Euler(0f, side * -55f, 0f);
-                Box(console, "Body", console.TransformPoint(new Vector3(0f, 0.5f, 0f)), new Vector3(0.9f, 1f, 0.5f), "Housing").rotation = console.rotation;
-                var screen = Box(console, "Screen", console.TransformPoint(new Vector3(0f, 1.25f, 0.12f)), new Vector3(0.8f, 0.45f, 0.03f), "Screen");
-                screen.rotation = console.rotation * Quaternion.Euler(-12f, 0f, 0f);
-                var bar = Box(console, "Screen Bar", console.TransformPoint(new Vector3(0f, 1.05f, 0.1f)), new Vector3(0.8f, 0.015f, 0.02f), "Glow");
-                bar.rotation = console.rotation;
-            }
-            for (var i = -1; i <= 1; i++)
-                Box(t, "Ceiling Light", new Vector3(i * 1.4f, 2.97f, 0.9f), new Vector3(0.9f, 0.02f, 0.2f), "Light");
-            foreach (var collider in room.GetComponentsInChildren<Collider>())
-                Object.DestroyImmediate(collider);
-            foreach (var renderer in room.GetComponentsInChildren<Renderer>())
-                renderer.receiveShadows = renderer.name != "Planet (fictional)" && renderer.name != "Starfield";
-        }
-
-        private static Transform BuildDesk()
-        {
-            var desk = new GameObject("Training Desk").transform;
-            Box(desk, "Desk Top", new Vector3(0f, DeskTop - 0.025f, 0.5f), new Vector3(1.1f, 0.05f, 0.5f), "Desk");
-            var trims = new[]
-            {
-                Box(desk, "Desk Edge Light", new Vector3(0f, DeskTop - 0.03f, 0.248f), new Vector3(1.1f, 0.012f, 0.008f), "Glow"),
-                Box(desk, "Desk Base", new Vector3(0f, 0.37f, 0.7f), new Vector3(1.0f, 0.72f, 0.06f), "Housing"),
-                Box(desk, "Desk Leg L", new Vector3(-0.5f, 0.37f, 0.5f), new Vector3(0.05f, 0.72f, 0.42f), "Housing"),
-                Box(desk, "Desk Leg R", new Vector3(0.5f, 0.37f, 0.5f), new Vector3(0.05f, 0.72f, 0.42f), "Housing")
-            };
-            foreach (var trim in trims)
-                Object.DestroyImmediate(trim.GetComponent<Collider>());
-            return desk;
-        }
-
-        private static void BuildHub()
-        {
-            var rig = NewScene(HubScene);
-            var header = WorldCanvas(null, "Hub Title", new Vector3(0f, 1.6f, 1.05f), 1100f, 190f, 0.0008f);
-            UiPrefabBuilder.Rounded(header.gameObject.AddComponent<Image>(), UiPrefabBuilder.Background);
+            // Header: title + crest, callsign, academy score, medals, continue, progress notice.
+            var header = WorldCanvas(null, "Hub Header", new Vector3(0f, 1.63f, 1.05f), 1300f, 170f, 0.0008f);
+            UiPrefabBuilder.Rounded(header.gameObject.AddComponent<Image>(), Plate);
             UiPrefabBuilder.AccentHeader(header);
-            var title = MakeLabel(header, "Title", "ASTRA ACADEMY", 72, 0f, 28f, 1060f, 96f, TextAnchor.MiddleCenter);
+            var crest = MakeImage(header, "Crest", -560f, 0f, 130f, 130f, Color.white);
+            crest.sprite = P1Art.Outline;
+            MakeLabel(crest.transform, "Crest Text", "ASTRA\nSTATION", 24, 0f, 0f, 130f, 130f, TextAnchor.MiddleCenter).fontStyle = FontStyle.Bold;
+            var title = MakeLabel(header, "Title", "ASTRA ACADEMY", 64, -150f, 28f, 600f, 84f, TextAnchor.MiddleLeft);
             title.fontStyle = FontStyle.Bold;
-            MakeLabel(header, "Subtitle", "Fictional ASTRA Station cadet training. Choose an available level.", 30, 0f, -52f, 1060f, 44f,
-                TextAnchor.MiddleCenter).color = UiPrefabBuilder.Accent;
+            var cont = MakeLabel(header, "Continue", string.Empty, 38, -150f, -40f, 600f, 52f, TextAnchor.MiddleLeft);
+            cont.color = Theme.AccentInk;
+            cont.fontStyle = FontStyle.Bold;
+            var callsign = MakeLabel(header, "Callsign", "CALLSIGN  CADET", 34, 420f, 50f, 420f, 44f, TextAnchor.MiddleRight);
+            var score = MakeLabel(header, "Score", "ACADEMY SCORE  0", 34, 420f, 6f, 420f, 44f, TextAnchor.MiddleRight);
+            var medals = MakeLabel(header, "Medals", string.Empty, 30, 420f, -36f, 420f, 40f, TextAnchor.MiddleRight);
+            var notice = MakeLabel(header, "Progress Notice", string.Empty, 24, 420f, -70f, 420f, 30f, TextAnchor.MiddleRight);
+            notice.color = Theme.InkDim;
             Face(header);
 
-            // Cards sit on an arc around the seated cadet so each one faces the eye at the same distance.
+            // Cards: two rows of four on a gentle arc, 1.0 m from the eye, each card facing the cadet.
+            var previews = ImportPreviews();
             var cards = new LevelCard[LevelCatalog.Levels.Count];
-            var yaws = new[] { -22.5f, -7.5f, 7.5f, 22.5f };
-            var rows = new[] { 1.36f, 1.06f };
+            var presenters = new LevelCardPresenter[cards.Length];
+            var yaws = new[] { -28.5f, -9.5f, 9.5f, 28.5f };
+            var rows = new[] { 1.32f, 0.95f };
             for (var i = 0; i < cards.Length; i++)
             {
                 var entry = LevelCatalog.Levels[i];
                 var yaw = yaws[i % 4] * Mathf.Deg2Rad;
-                var y = rows[i / 4];
-                var position = new Vector3(Mathf.Sin(yaw), y - EyeHeight, Mathf.Cos(yaw)) * 1f + new Vector3(0f, EyeHeight, 0f);
-                position.y = y;
-                var canvas = WorldCanvas(null, "L" + entry.Level + " Card", position, 300f, 330f, 0.0008f);
-                Face(canvas);
-                var button = MakeButton(canvas, "Card Button", string.Empty, 0f, 0f, 300f, 330f, 24);
-                Object.DestroyImmediate(button.transform.Find("Label").gameObject);
-                var level = MakeLabel(button.transform, "Level", "LEVEL " + entry.Level, 26, 0f, 125f, 270f, 40f, TextAnchor.MiddleCenter);
-                level.fontStyle = FontStyle.Bold;
-                level.color = UiPrefabBuilder.Accent;
-                var cardTitle = MakeLabel(button.transform, "Title", entry.Title, 34, 0f, 22f, 270f, 150f, TextAnchor.MiddleCenter);
-                cardTitle.fontStyle = FontStyle.Bold;
-                var status = MakeLabel(button.transform, "Status", string.Empty, 28, 0f, -122f, 270f, 50f, TextAnchor.MiddleCenter);
-                status.color = new Color(0.82f, 0.94f, 1f);
-                var card = button.gameObject.AddComponent<LevelCard>();
-                card.Configure(entry.Level, entry.Title, button, cardTitle, status);
-                cards[i] = card;
+                var position = new Vector3(Mathf.Sin(yaw) * 1.0f, rows[i / 4], Mathf.Cos(yaw) * 1.0f);
+                BuildCard(entry, position, previews[i] != null, out cards[i], out presenters[i]);
             }
-
-            var footer = WorldCanvas(null, "Hub Footer", new Vector3(0f, 0.86f, 0.95f), 1100f, 110f, 0.0008f);
-            UiPrefabBuilder.Rounded(footer.gameObject.AddComponent<Image>(), LabelPlate);
-            var hint = MakeLabel(footer, "Controls", ControlsHint.DesktopText, 28, 0f, 22f, 1060f, 44f, TextAnchor.MiddleCenter);
-            footer.gameObject.AddComponent<ControlsHint>().Configure(hint, rig.Head, rig.Gaze);
-            var notice = MakeLabel(footer, "Progress Notice", string.Empty, 26, 0f, -26f, 1060f, 40f, TextAnchor.MiddleCenter);
-            notice.color = UiPrefabBuilder.Accent;
-            Face(footer);
-
-            var quitCanvas = WorldCanvas(null, "Quit", new Vector3(0f, 0.74f, 0.8f), 280f, 100f, 0.0007f);
-            var quit = MakeButton(quitCanvas, "Quit", "QUIT", 0f, 0f, 280f, 100f, 38);
-            var quitter = quitCanvas.gameObject.AddComponent<ApplicationQuit>();
-            UnityEventTools.AddPersistentListener(quit.onClick, quitter.Quit);
-            Face(quitCanvas);
-
-            var hub = new GameObject("Hub");
-            var controller = hub.AddComponent<HubController>();
             controller.Configure(cards, notice);
-            hub.AddComponent<HubProgressBinding>();
-            FinishScene(rig, HubScene);
-        }
+            controller.ConfigurePresentation(presenters, previews);
+            hubObject.AddComponent<HubProgressBinding>();
 
-        private static PauseMenu AddLevelUi(LevelRig rig, string missionFile, out LevelController controller)
-        {
-            var ui = new GameObject("Level UI").transform;
-            var banner = PlaceUi(ui, "PhaseBanner", new Vector3(0f, 1.545f, 1.0f), 0.0008f).GetComponent<PhaseBanner>();
-            var instruction = PlaceUi(ui, "InstructionPanel", new Vector3(0f, 1.33f, 1.0f), 0.0008f).GetComponent<InstructionPanel>();
-            PlaceUi(ui, "AlarmIndicator", new Vector3(0.62f, 1.5f, 0.8f), 0.0005f);
-            var debrief = PlaceUi(ui, "DebriefPanel", new Vector3(0f, 1.16f, 0.6f), 0.0006f);
-            debrief.SetActive(false);
+            // Side cards: how to play (left) and settings / demo / quit (right).
+            var howTo = SideCard("How To Play", -52f, 1.12f, 560f);
+            var howTitle = MakeLabel(howTo, "Title", "HOW TO PLAY", 44, 0f, 230f, 340f, 60f, TextAnchor.MiddleCenter);
+            howTitle.fontStyle = FontStyle.Bold;
+            howTitle.color = Theme.AccentInk;
+            MakeLabel(howTo, "Body",
+                "LOOK at a control: the ring grows.\n\nTAP the screen or headset button to use it.\n\nHOLD the tap for 1 s to recenter.\n\nTools: tap to pick up, tap the bay to place.",
+                34, 0f, -30f, 330f, 440f, TextAnchor.UpperLeft);
+            Face(howTo);
 
-            var controls = WorldCanvas(ui, "Controls Hint", new Vector3(0f, 1.125f, 1.0f), 1000f, 56f, 0.0008f);
-            UiPrefabBuilder.Rounded(controls.gameObject.AddComponent<Image>(), LabelPlate);
-            var hint = MakeLabel(controls, "Text", ControlsHint.DesktopText, 28, 0f, 0f, 980f, 56f, TextAnchor.MiddleCenter);
-            hint.color = UiPrefabBuilder.Accent;
-            controls.gameObject.AddComponent<ControlsHint>().Configure(hint, rig.Head, rig.Gaze);
-            Face(controls);
+            var settings = SideCard("Settings", 52f, 1.12f, 560f);
+            var setTitle = MakeLabel(settings, "Title", "SETTINGS", 44, 0f, 230f, 340f, 60f, TextAnchor.MiddleCenter);
+            setTitle.fontStyle = FontStyle.Bold;
+            setTitle.color = Theme.AccentInk;
+            var dwell = MakeButton(settings, "Dwell Toggle", "DWELL SELECT: OFF", 0f, 120f, 330f, 110f, 32, "hub_dwell_toggle");
+            MakeLabel(settings, "Dwell Help", "Select by looking for 1.5 s, no tap needed.", 26, 0f, 40f, 330f, 60f, TextAnchor.MiddleCenter).color = Theme.InkDim;
+            var unlock = MakeButton(settings, "Demo Unlock All", "DEMO: UNLOCK ALL", 0f, -70f, 330f, 110f, 32, "hub_demo_unlock_all");
+            unlock.colors = Primary(unlock.colors);
+            MakeLabel(settings, "Unlock Help", "For judges: open every level.", 26, 0f, -150f, 330f, 40f, TextAnchor.MiddleCenter).color = Theme.InkDim;
+            var quit = MakeButton(settings, "Quit", "QUIT", 0f, -225f, 330f, 90f, 32, "hub_quit");
+            var quitter = settings.gameObject.AddComponent<ApplicationQuit>();
+            UnityEventTools.AddPersistentListener(quit.onClick, quitter.Quit);
+            Face(settings);
 
-            var pauseObject = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(PausePrefab));
-            var pause = pauseObject.GetComponent<PauseMenu>();
-            foreach (Transform child in pauseObject.transform)
-                Face(child);
-            SetField(pause, "defaultInteractor", rig.DesktopTag);
-            SetField(pause, "recenterHandler", rig.Recenter);
-            UnityEventTools.AddPersistentListener(rig.Desktop.onMenuPressed, pause.Toggle);
-            UnityEventTools.AddPersistentListener(rig.Gaze.onMenuPressed, pause.Toggle);
-            UnityEventTools.AddPersistentListener(rig.Hand.onMenuPressed, pause.Toggle);
+            var hubHeader = hubObject.AddComponent<HubHeader>();
+            hubHeader.Configure(controller, callsign, score, medals, cont, dwell.GetComponentInChildren<Text>(), unlock.GetComponentInChildren<Text>());
+            UnityEventTools.AddPersistentListener(dwell.onClick, hubHeader.ToggleDwell);
+            UnityEventTools.AddPersistentListener(unlock.onClick, hubHeader.UnlockAll);
 
-            var host = new GameObject("LevelController");
-            controller = host.AddComponent<LevelController>();
-            var mission = AssetDatabase.LoadAssetAtPath<TextAsset>(Missions + "/" + missionFile);
-            if (mission == null)
-                throw new InvalidOperationException("Mission asset missing: " + missionFile);
-            SetField(controller, "missionJson", mission);
-            SetField(controller, "instructionPanel", instruction);
-            SetField(controller, "phaseBanner", banner);
-            SetField(controller, "debriefPanel", debrief.GetComponent<DebriefPanel>());
-            SetField(controller, "pauseMenu", pause);
-            return pause;
-        }
-
-        private static void BuildL0()
-        {
-            var rig = NewScene(L0Scene);
-            var desk = BuildDesk();
-            AddLevelUi(rig, "l0-safety-v1.json", out _);
-
-            var confirm = PhysicalButton(desk, "CONFIRM POSITION", new Vector3(-0.14f, DeskTop, 0.43f), new Vector2(0.16f, 0.1f), false,
-                new Color(0.55f, 0.78f, 1f));
-            confirm.Configure(SystemTargets.Calibration, EventNames.CalibrationCompleted);
-            ObjectLabel(desk, "CONFIRM POSITION", new Vector3(-0.14f, 0.89f, 0.46f), 360f);
-            ObjectLabel(desk, "Sit upright, then confirm your position. Recenter is in the pause menu.",
-                new Vector3(0f, 1.03f, 0.62f), 560f, 28, 120f);
-            FinishScene(rig, L0Scene);
-        }
-
-        private static void BuildL1()
-        {
-            var rig = NewScene(L1Scene);
-            var desk = BuildDesk();
-            AddLevelUi(rig, "l1-orientation-v1.json", out _);
-
-            // TARGET: an upright framed screen on the left.
-            var panel = new GameObject("TARGET").transform;
-            panel.SetParent(desk, false);
-            panel.position = new Vector3(-0.38f, 1.08f, 0.55f);
-            Face(panel);
-            var frame = Box(panel, "Frame", panel.position, new Vector3(0.24f, 0.18f, 0.02f), "Housing");
-            frame.rotation = panel.rotation;
-            var screen = Box(panel, "Screen", panel.TransformPoint(new Vector3(0f, 0f, -0.011f)), new Vector3(0.2f, 0.14f, 0.004f), "Target");
-            screen.rotation = panel.rotation;
-            var halo = Box(panel, "Hover Frame", panel.TransformPoint(new Vector3(0f, 0f, 0.006f)), new Vector3(0.27f, 0.21f, 0.01f), "Glow");
-            halo.rotation = panel.rotation;
-            var mark = Box(panel, "Crosshair H", panel.TransformPoint(new Vector3(0f, 0f, -0.014f)), new Vector3(0.08f, 0.006f, 0.002f), "Glow");
-            mark.rotation = panel.rotation;
-            var markV = Box(panel, "Crosshair V", panel.TransformPoint(new Vector3(0f, 0f, -0.014f)), new Vector3(0.006f, 0.08f, 0.002f), "Glow");
-            markV.rotation = panel.rotation;
-            foreach (var part in new[] { frame, screen, halo, mark, markV })
-                Object.DestroyImmediate(part.GetComponent<Collider>());
-            var panelCollider = panel.gameObject.AddComponent<BoxCollider>();
-            panelCollider.size = new Vector3(0.24f, 0.18f, 0.03f);
-            var select = panel.gameObject.AddComponent<ButtonTarget>();
-            select.Configure("orientation_target_panel", EventNames.TargetSelected);
-            SetField(select, "feedbackRenderer", screen.GetComponent<Renderer>());
-            SetControlColors(select, new Color(0.1f, 0.45f, 0.55f), new Color(0.3f, 0.85f, 1f), new Color(0.35f, 1f, 0.55f));
-            panel.gameObject.AddComponent<PressFeedback>().Configure(select, null, halo.gameObject);
-            panel.gameObject.AddComponent<LocatableTarget>().Configure("orientation_target_panel");
-            ObjectLabel(desk, "TARGET", panel.position + new Vector3(0f, 0.14f, 0f));
-
-            var start = PhysicalButton(desk, "START", new Vector3(0f, DeskTop, 0.42f), new Vector2(0.09f, 0.09f), true,
-                new Color(0.45f, 0.95f, 0.55f));
-            start.Configure("orientation_start_button");
-            ObjectLabel(desk, "START", new Vector3(0f, 0.88f, 0.45f));
-
-            var tool = new GameObject("TOOL").transform;
-            tool.position = new Vector3(-0.2f, DeskTop + 0.021f, 0.45f);
-            Strip(Box(tool, "Body", tool.position, new Vector3(0.13f, 0.04f, 0.055f), "Tool"));
-            Strip(Box(tool, "Grip", tool.position + new Vector3(0.045f, 0.022f, 0f), new Vector3(0.05f, 0.008f, 0.06f), "Housing"));
-            Strip(Box(tool, "Probe", tool.position + new Vector3(-0.085f, 0f, 0f), new Vector3(0.04f, 0.012f, 0.012f), "Metal"));
-            Strip(Box(tool, "Status Light", tool.position + new Vector3(-0.02f, 0.021f, 0f), new Vector3(0.02f, 0.004f, 0.02f), "Glow"));
-            tool.gameObject.AddComponent<BoxCollider>().size = new Vector3(0.2f, 0.05f, 0.07f);
-            var body = tool.gameObject.AddComponent<Rigidbody>();
-            body.mass = 0.3f;
-            body.interpolation = RigidbodyInterpolation.Interpolate;
-            body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-            tool.gameObject.AddComponent<GrabbableTool>().Configure("orientation_practice_tool");
-            ObjectLabel(tool, "TOOL", tool.position + new Vector3(0f, 0.07f, 0.02f));
-
-            var bay = Box(desk, "TOOL BAY", new Vector3(0.24f, DeskTop + 0.01f, 0.45f), new Vector3(0.24f, 0.02f, 0.13f), "Bay");
-            var lips = new[]
-            {
-                Box(bay, "Lip Front", new Vector3(0.24f, DeskTop + 0.02f, 0.38f), new Vector3(0.26f, 0.02f, 0.012f), "Housing"),
-                Box(bay, "Lip Back", new Vector3(0.24f, DeskTop + 0.02f, 0.52f), new Vector3(0.26f, 0.02f, 0.012f), "Housing"),
-                Box(bay, "Lip Left", new Vector3(0.11f, DeskTop + 0.02f, 0.45f), new Vector3(0.012f, 0.02f, 0.15f), "Housing"),
-                Box(bay, "Lip Right", new Vector3(0.37f, DeskTop + 0.02f, 0.45f), new Vector3(0.012f, 0.02f, 0.15f), "Housing"),
-                Box(bay, "Bay Guide", new Vector3(0.24f, DeskTop + 0.021f, 0.45f), new Vector3(0.14f, 0.002f, 0.004f), "Amber")
-            };
-            foreach (var lip in lips)
-                Strip(lip);
-            var socket = bay.gameObject.AddComponent<PlacementSocket>();
-            socket.Configure("orientation_tool_socket", "orientation_practice_tool");
-            var capture = new GameObject("Capture Volume").AddComponent<BoxCollider>();
-            capture.transform.SetParent(bay, false);
-            capture.isTrigger = true;
-            capture.center = new Vector3(0f, 3f, 0f);
-            capture.size = new Vector3(1.1f, 6f, 1.2f);
-            var snap = new GameObject("Snap Point").transform;
-            snap.SetParent(bay, false);
-            snap.position = new Vector3(0.24f, DeskTop + 0.041f, 0.45f);
-            SetField(socket, "snapPoint", snap);
-            ObjectLabel(desk, "TOOL BAY", new Vector3(0.24f, 0.88f, 0.48f));
-            FinishScene(rig, L1Scene);
-        }
-
-        /// <summary>
-        /// A desk button: dark housing, coloured cap that travels when pressed and a glow frame shown on hover.
-        /// <paramref name="position"/> is the desk-surface point under the button.
-        /// </summary>
-        private static ButtonTarget PhysicalButton(Transform parent, string name, Vector3 position, Vector2 footprint, bool round,
-            Color idle)
-        {
-            var root = new GameObject(name).transform;
-            root.SetParent(parent, false);
-            root.position = position;
-            var housing = Box(root, "Housing", position + new Vector3(0f, 0.01f, 0f),
-                new Vector3(footprint.x + 0.024f, 0.02f, footprint.y + 0.024f), "Housing");
-            var halo = Box(root, "Hover Frame", position + new Vector3(0f, 0.004f, 0f),
-                new Vector3(footprint.x + 0.05f, 0.008f, footprint.y + 0.05f), "Glow");
-            Transform cap;
-            if (round)
-            {
-                cap = GameObject.CreatePrimitive(PrimitiveType.Cylinder).transform;
-                cap.name = "Cap";
-                cap.SetParent(root, false);
-                cap.position = position + new Vector3(0f, 0.031f, 0f);
-                cap.localScale = new Vector3(footprint.x, 0.011f, footprint.y);
-                cap.GetComponent<Renderer>().sharedMaterial = Mat("Control");
-            }
-            else
-                cap = Box(root, "Cap", position + new Vector3(0f, 0.031f, 0f), new Vector3(footprint.x, 0.022f, footprint.y), "Control");
-            foreach (var part in new[] { housing, halo, cap })
-                Object.DestroyImmediate(part.GetComponent<Collider>());
-            var collider = root.gameObject.AddComponent<BoxCollider>();
-            collider.center = new Vector3(0f, 0.022f, 0f);
-            collider.size = new Vector3(footprint.x + 0.024f, 0.044f, footprint.y + 0.024f);
-            var button = root.gameObject.AddComponent<ButtonTarget>();
-            SetField(button, "feedbackRenderer", cap.GetComponent<Renderer>());
-            SetControlColors(button, idle, new Color(0.35f, 0.9f, 1f), new Color(0.4f, 1f, 0.55f));
-            root.gameObject.AddComponent<PressFeedback>().Configure(button, cap, halo.gameObject);
-            return button;
-        }
-
-        private static void FinishScene(LevelRig rig, string path)
-        {
             foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include))
                 if (canvas.renderMode == RenderMode.WorldSpace)
-                    canvas.worldCamera = rig.Camera;
-            var scene = SceneManager.GetActiveScene();
-            if (!EditorSceneManager.SaveScene(scene, path))
-                throw new InvalidOperationException("Could not save scene " + path);
+                    canvas.worldCamera = camera;
+            if (!EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), HubScene))
+                throw new InvalidOperationException("Could not save " + HubScene);
+        }
+
+        /// <summary>One level card: preview, title, status, best + medal, hover details, lock overlay, glow edge.</summary>
+        private static void BuildCard(LevelCatalog.Entry entry, Vector3 position, bool hasPreview, out LevelCard card, out LevelCardPresenter presenter)
+        {
+            // 375 × 425 px at 0.8 mm/px = 0.30 × 0.34 m, 1.0 m away: 40 px body ≈ 22 mm cap (= 12 mm at 0.55 m).
+            var canvas = WorldCanvas(null, $"L{entry.Level} Card", position, 375f, 425f, 0.0008f);
+            Face(canvas);
+            var glow = MakeImage(canvas, "Edge Glow", 0f, 0f, 395f, 445f, new Color(Theme.Accent.r, Theme.Accent.g, Theme.Accent.b, 0f));
+            glow.sprite = P1Art.Outline;
+            var button = MakeButton(canvas, "Card Button", string.Empty, 0f, 0f, 375f, 425f, 30, $"hub_card_l{entry.Level}");
+            Object.DestroyImmediate(button.transform.Find("Label").gameObject);
+            var body = button.transform;
+
+            var preview = new GameObject("Preview", typeof(RectTransform)).AddComponent<RawImage>();
+            preview.rectTransform.SetParent(body, false);
+            preview.rectTransform.anchoredPosition = new Vector2(0f, 105f);
+            preview.rectTransform.sizeDelta = new Vector2(345f, 194f);   // 16:9
+            preview.raycastTarget = false;
+            preview.enabled = hasPreview;
+            var level = MakeLabel(body, "Level", "LEVEL " + entry.Level, 30, -110f, 182f, 130f, 40f, TextAnchor.MiddleLeft);
+            level.fontStyle = FontStyle.Bold;
+            level.color = Theme.AccentInk;
+            var cardTitle = MakeLabel(body, "Title", entry.Title, 44, 0f, -40f, 345f, 96f, TextAnchor.MiddleCenter);
+            cardTitle.fontStyle = FontStyle.Bold;
+            var status = MakeLabel(body, "Status", string.Empty, 40, 0f, -116f, 345f, 48f, TextAnchor.MiddleCenter);
+            status.color = Theme.AccentInk;
+            var best = MakeLabel(body, "Best", "NOT PLAYED", 32, -70f, -172f, 200f, 44f, TextAnchor.MiddleLeft);
+            best.color = Theme.InkDim;
+            var badge = MakeImage(body, "Medal Badge", 110f, -172f, 120f, 44f, Theme.Gold);
+            var medal = MakeLabel(badge.transform, "Medal", string.Empty, 28, 0f, 0f, 120f, 44f, TextAnchor.MiddleCenter);
+            medal.fontStyle = FontStyle.Bold;
+            medal.gameObject.AddComponent<UnityEngine.UI.Outline>().effectColor = new Color(0f, 0f, 0f, 0.8f);
+
+            // Details (expand on hover) over the preview area.
+            var detailsRect = new GameObject("Details", typeof(RectTransform)).GetComponent<RectTransform>();
+            detailsRect.SetParent(body, false);
+            detailsRect.anchoredPosition = new Vector2(0f, 105f);
+            detailsRect.sizeDelta = new Vector2(345f, 194f);
+            var detailsGroup = detailsRect.gameObject.AddComponent<CanvasGroup>();
+            detailsGroup.alpha = 0f;
+            detailsGroup.blocksRaycasts = false;
+            detailsGroup.interactable = false;
+            UiPrefabBuilder.Rounded(detailsRect.gameObject.AddComponent<Image>(), new Color(0.02f, 0.04f, 0.08f, 0.92f));
+            var goal = MakeLabel(detailsRect, "Goal", entry.Goal, 34, 0f, 30f, 325f, 120f, TextAnchor.MiddleCenter);
+            var meta = MakeLabel(detailsRect, "Meta", string.Empty, 26, 0f, -66f, 325f, 44f, TextAnchor.MiddleCenter);
+            meta.color = Theme.AccentInk;
+
+            // Lock overlay: dim + "LOCKED" + "Pass L<N-1> to unlock".
+            var lockRoot = new GameObject("Lock", typeof(RectTransform)).GetComponent<RectTransform>();
+            lockRoot.SetParent(body, false);
+            lockRoot.sizeDelta = new Vector2(375f, 425f);
+            UiPrefabBuilder.Rounded(lockRoot.gameObject.AddComponent<Image>(), new Color(0f, 0f, 0f, 0.55f));
+            lockRoot.GetComponent<Image>().raycastTarget = false;
+            var lockIcon = MakeImage(lockRoot, "Lock Icon", 0f, 120f, 70f, 56f, new Color(0.85f, 0.88f, 0.95f, 1f));
+            MakeImage(lockIcon.transform, "Shackle", 0f, 40f, 46f, 40f, new Color(0.85f, 0.88f, 0.95f, 1f)).sprite = P1Art.Outline;
+            var lockText = MakeLabel(lockRoot, "Lock Text", string.Empty, 34, 0f, 40f, 340f, 90f, TextAnchor.MiddleCenter);
+            lockText.fontStyle = FontStyle.Bold;
+
+            var dim = body.gameObject.AddComponent<CanvasGroup>();
+            button.GetComponent<GazeButton>().Configure($"hub_card_l{entry.Level}", $"L{entry.Level} {entry.Title.ToUpperInvariant()}");
+            card = button.gameObject.AddComponent<LevelCard>();
+            card.Configure(entry.Level, entry.Title, button, cardTitle, status);
+            presenter = canvas.gameObject.AddComponent<LevelCardPresenter>();
+            presenter.Configure(canvas, glow, detailsGroup, preview, goal, meta, best, medal, badge, lockRoot.gameObject, lockText, dim,
+                button.GetComponent<GazeButton>());
+            lockRoot.SetAsLastSibling();
+        }
+
+        private static RectTransform SideCard(string name, float yawDegrees, float y, float height)
+        {
+            var yaw = yawDegrees * Mathf.Deg2Rad;
+            var position = new Vector3(Mathf.Sin(yaw) * 0.95f, y, Mathf.Cos(yaw) * 0.95f);
+            var canvas = WorldCanvas(null, name, position, 380f, height, 0.0008f);
+            UiPrefabBuilder.Rounded(canvas.gameObject.AddComponent<Image>(), Plate);
+            canvas.GetComponent<Image>().raycastTarget = false;
+            UiPrefabBuilder.AccentHeader(canvas);
+            return canvas;
+        }
+
+        /// <summary>Earth seen from the station window, behind the cards; star field beyond. No colliders.</summary>
+        private static void BuildSpaceBackdrop()
+        {
+            var root = new GameObject("Space View (window)").transform;
+            var urp = GraphicsSettings.defaultRenderPipeline != null;
+            var lit = Shader.Find(urp ? "Universal Render Pipeline/Lit" : "Standard");
+            var unlit = Shader.Find(urp ? "Universal Render Pipeline/Unlit" : "Unlit/Texture");
+            var earthMat = HubMaterial("HubEarth", lit, Color.white, AssetDatabase.LoadAssetAtPath<Texture2D>(EarthTexture));
+            var starMat = HubMaterial("HubStars", unlit, Color.white, P1Art.Starfield);
+            var frameMat = HubMaterial("HubWindowFrame", lit, new Color(0.12f, 0.13f, 0.15f), null);
+
+            var earth = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            earth.name = "Earth";
+            Object.DestroyImmediate(earth.GetComponent<Collider>());
+            earth.transform.SetParent(root, false);
+            earth.transform.position = new Vector3(-8f, -22f, 70f);
+            earth.transform.localScale = Vector3.one * 110f;
+            earth.transform.rotation = Quaternion.Euler(20f, 160f, 0f);
+            earth.GetComponent<Renderer>().sharedMaterial = earthMat;
+            earth.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
+
+            var stars = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            stars.name = "Stars";
+            Object.DestroyImmediate(stars.GetComponent<Collider>());
+            stars.transform.SetParent(root, false);
+            stars.transform.position = new Vector3(0f, 10f, 120f);
+            stars.transform.localScale = new Vector3(320f, 160f, 1f);
+            stars.GetComponent<Renderer>().sharedMaterial = starMat;
+            stars.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
+
+            // Station window frame around the view (beyond the cards, out of reach).
+            void Bar(string name, Vector3 position, Vector3 size)
+            {
+                var bar = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                bar.name = name;
+                Object.DestroyImmediate(bar.GetComponent<Collider>());
+                bar.transform.SetParent(root, false);
+                bar.transform.position = position;
+                bar.transform.localScale = size;
+                bar.GetComponent<Renderer>().sharedMaterial = frameMat;
+            }
+            Bar("Window Top", new Vector3(0f, 2.45f, 2.2f), new Vector3(5f, 0.12f, 0.12f));
+            Bar("Window Bottom", new Vector3(0f, 0.35f, 2.2f), new Vector3(5f, 0.12f, 0.12f));
+            Bar("Window Left", new Vector3(-2.5f, 1.4f, 2.2f), new Vector3(0.12f, 2.2f, 0.12f));
+            Bar("Window Right", new Vector3(2.5f, 1.4f, 2.2f), new Vector3(0.12f, 2.2f, 0.12f));
+        }
+
+        private static Material HubMaterial(string name, Shader shader, Color color, Texture texture)
+        {
+            var path = $"{HubDir}/{name}.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(shader) { name = name };
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.shader = shader;
+            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
+            if (material.HasProperty("_Color")) material.SetColor("_Color", color);
+            if (texture != null)
+            {
+                if (material.HasProperty("_BaseMap")) material.SetTexture("_BaseMap", texture);
+                if (material.HasProperty("_MainTex")) material.SetTexture("_MainTex", texture);
+            }
+            if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.35f);
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        /// <summary>Copies the factory's screenshot tool output (Builds/Shots/L&lt;N&gt;_*_front.png) into the Hub as previews.</summary>
+        private static Texture[] ImportPreviews()
+        {
+            var result = new Texture[LevelCatalog.Levels.Count];
+            var shots = Path.GetFullPath("Builds/Shots");
+            for (var i = 0; i < result.Length; i++)
+            {
+                var asset = $"{PreviewDir}/L{i}_preview.png";
+                if (Directory.Exists(shots))
+                {
+                    var source = Directory.GetFiles(shots, $"L{i}_*_front.png").OrderBy(p => p).FirstOrDefault();
+                    if (source != null)
+                    {
+                        EnsureFolder(PreviewDir);
+                        File.Copy(source, asset, true);
+                        AssetDatabase.ImportAsset(asset, ImportAssetOptions.ForceSynchronousImport);
+                    }
+                }
+                result[i] = AssetDatabase.LoadAssetAtPath<Texture2D>(asset);
+            }
+            return result;
         }
 
         // ------------------------------------------------------------------ helpers
 
-        private static GameObject PlaceUi(Transform parent, string prefab, Vector3 position, float scale)
+        private static ColorBlock Primary(ColorBlock colors)
         {
-            var asset = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ASTRA/UI/Prefabs/" + prefab + ".prefab");
-            if (asset == null)
-                throw new InvalidOperationException("UI prefab missing: " + prefab);
-            var instance = (GameObject)PrefabUtility.InstantiatePrefab(asset);
-            instance.transform.SetParent(parent, false);
-            instance.transform.position = position;
-            instance.transform.localScale = Vector3.one * scale;
-            Face(instance.transform);
-            return instance;
+            colors.normalColor = Theme.Accent;
+            colors.highlightedColor = Color.Lerp(Theme.Accent, Color.white, 0.25f);
+            colors.selectedColor = Theme.Accent;
+            return colors;
         }
 
         /// <summary>Orients a world-space object so its front faces the seated eye point.</summary>
@@ -645,54 +482,6 @@ namespace Astra.UI.Editor
             var away = target.position - Eye;
             if (away.sqrMagnitude > 0.0001f)
                 target.rotation = Quaternion.LookRotation(away, Vector3.up);
-        }
-
-        private static Transform Child(Transform parent, string name, Vector3 localPosition)
-        {
-            var child = new GameObject(name).transform;
-            child.SetParent(parent, false);
-            child.localPosition = localPosition;
-            return child;
-        }
-
-        private static Transform Box(Transform parent, string name, Vector3 position, Vector3 size, string material)
-        {
-            var box = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            box.name = name;
-            if (parent != null)
-                box.transform.SetParent(parent, false);
-            box.transform.position = position;
-            box.transform.localScale = size;
-            Finish(box, material);
-            return box.transform;
-        }
-
-        private static void Finish(GameObject primitive, string material)
-        {
-            var renderer = primitive.GetComponent<Renderer>();
-            renderer.sharedMaterial = Mat(material);
-            var unlit = material == "Glow" || material == "Light" || material == "Amber" || material == "Screen" ||
-                        material == "Starfield";
-            if (unlit)
-                renderer.shadowCastingMode = ShadowCastingMode.Off;
-        }
-
-        private static void Strip(Transform part) => Object.DestroyImmediate(part.GetComponent<Collider>());
-
-        /// <summary>Caption on a dark rounded plate, so it stays readable over passthrough and on the phone.</summary>
-        private static void ObjectLabel(Transform parent, string text, Vector3 position, float width = 300f, int size = 34,
-            float height = 76f)
-        {
-            var canvas = WorldCanvas(null, text + " Label", position, width, height, 0.0005f);
-            canvas.SetParent(parent, true);
-            Face(canvas);
-            UiPrefabBuilder.Rounded(canvas.gameObject.AddComponent<Image>(), LabelPlate);
-            canvas.GetComponent<Image>().raycastTarget = false;
-            var label = MakeLabel(canvas, "Text", text, size, 0f, 0f, width - 24f, height, TextAnchor.MiddleCenter);
-            label.fontStyle = FontStyle.Bold;
-            var raycaster = canvas.GetComponent<GraphicRaycaster>();
-            if (raycaster != null)
-                Object.DestroyImmediate(raycaster);
         }
 
         private static RectTransform WorldCanvas(Transform parent, string name, Vector3 position, float width, float height, float scale)
@@ -706,9 +495,21 @@ namespace Astra.UI.Editor
             rect.localScale = Vector3.one * scale;
             var canvas = go.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
-            go.AddComponent<CanvasScaler>().dynamicPixelsPerUnit = 2f;
+            go.AddComponent<CanvasScaler>().dynamicPixelsPerUnit = 3f;
             go.AddComponent<GraphicRaycaster>();
             return rect;
+        }
+
+        private static Image MakeImage(Transform parent, string name, float x, float y, float width, float height, Color color)
+        {
+            var rect = (RectTransform)new GameObject(name, typeof(RectTransform)).transform;
+            rect.SetParent(parent, false);
+            rect.anchoredPosition = new Vector2(x, y);
+            rect.sizeDelta = new Vector2(width, height);
+            var image = rect.gameObject.AddComponent<Image>();
+            UiPrefabBuilder.Rounded(image, color);
+            image.raycastTarget = false;
+            return image;
         }
 
         private static Text MakeLabel(Transform parent, string name, string value, int size, float x, float y, float width,
@@ -732,41 +533,17 @@ namespace Astra.UI.Editor
         }
 
         private static Button MakeButton(Transform parent, string name, string caption, float x, float y, float width,
-            float height, int size)
+            float height, int size, string gazeId)
         {
             var rect = (RectTransform)new GameObject(name, typeof(RectTransform)).transform;
             rect.SetParent(parent, false);
             rect.anchoredPosition = new Vector2(x, y);
             rect.sizeDelta = new Vector2(width, height);
             var button = UiPrefabBuilder.StyleButton(rect.gameObject);
-            var label = MakeLabel(rect, "Label", caption, size, 0f, 0f, width - 20f, height, TextAnchor.MiddleCenter);
+            var label = MakeLabel(rect, "Label", caption, size, 0f, 0f, width - 24f, height, TextAnchor.MiddleCenter);
             label.fontStyle = FontStyle.Bold;
+            UiPrefabBuilder.Gaze(button, gazeId, string.IsNullOrEmpty(caption) ? null : caption);
             return button;
-        }
-
-        private static void SetControlColors(ControlTarget control, Color idle, Color hover, Color pressed)
-        {
-            var serialized = new SerializedObject(control);
-            serialized.FindProperty("idleColor").colorValue = idle;
-            serialized.FindProperty("hoverColor").colorValue = hover;
-            serialized.FindProperty("pressedColor").colorValue = pressed;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static void SetField(Object target, string field, Object value)
-        {
-            var serialized = new SerializedObject(target);
-            var property = serialized.FindProperty(field);
-            if (property == null)
-                throw new InvalidOperationException($"{target.GetType().Name} has no serialized field '{field}'.");
-            property.objectReferenceValue = value;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static void Save(GameObject root, string path)
-        {
-            if (PrefabUtility.SaveAsPrefabAsset(root, path) == null)
-                throw new InvalidOperationException("Could not save prefab " + path);
         }
 
         private static void EnsureFolder(string path)

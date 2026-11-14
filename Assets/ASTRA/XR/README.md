@@ -33,7 +33,11 @@ For L1, grab → release → grab → place is the physical sequence. The runner
 
 `ConsoleInteractionLogger` subscribes only while enabled and prints each report. Use it until the real LevelController is integrated; do not turn it into a scorer.
 
-## Rig and input routes (`Rig/`, `Prefabs/AstraXRRig.prefab`)
+## Phone gaze rig (`Phone/`), the device route for the Irusu phone headset
+
+See [Phone/README.md](Phone/README.md). It covers `IGazeTarget`, `GazeInteractor` (tap, dwell, long-press recenter), the always-on-top reticle, the gyro magic-window fallback, the Cardboard proposal and how the factory adds the rig in one call.
+
+## Rig and input routes (`Rig/`, `Prefabs/AstraXRRig.prefab`): Vision Aura / controller route
 
 `AstraXRRig` is the seated rig: origin on the floor, `TrackingSpace` at 1.2 m seated eye height, `Head` camera. Every route feeds the shared `RayInteractor`, which calls the interactable adapter entry points above with the actor that actually acted. No route scores, timestamps or changes mission state.
 

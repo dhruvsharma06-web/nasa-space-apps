@@ -1,0 +1,24 @@
+{
+  "missionId": "l1-orientation-v1",
+  "scene": "L1_Orientation",
+  "panels": [
+    { "id": "comms_panel", "title": "COMMS", "position": [-0.62, 1.00, 0.12], "size": [0.30, 0.24], "tilt": 10, "target": true },
+    { "id": "power_panel", "title": "POWER", "position": [-0.17, 1.02, 0.60], "size": [0.30, 0.24], "tilt": 15, "target": true },
+    { "id": "life_support_panel", "title": "LIFE SUPPORT", "position": [0.27, 1.02, 0.58], "size": [0.30, 0.24], "tilt": 15, "target": true },
+    { "id": "stowage_panel", "title": "STOWAGE", "position": [0.62, 1.00, 0.12], "size": [0.30, 0.24], "tilt": 10, "target": true },
+    { "id": "crew_display", "title": "CREW DISPLAY", "position": [0.05, 1.42, 0.60], "size": [0.40, 0.16], "tilt": -10, "target": false }
+  ],
+  "controls": [
+    { "targetId": "orientation_checklist", "type": "checklist", "label": "CHECKLIST", "panel": "crew_display", "at": [0.00, -0.02] }
+  ],
+  "tools": [],
+  "indicators": [
+    { "id": "comms_found_light", "label": "FOUND", "panel": "comms_panel", "at": [0.10, -0.08] },
+    { "id": "power_found_light", "label": "FOUND", "panel": "power_panel", "at": [0.10, -0.08] },
+    { "id": "life_support_found_light", "label": "FOUND", "panel": "life_support_panel", "at": [0.10, -0.08] },
+    { "id": "stowage_found_light", "label": "FOUND", "panel": "stowage_panel", "at": [0.10, -0.08] }
+  ],
+  "decoys": [
+    { "targetId": "comms_volume_dial", "type": "dial", "label": "VOLUME", "panel": "comms_panel", "at": [-0.08, 0.02], "positions": ["LOW", "MID", "HIGH"] }
+  ]
+}

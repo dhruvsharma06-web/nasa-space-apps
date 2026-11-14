@@ -7,7 +7,7 @@ using UnityEngine.Events;
 namespace Astra.XR.Interactables
 {
     /// <summary>Shared control validation, feedback and one-report activation boundary.</summary>
-    public abstract class ControlTarget : MonoBehaviour
+    public abstract class ControlTarget : MonoBehaviour, IGazeTarget
     {
         private const double ActivationCooldownSeconds = 0.3;
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
@@ -123,6 +123,17 @@ namespace Astra.XR.Interactables
             {
                 resetInProgress = false;
             }
+        }
+
+        // Phone gaze (CONTRACT v1.4): the GazeInteractor pushes its gaze-tagged actor around ActivateFromGaze,
+        // so the report carries input "gaze".
+        bool IGazeTarget.IsGazeEnabled => isActiveAndEnabled && !ActivationInProgress;
+        void IGazeTarget.SetGazeHover(bool on) => SetHovered(on);
+        void IGazeTarget.ActivateFromGaze()
+        {
+            var actor = UiActionActor.Current;
+            if (actor != null)
+                TryActivate(actor);
         }
 
         public static bool IsControlEvent(string value)

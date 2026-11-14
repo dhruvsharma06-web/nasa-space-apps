@@ -11,13 +11,24 @@ The UI displays supplied mission state and assessment data. It never runs the mi
 | `PhaseBanner` | Call Show from the phase-change notification. It renders the five contract phases without driving transitions. |
 | `DebriefPanel` | Bind four distinct Text labels. Show renders the supplied PASS/RETRY, completed/skipped/missed steps, sequence errors, incorrect targets and time. It clears previous advice. ShowCoachText labels AI advice exactly “AI coach (advisory)”. |
 
-Four world-space prefabs are in `Prefabs/`. The debrief has clipped vertical scroll areas for details and advice, plus 8 cm-high RETRY/HUB buttons bound to RequestRetry/RequestBackToHub. Text is high contrast and rich-text parsing is disabled. These assets were generated and round-tripped with the installed Unity 6000.6.5f1; **Unity 6.3 LTS import and headset readability remain unverified**.
+World-space prefabs are in `Prefabs/`: InstructionPanel, PhaseBanner, DebriefPanel, AlarmIndicator, PauseMenu and Certificate. **ASTRA → P1 → Rebuild P1 assets and Hub scene** regenerates them in place.
+- **Transparent-backed.** The level factory scales each panel to its physical width and adds the dark-glass backplate: PhaseBanner 0.34 m, InstructionPanel 0.42 m, DebriefPanel 0.46 m, AlarmIndicator 0.28 m. Font sizes are chosen from those widths so body text is ≥ 12 mm and titles ≥ 18 mm cap height on the phone; `UiPrefabBuilderTests` checks this.
+- **Palette** (`Theme`): accent `#409CFF`, success `#30D158`, warning `#FFB340`, error `#FF6961`, white text on dark glass.
+- **Every button is gaze-selectable** (`Gaze/GazeButton`: a BoxCollider sized to the RectTransform; tap or dwell invokes `onClick`).
+- **PhaseBanner** slides and fades in over 280 ms. Nothing moves the world.
+- **DebriefPanel** shows PASSED / NOT PASSED, then the score reveal:
+  1. the score counts 0 → N over 1.2 s;
+  2. the medal appears with a soft steady glow;
+  3. breakdown lines slide in one by one;
+  4. coach advice follows.
 
-The UI assembly references `UnityEngine.UI`. The Integration Lead must provide the canonical project's UGUI package/version; this work does not add or upgrade project packages. The isolated validation project used bundled UGUI 2.6.0. The prefabs use a built-in font, avoiding separate font/resource imports.
+  It shows NEW BEST when the score beats the stored best. When passed, **Next level** is the primary button (**Graduate** on L7, which opens the Certificate). When not passed, **Retry** is primary and says what to fix ("RETRY: FOCUS ON STEP 3"). `onNextLevel` and `onGraduate` are UnityEvents for the Integration Lead to wire. Scores come from `Progress/ScoreReports.Source`, P2's `ResultRating`/`ScoreBreakdown` adapter; until then a clearly marked placeholder is used. The panel never changes the result or progress.
+- **Certificate**: "ASTRA ACADEMY: CADET QUALIFIED", callsign, date, academy score, 8 level medals, the fictional ASTRA STATION crest and "Fictional training, not an official certification".
+- **AudioCues** (ScriptableObject): 14 self-made CC0 clips in `Assets/ASTRA/Audio` (see its CREDITS.md). The team lead hooks playback into the factory and LevelController.
 
-Use `ASTRA → P1 → Create shared UI prefabs` to create missing assets in a Unity project. `UiPrefabBuilder.BuildInDirectory` supports comparison/test output only under the owned UI tree. Generation preserves existing prefabs and their authored adjustments; it does not silently overwrite them or change project settings.
+Rich-text parsing is disabled. The prefabs use Unity's built-in font, so there are no extra font imports. Generated with the scripts in `Editor/`; **Unity 6.3 import and phone legibility are not verified on a device**.
 
-The prefabs have a standard GraphicRaycaster. Actual tracked-controller/hand UI interaction still requires the selected XR UI input module and tracked-device raycaster integration. Place panels and controls within the contract's seated reach limits; do not treat prefab dimensions as headset acceptance.
+`ASTRA → P1 → Create shared UI prefabs` creates only missing prefabs and preserves authored adjustments. `UiPrefabBuilder.BuildInDirectory` supports test output only under the owned UI tree.
 
 ## Pause and lifecycle wiring
 
