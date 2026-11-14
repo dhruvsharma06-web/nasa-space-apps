@@ -16,7 +16,10 @@ namespace Astra.XR.Interactables
 
         private Component holder;
         private bool held;
+        private bool releasePending;
+        private uint grabRevision;
         private string heldInput;
+        private string releaseInput;
         private Rigidbody physicsBody;
         private Vector3 homePosition;
         private Quaternion homeRotation;
@@ -26,21 +29,39 @@ namespace Astra.XR.Interactables
         private bool transitionInProgress;
 
         public string TargetId => targetId;
-        public bool IsHeld => held;
+        public bool IsHeld => held && !releasePending;
+        public bool HasPendingRelease => held && releasePending;
         public PlacementSocket CurrentSocket { get; private set; }
+
+        /// <summary>A captured physical release, valid only for this tool's current grab.</summary>
+        public readonly struct ReleaseToken
+        {
+            internal readonly GrabbableTool Owner;
+            internal readonly Component Actor;
+            internal readonly string Input;
+            internal readonly uint Revision;
+
+            internal ReleaseToken(GrabbableTool owner, Component actor, string input, uint revision)
+            {
+                Owner = owner;
+                Actor = actor;
+                Input = input;
+                Revision = revision;
+            }
+        }
 
         public void Configure(string id)
         {
             if (!InteractionValidation.IsTargetId(id))
                 throw new ArgumentException("targetId must follow the content style guide's ID rules.", nameof(id));
-            if (IsHeld || CurrentSocket != null)
+            if (held || CurrentSocket != null)
                 throw new InvalidOperationException("Reset the tool before changing its targetId.");
             targetId = id;
         }
 
         public bool BeginGrab(Component interactor)
         {
-            if (!isActiveAndEnabled || transitionInProgress || IsHeld ||
+            if (!isActiveAndEnabled || transitionInProgress || held ||
                 !InteractionValidation.IsTargetId(targetId) ||
                 !InputModalityTag.TryResolve(interactor, out var input))
                 return false;
@@ -51,6 +72,9 @@ namespace Astra.XR.Interactables
                 DetachFromSocket();
                 holder = interactor;
                 held = true;
+                releasePending = false;
+                releaseInput = null;
+                grabRevision++;
                 heldInput = input;
                 returnAt = double.PositiveInfinity;
                 InteractionEvents.Raise(EventNames.ObjectGrabbed, targetId, input);
@@ -64,8 +88,27 @@ namespace Astra.XR.Interactables
 
         public bool EndGrab(Component interactor, PlacementSocket candidateSocket = null)
         {
-            if (!isActiveAndEnabled || transitionInProgress || !IsHeld || holder != interactor ||
+            return PrepareRelease(interactor, out var token) && CompleteRelease(token, candidateSocket);
+        }
+
+        /// <summary>Capture the actor's route now; an adapter can then observe the actual socket transfer.</summary>
+        public bool PrepareRelease(Component interactor, out ReleaseToken token)
+        {
+            token = default;
+            if (!isActiveAndEnabled || transitionInProgress || !held || releasePending || holder != interactor ||
                 !InputModalityTag.TryResolve(interactor, out var input))
+                return false;
+            releasePending = true;
+            releaseInput = input;
+            token = new ReleaseToken(this, interactor, input, grabRevision);
+            return true;
+        }
+
+        public bool CompleteRelease(ReleaseToken token, PlacementSocket candidateSocket = null)
+        {
+            if (!isActiveAndEnabled || transitionInProgress || !held || !releasePending ||
+                !ReferenceEquals(token.Owner, this) || !ReferenceEquals(token.Actor, holder) ||
+                token.Revision != grabRevision || !InputModalityTag.IsKnown(token.Input))
                 return false;
 
             transitionInProgress = true;
@@ -74,6 +117,9 @@ namespace Astra.XR.Interactables
                 var placed = candidateSocket != null && candidateSocket.TryAttach(this);
                 holder = null;
                 held = false;
+                releasePending = false;
+                releaseInput = null;
+                grabRevision++;
                 heldInput = null;
                 if (placed)
                 {
@@ -86,12 +132,12 @@ namespace Astra.XR.Interactables
                     }
                     SnapToSocket();
                     returnAt = double.PositiveInfinity;
-                    InteractionEvents.Raise(EventNames.ObjectPlaced, candidateSocket.SocketId, input);
+                    InteractionEvents.Raise(EventNames.ObjectPlaced, candidateSocket.SocketId, token.Input);
                 }
                 else
                 {
                     ScheduleReturnIfNeeded();
-                    InteractionEvents.Raise(EventNames.ObjectReleased, targetId, input);
+                    InteractionEvents.Raise(EventNames.ObjectReleased, targetId, token.Input);
                 }
                 return true;
             }
@@ -106,6 +152,9 @@ namespace Astra.XR.Interactables
         {
             holder = null;
             held = false;
+            releasePending = false;
+            releaseInput = null;
+            grabRevision++;
             heldInput = null;
             DetachFromSocket();
             ReturnHome();
@@ -127,9 +176,9 @@ namespace Astra.XR.Interactables
 
         private void Update()
         {
-            if (IsHeld && !InputModalityTag.TryResolve(holder, out _))
+            if (held && !releasePending && !InputModalityTag.TryResolve(holder, out _))
                 CancelGrab();
-            if (IsHeld || CurrentSocket != null)
+            if (held || CurrentSocket != null)
                 return;
 
             ScheduleReturnIfNeeded();
@@ -147,6 +196,9 @@ namespace Astra.XR.Interactables
         {
             holder = null;
             held = false;
+            releasePending = false;
+            releaseInput = null;
+            grabRevision++;
             heldInput = null;
             DetachFromSocket();
             returnAt = double.PositiveInfinity;
@@ -160,9 +212,12 @@ namespace Astra.XR.Interactables
             transitionInProgress = true;
             try
             {
-                var input = heldInput;
+                var input = releasePending ? releaseInput : heldInput;
                 holder = null;
                 held = false;
+                releasePending = false;
+                releaseInput = null;
+                grabRevision++;
                 heldInput = null;
                 ScheduleReturnIfNeeded();
                 InteractionEvents.Raise(EventNames.ObjectReleased, targetId, input);
