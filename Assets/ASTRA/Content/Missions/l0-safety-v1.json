@@ -1,12 +1,12 @@
 {
   "missionId": "l0-safety-v1",
   "level": 0,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "title": "Safety & Calibration: Seated Setup",
   "fictional": true,
   "steps": [
     { "stepId": "confirm_position", "order": 1, "instruction": "Sit upright, then press CONFIRM POSITION.",     "hint": "CONFIRM POSITION is the button on the desk in front of you. Calibration records your seated position so every control stays within reach.", "expectedEvent": "calibration_completed", "targetId": "calibration", "critical": true },
-    { "stepId": "open_pause",       "order": 2, "instruction": "Press PAUSE to open the pause menu.",           "hint": "PAUSE is the button on the right of the desk; the MENU button or ESC key also opens it. Pausing stops the attempt timer.",            "expectedEvent": "paused",                "targetId": "system",      "critical": true },
+    { "stepId": "open_pause",       "order": 2, "instruction": "Press PAUSE to open the pause menu.",           "hint": "PAUSE is on the right of the desk; tapping empty space, MENU or ESC also works. Pausing stops the attempt timer.",            "expectedEvent": "paused",                "targetId": "system",      "critical": true },
     { "stepId": "recenter_view",    "order": 3, "instruction": "Press RECENTER in the pause menu.",             "hint": "RECENTER is the second button in the pause menu. Recentering turns your view back to face the training desk.",                         "expectedEvent": "recentered",            "targetId": "system",      "critical": true },
     { "stepId": "resume_training",  "order": 4, "instruction": "Press RESUME to continue training.",            "hint": "RESUME is the top button in the pause menu. The attempt timer continues from where it stopped when you resume.",                       "expectedEvent": "resumed",               "targetId": "system",      "critical": true }
   ]

@@ -4,6 +4,7 @@
   "references": [
     "ASTRA.Core",
     "ASTRA.XR",
+    "UnityEngine.UI",
     "UnityEngine.TestRunner"
   ],
   "includePlatforms": [],

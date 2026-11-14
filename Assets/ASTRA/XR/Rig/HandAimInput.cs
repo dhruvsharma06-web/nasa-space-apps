@@ -10,7 +10,8 @@ namespace Astra.XR.Rig
     /// Headset route: a camera-derived hand-aim device exposed through UnityEngine.XR InputDevices
     /// (e.g. the Vision Aura provider's "Vision Aura Hand Aim"; any tracked controller with trigger/grip works).
     /// Pinch/trigger = select and activate (reports <c>hand_pinch</c> for a hand device, otherwise <c>controller_ray</c>);
-    /// fist/grip = grab (<c>hand_grab</c> / <c>controller_grip</c>); menu = pause menu. Tracking loss cancels a grab.
+    /// fist/grip = grab (<c>hand_grab</c> / <c>controller_grip</c>); menu = pause menu unless <see cref="GazeTapInput"/>
+    /// owns the headset button (the rig sets <c>handleMenuButton</c> off). Tracking loss cancels a grab.
     /// The modality is decided by the device's actual characteristics, never guessed per action.
     /// </summary>
     [DisallowMultipleComponent]
@@ -25,6 +26,7 @@ namespace Astra.XR.Rig
         [SerializeField] private HeadPoseDriver headPose;
         [SerializeField] private LineRenderer rayVisual;
         [SerializeField] private Transform cursor;
+        [SerializeField] private bool handleMenuButton = true;
         [SerializeField] private UnityEvent menuPressed = new UnityEvent();
 
         private readonly List<InputDevice> devices = new List<InputDevice>();
@@ -47,6 +49,13 @@ namespace Astra.XR.Rig
             headPose = head;
             rayVisual = line;
             cursor = cursorMarker;
+        }
+
+        /// <summary>False when another route (the phone gaze + tap route) owns the headset button.</summary>
+        public bool HandleMenuButton
+        {
+            get => handleMenuButton;
+            set => handleMenuButton = value;
         }
 
         private void Awake()
@@ -77,7 +86,9 @@ namespace Astra.XR.Rig
 
             var tracked = device.TryGetFeatureValue(CommonUsages.isTracked, out var isTracked) && isTracked &&
                           (headPose == null || headPose.IsTracking);
-            device.TryGetFeatureValue(CommonUsages.menuButton, out var menu);
+            var menu = false;
+            if (handleMenuButton)
+                device.TryGetFeatureValue(CommonUsages.menuButton, out menu);
             if (menu && !wasMenu)
             {
                 using (UiActionActor.Push(selectActor))

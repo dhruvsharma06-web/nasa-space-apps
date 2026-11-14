@@ -53,6 +53,8 @@ namespace Astra.XR.Rig
 
         public GrabbableTool HeldTool => heldTool;
         public bool HasHit { get; private set; }
+        /// <summary>The ray is on a control, a tool or a world-space UI panel (anything a tap should act on).</summary>
+        public bool PointsAtTarget { get; private set; }
         public Vector3 HitPoint { get; private set; }
         public float MaxDistance => maxDistance;
 
@@ -60,6 +62,7 @@ namespace Astra.XR.Rig
         public bool Step(in Frame frame)
         {
             HasHit = false;
+            PointsAtTarget = false;
             if (!isActiveAndEnabled || !frame.Valid)
             {
                 Cancel();
@@ -83,6 +86,7 @@ namespace Astra.XR.Rig
                 holdDistance = Mathf.Clamp(holdDistance + frame.HoldDistanceDelta, minHoldDistance, maxHoldDistance);
                 heldTool.transform.position = ray.GetPoint(holdDistance);
                 HasHit = true;
+                PointsAtTarget = true;
                 HitPoint = heldTool.transform.position;
                 UpdateHover(null);
                 UpdateDwell(null, null);
@@ -110,12 +114,14 @@ namespace Astra.XR.Rig
 
             if (!pointsAtWorld)
             {
+                PointsAtTarget = uiHit;
                 if (frame.ClickUi && frame.SelectDown && selectable != null)
                     ClickUi(selectable, frame.SelectActor);
                 return HasHit;
             }
 
             var tool = collider.GetComponentInParent<GrabbableTool>();
+            PointsAtTarget = tool != null || collider.GetComponentInParent<ControlTarget>() != null;
             if (tool != null && (frame.GrabDown || (frame.SelectGrabs && frame.SelectDown)))
             {
                 var actor = frame.SelectGrabs && !frame.GrabDown ? frame.SelectActor : frame.GrabActor;
