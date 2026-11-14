@@ -1,0 +1,30 @@
+{
+  "missionId": "l7-restore-power-v1",
+  "scene": "L7_Finale",
+  "panels": [
+    { "id": "safety_panel", "title": "SAFETY", "position": [0.0, 1.00, 0.58], "size": [0.26, 0.18], "tilt": 15, "target": false },
+    { "id": "power_distribution_panel", "title": "POWER", "position": [-0.40, 0.98, 0.52], "size": [0.50, 0.30], "tilt": 15, "target": true },
+    { "id": "power_checklist_display", "title": "POWER FAULT", "position": [-0.36, 1.22, 0.54], "size": [0.30, 0.12], "tilt": -5, "target": false },
+    { "id": "comms_panel", "title": "COMMS", "position": [0.42, 1.02, 0.50], "size": [0.26, 0.20], "tilt": 15, "target": false }
+  ],
+  "controls": [
+    { "targetId": "calibration", "type": "button", "label": "CALIBRATE", "panel": "safety_panel", "at": [0.0, -0.02] },
+    { "targetId": "caution_ack_button", "type": "button", "label": "ACK", "panel": "power_distribution_panel", "at": [-0.17, -0.02] },
+    { "targetId": "power_fault_checklist", "type": "checklist", "label": "CHECKLIST", "panel": "power_checklist_display", "at": [0.0, -0.015] },
+    { "targetId": "power_bus_b", "type": "button", "label": "BUS B", "panel": "power_distribution_panel", "at": [0.08, 0.02] },
+    { "targetId": "power_bus_b_selector", "type": "dial", "label": "BUS B", "panel": "power_distribution_panel", "at": [0.08, -0.09], "positions": ["NORMAL", "ISOLATE"] },
+    { "targetId": "crosstie_breaker", "type": "button", "label": "CROSS-TIE", "panel": "power_distribution_panel", "at": [0.19, -0.04] },
+    { "targetId": "comms_report_button", "type": "button", "label": "REPORT", "panel": "comms_panel", "at": [0.0, -0.02] }
+  ],
+  "indicators": [
+    { "id": "caution_light", "label": "CAUTION", "panel": "power_distribution_panel", "at": [-0.17, 0.08] },
+    { "id": "status_light", "label": "STATUS", "panel": "power_distribution_panel", "at": [-0.17, -0.11] },
+    { "id": "bus_a_light", "label": "NORMAL", "panel": "power_distribution_panel", "at": [-0.04, 0.08] },
+    { "id": "bus_b_light", "label": "FAULT", "panel": "power_distribution_panel", "at": [0.08, 0.08] }
+  ],
+  "tools": [],
+  "decoys": [
+    { "targetId": "power_bus_a", "type": "button", "label": "BUS A", "panel": "power_distribution_panel", "at": [-0.04, 0.02] },
+    { "targetId": "power_bus_a_selector", "type": "dial", "label": "BUS A", "panel": "power_distribution_panel", "at": [-0.04, -0.09], "positions": ["NORMAL", "ISOLATE"] }
+  ]
+}
