@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Astra.Core.Assessment;
 
 namespace Astra.Core.Progress
 {
@@ -10,6 +11,10 @@ namespace Astra.Core.Progress
         public int version = 1;
         public List<int> unlockedLevels = new List<int> { 0 };
         public List<LevelRecord> records = new List<LevelRecord>();
+        /// <summary>Judges' "Demo: unlock all" (DECISIONS D11): every level opens. Additive to CONTRACT §6.</summary>
+        public bool demoUnlockAll;
+        /// <summary>Free-text callsign shown in the Hub and on the certificate; never a real name or email.</summary>
+        public string callsign = "";
     }
 
     [Serializable]
@@ -21,6 +26,12 @@ namespace Astra.Core.Progress
         public bool passed;
         /// <summary>Best completionTimeMs among passed attempts; 0 if never passed.</summary>
         public long bestTimeMs;
+        /// <summary>True once an attempt was scored; bestScore and bestRating are only meaningful then.</summary>
+        public bool scored;
+        /// <summary>Best 0–100 score from ResultRating (docs/SCORING.md). Additive to CONTRACT §6.</summary>
+        public int bestScore;
+        /// <summary>The medal earned with bestScore.</summary>
+        public Rating bestRating;
     }
 
     /// <summary>

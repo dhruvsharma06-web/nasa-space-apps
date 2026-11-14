@@ -289,7 +289,7 @@ namespace Astra.UI.Editor
             UnityEventTools.AddPersistentListener(dwell.onClick, hubHeader.ToggleDwell);
             UnityEventTools.AddPersistentListener(unlock.onClick, hubHeader.UnlockAll);
 
-            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include))
+            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 if (canvas.renderMode == RenderMode.WorldSpace)
                     canvas.worldCamera = camera;
             if (!EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), HubScene))
