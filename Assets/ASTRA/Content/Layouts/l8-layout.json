@@ -1,0 +1,34 @@
+{
+  "missionId": "l8-launch-v1",
+  "scene": "L8_Launch",
+  "panels": [
+    {"id": "flight_panel", "title": "FLIGHT", "position": [0.0, 1.06, 0.58], "size": [0.56, 0.32], "tilt": 15, "target": false},
+    {"id": "seat_panel", "title": "SEAT", "position": [-0.45, 1.0, 0.42], "size": [0.26, 0.28], "tilt": 15, "target": false},
+    {"id": "comms_panel", "title": "COMMS", "position": [0.45, 1.0, 0.45], "size": [0.26, 0.28], "tilt": 15, "target": false},
+    {"id": "status_display", "title": "FLIGHT STATUS", "position": [0.32, 1.4, 0.56], "size": [0.3, 0.12], "tilt": -10, "target": false},
+    {"id": "aux_panel", "title": "AUX POWER", "position": [0.0, 0.76, 0.5], "size": [0.36, 0.14], "tilt": 35, "target": false}
+  ],
+  "controls": [
+    {"targetId": "harness_button", "type": "button", "label": "HARNESS", "panel": "seat_panel", "at": [0.0, 0.05]},
+    {"targetId": "engine_arm_toggle", "type": "toggle", "label": "ENGINE ARM", "panel": "flight_panel", "at": [-0.2, 0.04], "trigger": "ON"},
+    {"targetId": "guidance_dial", "type": "dial", "label": "GUIDANCE", "panel": "flight_panel", "at": [-0.07, 0.04], "positions": ["GROUND", "INTERNAL"], "trigger": "INTERNAL"},
+    {"targetId": "launch_button", "type": "button", "label": "LAUNCH", "panel": "flight_panel", "at": [0.07, 0.04]},
+    {"targetId": "throttle_dial", "type": "dial", "label": "THROTTLE", "panel": "flight_panel", "at": [0.2, 0.04], "positions": ["100%", "70%"], "trigger": "70%"},
+    {"targetId": "stage_button", "type": "button", "label": "STAGE", "panel": "flight_panel", "at": [-0.13, -0.09]},
+    {"targetId": "tower_jett_button", "type": "button", "label": "TOWER JETT", "panel": "flight_panel", "at": [0.0, -0.09]},
+    {"targetId": "cutoff_button", "type": "button", "label": "CUTOFF", "panel": "flight_panel", "at": [0.13, -0.09]},
+    {"targetId": "orbit_report_button", "type": "button", "label": "REPORT", "panel": "comms_panel", "at": [0.0, -0.06]},
+    {"targetId": "fire_zone", "type": "socket", "label": "FIRE", "panel": "aux_panel", "at": [0.0, -0.015], "accepts": "fire_extinguisher"}
+  ],
+  "indicators": [
+    {"id": "booster_sep_light", "label": "BOOSTER SEP", "panel": "status_display", "at": [-0.07, -0.01]},
+    {"id": "orbit_light", "label": "ORBIT", "panel": "status_display", "at": [0.07, -0.01]}
+  ],
+  "tools": [
+    {"targetId": "fire_extinguisher", "label": "FIRE EXT", "position": [-0.5, 0.92, 0.16]}
+  ],
+  "decoys": [
+    {"targetId": "abort_button", "type": "button", "label": "ABORT", "panel": "seat_panel", "at": [0.0, -0.07]},
+    {"targetId": "cabin_vent_toggle", "type": "toggle", "label": "CABIN VENT", "panel": "comms_panel", "at": [0.0, 0.06]}
+  ]
+}

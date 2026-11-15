@@ -27,7 +27,7 @@ namespace Astra.UI.Hub
             Func<string, bool> availability = null, Action<string> loader = null)
         {
             if (!AreCardsValid(levelCards) || notice == null)
-                throw new ArgumentException("Hub requires one card for each level 0–7 and a progressNotice label.");
+                throw new ArgumentException("Hub requires one card for each level in LevelCatalog and a progressNotice label.");
             Unsubscribe();
             cards = (LevelCard[])levelCards.Clone();
             progressNotice = notice;
@@ -263,7 +263,7 @@ namespace Astra.UI.Hub
         {
             var valid = AreCardsValid(cards);
             if (!valid)
-                Debug.LogError($"[HubController] {name}: cards must contain each level 0–7 exactly once.", this);
+                Debug.LogError($"[HubController] {name}: cards must contain each LevelCatalog level exactly once.", this);
             if (progressNotice == null)
                 Debug.LogError($"[HubController] {name}: missing progressNotice reference.", this);
             return valid && progressNotice != null;
@@ -283,7 +283,7 @@ namespace Astra.UI.Hub
                     return false;
                 mask |= bit;
             }
-            return mask == 255;
+            return mask == (1 << LevelCatalog.Levels.Count) - 1;
         }
     }
 }

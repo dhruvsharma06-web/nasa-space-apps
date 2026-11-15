@@ -8,7 +8,7 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "locate_placard",
     "order": 1,
-    "instruction": "Look at the SAFETY placard.",
+    "instruction": "Locate the SAFETY panel.",
     "critical": false,
     "expectedEvent": "target_located",
     "targetId": "safety_placard_panel"
@@ -16,7 +16,7 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "press_ready",
     "order": 2,
-    "instruction": "Tap READY.",
+    "instruction": "Press READY.",
     "critical": true,
     "expectedEvent": "control_activated",
     "targetId": "ready_button"
@@ -24,7 +24,7 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "flip_test_switch",
     "order": 3,
-    "instruction": "Flip the TEST SWITCH.",
+    "instruction": "Set TEST SWITCH to ON.",
     "critical": true,
     "expectedEvent": "control_activated",
     "targetId": "test_switch_toggle"
@@ -32,7 +32,7 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "set_test_dial",
     "order": 4,
-    "instruction": "Turn TEST DIAL to 2.",
+    "instruction": "Set TEST DIAL to 2.",
     "critical": true,
     "expectedEvent": "control_activated",
     "targetId": "test_dial"
@@ -40,7 +40,7 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "grab_check_tool",
     "order": 5,
-    "instruction": "Pick up the CHECK TOOL.",
+    "instruction": "Grab the CHECK TOOL.",
     "critical": true,
     "expectedEvent": "object_grabbed",
     "targetId": "check_tool"
@@ -63,7 +63,7 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "locate_comms",
     "order": 1,
-    "instruction": "Find the COMMS panel.",
+    "instruction": "Locate the COMMS panel.",
     "critical": true,
     "expectedEvent": "target_located",
     "targetId": "comms_panel"
@@ -71,7 +71,7 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "locate_power",
     "order": 2,
-    "instruction": "Find the POWER panel.",
+    "instruction": "Locate the POWER panel.",
     "critical": true,
     "expectedEvent": "target_located",
     "targetId": "power_panel"
@@ -79,7 +79,7 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "locate_life_support",
     "order": 3,
-    "instruction": "Find the LIFE SUPPORT panel.",
+    "instruction": "Locate the LIFE SUPPORT panel.",
     "critical": true,
     "expectedEvent": "target_located",
     "targetId": "life_support_panel"
@@ -87,7 +87,7 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "locate_stowage",
     "order": 4,
-    "instruction": "Find the STOWAGE panel.",
+    "instruction": "Locate the STOWAGE panel.",
     "critical": true,
     "expectedEvent": "target_located",
     "targetId": "stowage_panel"
@@ -95,7 +95,7 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "open_checklist",
     "order": 5,
-    "instruction": "Open the CHECKLIST tab.",
+    "instruction": "Open the CHECKLIST on the CREW DISPLAY.",
     "critical": true,
     "expectedEvent": "checklist_opened",
     "targetId": "orientation_checklist"
@@ -126,7 +126,7 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "stow_wrench",
     "order": 3,
-    "instruction": "Place the wrench in BAY 1.",
+    "instruction": "Place the TORQUE WRENCH in BAY 1.",
     "critical": true,
     "expectedEvent": "object_placed",
     "targetId": "tool_bay_socket_1"
@@ -150,7 +150,7 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "stow_scanner",
     "order": 6,
-    "instruction": "Place the scanner in BAY 2.",
+    "instruction": "Place the INSPECTION SCANNER in BAY 2.",
     "critical": true,
     "expectedEvent": "object_placed",
     "targetId": "tool_bay_socket_2"
@@ -260,7 +260,7 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "open_checklist",
     "order": 3,
-    "instruction": "Open the POWER FAULT checklist.",
+    "instruction": "Open the CHECKLIST on the POWER FAULT display.",
     "critical": false,
     "expectedEvent": "checklist_opened",
     "targetId": "power_fault_checklist"
@@ -331,7 +331,7 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "clip_tether",
     "order": 4,
-    "instruction": "Place the hook on the TETHER ANCHOR.",
+    "instruction": "Place the TETHER HOOK on the TETHER ANCHOR.",
     "critical": true,
     "expectedEvent": "object_placed",
     "targetId": "tether_anchor_socket"
@@ -355,7 +355,7 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "grab_tool",
     "order": 7,
-    "instruction": "Grab the PISTOL GRIP tool.",
+    "instruction": "Grab the PISTOL GRIP.",
     "critical": true,
     "expectedEvent": "object_grabbed",
     "targetId": "pistol_grip_tool"
@@ -363,7 +363,7 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "stow_tool",
     "order": 8,
-    "instruction": "Place the tool in the TOOL CADDY.",
+    "instruction": "Place the PISTOL GRIP in the TOOL CADDY.",
     "critical": true,
     "expectedEvent": "object_placed",
     "targetId": "tool_caddy_socket"
@@ -481,7 +481,7 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "open_checklist",
     "order": 4,
-    "instruction": "Open the POWER FAULT checklist.",
+    "instruction": "Open the CHECKLIST on the POWER FAULT display.",
     "critical": false,
     "expectedEvent": "checklist_opened",
     "targetId": "power_fault_checklist"
@@ -513,10 +513,105 @@ window.ASTRA_MISSIONS = {
    {
     "stepId": "verify_recovery",
     "order": 8,
-    "instruction": "Press REPORT when the STATUS display shows RESTORED.",
+    "instruction": "Press REPORT when the STATUS indicator shows RESTORED.",
     "critical": true,
     "expectedEvent": "status_reported",
     "targetId": "comms_report_button"
+   }
+  ]
+ },
+ "l8-launch-v1": {
+  "missionId": "l8-launch-v1",
+  "level": 8,
+  "title": "Launch Day: Ride to Orbit",
+  "steps": [
+   {
+    "stepId": "strap_in",
+    "order": 1,
+    "instruction": "Press HARNESS to lock your seat harness.",
+    "critical": true,
+    "expectedEvent": "control_activated",
+    "targetId": "harness_button"
+   },
+   {
+    "stepId": "arm_engines",
+    "order": 2,
+    "instruction": "Set ENGINE ARM to ON.",
+    "critical": true,
+    "expectedEvent": "control_activated",
+    "targetId": "engine_arm_toggle"
+   },
+   {
+    "stepId": "guidance_internal",
+    "order": 3,
+    "instruction": "Set GUIDANCE to INTERNAL.",
+    "critical": true,
+    "expectedEvent": "control_activated",
+    "targetId": "guidance_dial"
+   },
+   {
+    "stepId": "launch",
+    "order": 4,
+    "instruction": "Press LAUNCH to start the final countdown.",
+    "critical": true,
+    "expectedEvent": "control_activated",
+    "targetId": "launch_button"
+   },
+   {
+    "stepId": "throttle_max_q",
+    "order": 5,
+    "instruction": "Set THROTTLE to 70% for MAX-Q.",
+    "critical": true,
+    "expectedEvent": "control_activated",
+    "targetId": "throttle_dial"
+   },
+   {
+    "stepId": "stage_sep",
+    "order": 6,
+    "instruction": "Press STAGE when BOOSTER SEP lights up.",
+    "critical": true,
+    "expectedEvent": "control_activated",
+    "targetId": "stage_button"
+   },
+   {
+    "stepId": "grab_extinguisher",
+    "order": 7,
+    "instruction": "Grab the FIRE EXT from its bracket.",
+    "critical": true,
+    "expectedEvent": "object_grabbed",
+    "targetId": "fire_extinguisher"
+   },
+   {
+    "stepId": "extinguish_fire",
+    "order": 8,
+    "instruction": "Spray the FIRE on the AUX POWER panel.",
+    "critical": true,
+    "expectedEvent": "object_placed",
+    "targetId": "fire_zone"
+   },
+   {
+    "stepId": "tower_jettison",
+    "order": 9,
+    "instruction": "Press TOWER JETT to drop the escape tower.",
+    "critical": false,
+    "expectedEvent": "control_activated",
+    "targetId": "tower_jett_button"
+   },
+   {
+    "stepId": "engine_cutoff",
+    "order": 10,
+    "instruction": "Press CUTOFF when ORBIT lights up.",
+    "critical": true,
+    "expectedEvent": "control_activated",
+    "targetId": "cutoff_button"
+   },
+   {
+    "stepId": "report_orbit",
+    "order": 11,
+    "instruction": "Press REPORT to confirm you are in orbit.",
+    "critical": true,
+    "expectedEvent": "status_reported",
+    "targetId": "orbit_report_button"
    }
   ]
  }

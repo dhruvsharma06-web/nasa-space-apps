@@ -70,7 +70,7 @@ namespace Astra.UI.Progress
         public bool IsUnlocked(int level)
         {
             if (level == 0 || AllUnlocked) return true;
-            if (level < 0 || level > 7) return false;
+            if (level < 0 || level > Hub.LevelCatalog.Levels.Count - 1) return false;
             if (IsPassed(level - 1)) return true;
             var state = Snapshot();
             return state?.unlockedLevels != null && state.unlockedLevels.Contains(level);
@@ -94,7 +94,7 @@ namespace Astra.UI.Progress
             get
             {
                 var total = 0;
-                for (var i = 0; i <= 7; i++) total += Mathf.Max(0, BestScore(i));
+                for (var i = 0; i < Hub.LevelCatalog.Levels.Count; i++) total += Mathf.Max(0, BestScore(i));
                 return total;
             }
         }
@@ -124,7 +124,7 @@ namespace Astra.UI.Progress
 
         public bool RecordScore(int level, int score, Medal medal, bool passed)
         {
-            if (level < 0 || level > 7) return false;
+            if (level < 0 || level > Hub.LevelCatalog.Levels.Count - 1) return false;
             if (passed) PlayerPrefs.SetInt(Prefix + "passed." + level, 1);
             var isBest = score > BestScore(level);
             if (isBest)
@@ -154,7 +154,7 @@ namespace Astra.UI.Progress
 
         public string Callsign { get; set; } = "CADET";
         public bool AllUnlocked { get; private set; }
-        public bool IsUnlocked(int level) => level == 0 || AllUnlocked || (level > 0 && level <= 7 && passed.Contains(level - 1));
+        public bool IsUnlocked(int level) => level == 0 || AllUnlocked || (level > 0 && level < Hub.LevelCatalog.Levels.Count && passed.Contains(level - 1));
         public bool IsPassed(int level) => passed.Contains(level);
         public int BestScore(int level) => best.TryGetValue(level, out var b) ? b.score : -1;
         public Medal BestMedal(int level) => best.TryGetValue(level, out var b) ? b.medal : Medal.None;

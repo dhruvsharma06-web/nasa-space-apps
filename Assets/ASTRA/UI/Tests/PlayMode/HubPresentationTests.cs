@@ -161,16 +161,17 @@ namespace Astra.UI.Tests.PlayMode
             var hub = hubObject.AddComponent<HubController>();
             var notice = NewText("ProgressNotice");
 
-            var missing = new LevelCard[7];
+            var last = LevelCatalog.Levels.Count - 1;
+            var missing = new LevelCard[last];
             Array.Copy(cards, missing, missing.Length);
             Assert.Throws<ArgumentException>(() => hub.Configure(missing, notice));
 
             var duplicate = (LevelCard[])cards.Clone();
-            duplicate[7] = duplicate[0];
+            duplicate[last] = duplicate[0];
             Assert.Throws<ArgumentException>(() => hub.Configure(duplicate, notice));
 
             typeof(LevelCard).GetField("level", BindingFlags.Instance | BindingFlags.NonPublic)
-                .SetValue(cards[7], 8);
+                .SetValue(cards[last], last + 1);
             Assert.Throws<ArgumentException>(() => hub.Configure(cards, notice));
         }
 
@@ -200,7 +201,7 @@ namespace Astra.UI.Tests.PlayMode
 
         private CardFixture[] CreateCards()
         {
-            var cards = new CardFixture[8];
+            var cards = new CardFixture[LevelCatalog.Levels.Count];
             for (var level = 0; level < cards.Length; level++)
                 cards[level] = CreateCard(level);
             return cards;
