@@ -12,7 +12,7 @@ using UnityEngine.UI;
 namespace Astra.UI.Tests.PlayMode
 {
     /// <summary>
-    /// Loads the generated Hub scene: 8 cards exist, locked cards cannot be selected (by click or by gaze), and
+    /// Loads the generated Hub scene: one card per catalog level exists, locked cards cannot be selected (by click or by gaze), and
     /// "Demo: unlock all" unlocks every level. Uses an in-memory progress provider, so real saves are untouched.
     /// </summary>
     public class HubSceneTests
@@ -20,7 +20,7 @@ namespace Astra.UI.Tests.PlayMode
         private const string HubPath = "Assets/ASTRA/Scenes/Hub.unity";
 
         [UnityTest]
-        public IEnumerator HubHasEightCardsLocksAreRespectedAndUnlockAllUnlocks()
+        public IEnumerator HubHasACardPerLevelLocksAreRespectedAndUnlockAllUnlocks()
         {
 #if UNITY_EDITOR
             if (!System.IO.File.Exists(HubPath))
@@ -34,8 +34,8 @@ namespace Astra.UI.Tests.PlayMode
             yield return null;
 
             var cards = Object.FindObjectsByType<LevelCard>(FindObjectsSortMode.None).OrderBy(c => c.Level).ToArray();
-            Assert.That(cards.Length, Is.EqualTo(8), "one card per level");
-            Assert.That(cards.Select(c => c.Level), Is.EqualTo(Enumerable.Range(0, 8)));
+            Assert.That(cards.Length, Is.EqualTo(LevelCatalog.Levels.Count), "one card per level");
+            Assert.That(cards.Select(c => c.Level), Is.EqualTo(Enumerable.Range(0, LevelCatalog.Levels.Count)));
             var hub = Object.FindAnyObjectByType<HubController>();
             Assert.That(hub, Is.Not.Null);
             Assert.That(hub.Academy, Is.SameAs(progress), "the Hub must read the supplied progress provider");

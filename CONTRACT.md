@@ -1,4 +1,4 @@
-# CONTRACT v1.4 — ASTRA Academy
+# CONTRACT v1.5 — ASTRA Academy
 
 **Owner:** Integration Lead. Nobody else edits this file. To change it, open an issue titled `CONTRACT CHANGE REQUEST` (see §11).
 **Rule:** every boundary between owners is coded against this file from day one. Mocks and stubs return these exact shapes.
@@ -56,7 +56,7 @@ Location `Assets/ASTRA/Content/Missions/<missionId>.json` · C# `Astra.Core.Miss
 }
 ```
 Rules (enforced by the validator):
-- `level` is 0–7 and unique across files; `missionId` starts with `l<level>-` and equals the file name.
+- `level` is 0–8 and unique across files; `missionId` starts with `l<level>-` and equals the file name.
 - `order` is unique and ≥ 1; `stepId` is unique; no two steps have the same `expectedEvent` + `targetId`.
 - At least one `critical` step. `fictional` must be `true` (PRD §10).
 - Every `targetId` in a mission must exist on exactly one interactable in that level's scene (§8).
@@ -71,6 +71,7 @@ Rules (enforced by the validator):
 | L5 EVA & Tethering | `l5-eva-v1` | `L5_EVA` | Integration Lead |
 | L6 Robotics Arm | `l6-robotics-v1` | `L6_Robotics` | Integration Lead |
 | L7 Integrated Mission | `l7-restore-power-v1` | `L7_Finale` | Core Logic |
+| L8 Launch Day | `l8-launch-v1` | `L8_Launch` | Core Logic |
 
 ### 2.1 Level layout files (v1.4): the "level factory"
 `Assets/ASTRA/Content/Layouts/l<level>-layout.json` places each target in the scene; a generator builds the playable scene from mission + layout.
@@ -263,6 +264,7 @@ Adding an optional field is a minor bump (v1.2). Renaming, removing, or changing
 ## Changelog
 - **v1.4** (2026-11-14): input modality `gaze` (phone VR, Cardboard); level layout files `Assets/ASTRA/Content/Layouts/l<N>-layout.json` (§2.1). Additive.
 - **v1.3** (2026-11-14): coach real AI mode rules (§9.1), Ask-the-coach endpoint for Practice (§9.2), input checks and rate limit (§9.3), fixtures `coach-ask.{ok,error}.json`. Additive.
+- **v1.5** (2026-11-15): L8 Launch Day (`l8-launch-v1`, `L8_Launch`); `level` range 0–8. The graduation certificate now follows L8. Additive.
 - **v1.2** (2026-11-14): added error code `NOT_FOUND 404` (§10). Minor, additive.
 - **v1.1** (2026-11-14): 8 levels with mission IDs/owners; `level` + step `hint`; interaction bus (§3); runner + step-matching rule (§4); scoring rule + `skippedSteps` + oracle fixtures (§5); progress (§6); UI API (§7); level scene + LevelController (§8); coach client + `modelVersion` (§9). Finale renamed `l7-restore-power-v1`.
 - **v1.0** (2026-11-14): initial.

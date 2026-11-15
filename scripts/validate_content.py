@@ -46,8 +46,8 @@ def mission_errors(m: dict, filename_stem: str) -> list[str]:
         errs.append(f"mission keys {sorted(set(m) ^ MISSION_KEYS)} missing/unknown")
     if m.get("missionId") != filename_stem:
         errs.append(f"missionId {m.get('missionId')!r} must equal the file name {filename_stem!r}")
-    if not isinstance(m.get("level"), int) or not 0 <= m["level"] <= 7:
-        errs.append("level must be an integer 0-7")
+    if not isinstance(m.get("level"), int) or not 0 <= m["level"] <= 8:
+        errs.append("level must be an integer 0-8")
     elif not str(m.get("missionId", "")).startswith(f"l{m['level']}-"):
         errs.append(f"missionId must start with 'l{m['level']}-'")
     if m.get("fictional") is not True:

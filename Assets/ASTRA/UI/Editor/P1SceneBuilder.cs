@@ -267,7 +267,9 @@ namespace Astra.UI.Editor
             {
                 var entry = LevelCatalog.Levels[i];
                 var yaw = yaws[i % 4] * Mathf.Deg2Rad;
-                var position = new Vector3(Mathf.Sin(yaw) * 1.0f, rows[i / 4], Mathf.Cos(yaw) * 1.0f);
+                var position = i < 8
+                    ? new Vector3(Mathf.Sin(yaw) * 1.0f, rows[i / 4], Mathf.Cos(yaw) * 1.0f)
+                    : new Vector3(0f, 0.585f, 0.97f);   // L8 Launch Day: the finale card, centred under the grid
                 BuildCard(entry, position, previews[i] != null, out cards[i], out presenters[i]);
             }
             controller.Configure(cards, notice);

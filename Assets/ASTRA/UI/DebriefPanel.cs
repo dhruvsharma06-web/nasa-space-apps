@@ -24,7 +24,7 @@ namespace Astra.UI
         public const float CountUpSeconds = 1.2f;
         public const float MedalSeconds = 0.35f;
         public const float LineSeconds = 0.25f;
-        public const int LastLevel = 7;
+        public const int LastLevel = 8;
 
         [SerializeField] private Text outcomeLabel;
         [SerializeField] private Text detailsLabel;

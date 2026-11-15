@@ -45,7 +45,8 @@ The web landing page uses the visitor's system fonts and embeds no font files.
 
 | Asset | Used for | Source | Licence | Credit line |
 |---|---|---|---|---|
-| _(none in the repo yet; P1 adds audio cues, TASKS S12)_ | | | | |
+| `Levels/L8_Launch/Resources/L8/launch_roar.ogg`: a 12.5 s seamless loop cut from "Discovery STS-131: Sound of Launch" | The engine roar in L8 Launch Day | [NASA historical sounds](https://www.nasa.gov/historical-sounds/) ([direct MP3](https://www.nasa.gov/wp-content/uploads/2015/01/590189main_ringtone_131_launchNats.mp3)) | Not subject to copyright in the US, per the [NASA Images and Media Usage Guidelines](https://www.nasa.gov/nasa-brand-center/images-and-media/); NASA credited as the source; no endorsement implied | "Launch audio: NASA." |
+| L8 countdown beeps, switch clicks, staging thump, escape-tower whoosh, fire klaxon, CO2 hiss (generated) | L8 Launch Day effects | Generated in code (`L8LaunchView.cs`) | Our own work | none required |
 
 ## 5. Engine, packages and libraries
 

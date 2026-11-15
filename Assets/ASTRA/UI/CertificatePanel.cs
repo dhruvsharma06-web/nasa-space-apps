@@ -46,7 +46,7 @@ namespace Astra.UI
             if (callsignLabel != null) callsignLabel.text = progress.Callsign;
             if (dateLabel != null) dateLabel.text = DateTime.Now.ToString("d MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
             if (scoreLabel != null) scoreLabel.text = "ACADEMY SCORE  " + progress.TotalScore;
-            for (var level = 0; level < 8; level++)
+            for (var level = 0; level < medalLabels.Length; level++)
             {
                 var medal = progress.BestMedal(level);
                 if (level < medalLabels.Length && medalLabels[level] != null)

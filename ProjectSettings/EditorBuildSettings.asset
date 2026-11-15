@@ -32,6 +32,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/ASTRA/Levels/L7_Finale/L7_Finale.unity
     guid: 58eb871e921feeb4a8618ebb6719efe2
+  - enabled: 1
+    path: Assets/ASTRA/Levels/L8_Launch/L8_Launch.unity
+    guid: 526f2d8c1c7cee344bd7c79e686a2d05
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: e829eac3b8c89084e945f4e7f4875a8e, type: 2}
