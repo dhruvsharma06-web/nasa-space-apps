@@ -83,6 +83,16 @@ try {
   New-Item -ItemType Directory -Path $play | Out-Null
   Copy-Item -Path (Join-Path $build "*") -Destination $play -Recurse -Force
 
+  # Loading notice on Unity's loading screen: it sits inside #unity-loading-bar, so it shows and hides with the bar.
+  # ASCII only here (HTML entities): Windows PowerShell 5.1 misreads non-ASCII in a script without a BOM.
+  $playIndex = Join-Path $play "index.html"
+  $playHtml = [IO.File]::ReadAllText($playIndex)
+  $loadNote = '<div id="astra-load-note" style="position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:16px;width:min(86vw,440px);color:#e8eefc;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;text-align:center"><b style="color:#ffd166">Loading about 80&nbsp;MB.</b> This usually takes 1&ndash;3 minutes, and up to 15 minutes on a slow connection. Please keep this tab open; the bar fills as it downloads.</div>'
+  if (-not $playHtml.Contains("astra-load-note")) {
+    $playHtml = $playHtml.Replace('<div id="unity-progress-bar-empty">', $loadNote + '<div id="unity-progress-bar-empty">')
+    [IO.File]::WriteAllText($playIndex, $playHtml, (New-Object System.Text.UTF8Encoding($false)))
+  }
+
   $html = [IO.File]::ReadAllText($template)
   $html = $html.Replace("{{REPO_URL}}", $repoUrl).Replace("{{APK_URL}}", $apkUrl).Replace("{{COMMIT}}", $commit).Replace("{{BUILD_DATE}}", $buildDate)
   $utf8 = New-Object System.Text.UTF8Encoding($false)   # no BOM
