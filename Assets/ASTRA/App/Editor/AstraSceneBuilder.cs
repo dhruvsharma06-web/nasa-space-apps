@@ -39,8 +39,10 @@ namespace Astra.App.EditorTools
         private const string TmpFont = "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset";
         private static readonly Vector3 Eye = new Vector3(0f, 1.2f, 0f);
         private static readonly Vector3 SunDir = new Vector3(0.75f, 0.35f, -0.2f).normalized;   // towards the sun: right and slightly behind: a half-lit Earth with the day/night line in the window
-        /// <summary>Coach proxy base URL baked into levels; unreachable = offline coach (no error shown).</summary>
-        public const string CoachProxyUrl = "http://127.0.0.1:8787";
+        /// <summary>Coach proxy base URL baked into levels; unreachable = offline coach (no error shown).
+        /// Hosted proxy on Render (free plan: sleeps when idle; open {url}/health to wake it before a demo).
+        /// For a local proxy, set "http://127.0.0.1:8787" and rebuild the scenes.</summary>
+        public const string CoachProxyUrl = "https://nasa-space-apps-s7jq.onrender.com";
         private const string NasaDir = "Assets/ASTRA/Levels/_Shared/Textures/NASA";
 
         private static TMP_FontAsset _font;
