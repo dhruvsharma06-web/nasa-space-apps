@@ -44,7 +44,9 @@ Shader "ASTRA/Atmosphere"
                 float halo = pow(1.0 - ndv, _Power) * smoothstep(0.0, 0.12, ndv);   // bright near the limb, fades at the outer edge
                 float ndl = dot(n, GetMainLight().direction);
                 float sunSide = saturate(ndl * 1.5 + 0.25);
-                return half4(_Color.rgb * halo * _Strength * sunSide, 1);
+                float band = exp(-pow(ndl / 0.18, 2.0));
+                float3 c = lerp(_Color.rgb, float3(1.0, 0.5, 0.22), band * 0.6);   // sunset tint where day meets night
+                return half4(c * halo * _Strength * (sunSide + band * 0.4), 1);
             }
             ENDHLSL
         }

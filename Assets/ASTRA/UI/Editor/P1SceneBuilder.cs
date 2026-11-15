@@ -246,10 +246,14 @@ namespace Astra.UI.Editor
             var cont = MakeLabel(header, "Continue", string.Empty, 38, -150f, -40f, 600f, 52f, TextAnchor.MiddleLeft);
             cont.color = Theme.AccentInk;
             cont.fontStyle = FontStyle.Bold;
-            var callsign = MakeLabel(header, "Callsign", "CALLSIGN  CADET", 34, 420f, 50f, 420f, 44f, TextAnchor.MiddleRight);
-            var score = MakeLabel(header, "Score", "ACADEMY SCORE  0", 34, 420f, 6f, 420f, 44f, TextAnchor.MiddleRight);
-            var medals = MakeLabel(header, "Medals", string.Empty, 30, 420f, -36f, 420f, 40f, TextAnchor.MiddleRight);
-            var notice = MakeLabel(header, "Progress Notice", string.Empty, 24, 420f, -70f, 420f, 30f, TextAnchor.MiddleRight);
+            var callsign = MakeLabel(header, "Callsign", "CALLSIGN  CADET", 32, 400f, 52f, 460f, 40f, TextAnchor.MiddleRight);
+            FitText(callsign, 18, 32);
+            var score = MakeLabel(header, "Score", "ACADEMY SCORE  0", 32, 400f, 12f, 460f, 40f, TextAnchor.MiddleRight);
+            FitText(score, 18, 32);
+            var medals = MakeLabel(header, "Medals", string.Empty, 26, 400f, -28f, 460f, 36f, TextAnchor.MiddleRight);
+            FitText(medals, 14, 26);   // one line: GOLD n  SILVER n  BRONZE n
+            var notice = MakeLabel(header, "Progress Notice", string.Empty, 22, 400f, -64f, 460f, 28f, TextAnchor.MiddleRight);
+            FitText(notice, 12, 22);
             notice.color = Theme.InkDim;
             Face(header);
 

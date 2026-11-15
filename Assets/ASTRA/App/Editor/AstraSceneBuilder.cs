@@ -599,9 +599,48 @@ namespace Astra.App.EditorTools
             var night = AssetDatabase.LoadAssetAtPath<Texture2D>($"{NasaDir}/earth_night.jpg");
             if (night != null) m.SetTexture("_NightTex", night);
             var clouds = AssetDatabase.LoadAssetAtPath<Texture2D>($"{NasaDir}/earth_clouds.jpg");
+            if (clouds == null) clouds = CloudTexture();   // NASA no longer serves a cloud layer: procedural, seamless
             if (clouds != null) m.SetTexture("_CloudTex", clouds);
+            m.SetFloat("_CloudSpeed", 0.0006f); m.SetFloat("_CloudStrength", 0.85f);
             AssetDatabase.CreateAsset(m, $"{MatDir}/Earth.mat");
             return m;
+        }
+
+        /// <summary>Seamless procedural cloud layer (domain-warped fBm, banded by latitude), cached as a PNG.</summary>
+        private static Texture2D CloudTexture()
+        {
+            string path = $"{SharedDir}/Textures/clouds_procedural.png";
+            if (!File.Exists(path))
+            {
+                const int W = 2048, H = 1024;
+                var px = new Color[W * H];
+                float Base(float x, float y)
+                {
+                    float wx = x + 0.35f * Fbm(x * 1.7f + 5.2f, y * 1.7f + 1.3f, 4);   // swirl
+                    float wy = y + 0.35f * Fbm(x * 1.7f + 9.1f, y * 1.7f + 4.7f, 4);
+                    return Fbm(wx * 2.2f, wy * 2.2f, 6);
+                }
+                for (int y = 0; y < H; y++)
+                {
+                    float v = y / (float)H;
+                    float lat = Mathf.Abs(v - 0.5f) * 2f;                                       // 0 equator .. 1 pole
+                    float belt = 0.55f + 0.35f * Mathf.Exp(-Mathf.Pow((lat - 0.55f) / 0.2f, 2f)) + 0.2f * Mathf.Exp(-Mathf.Pow(lat / 0.12f, 2f));
+                    for (int x = 0; x < W; x++)
+                    {
+                        float u = x / (float)W;
+                        float n = Base(u * 6f, v * 3f) * (1f - u) + Base((u - 1f) * 6f, v * 3f) * u;   // wraps at u = 0/1
+                        float c = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.52f, 0.78f, n * belt + 0.12f));
+                        px[y * W + x] = new Color(c, c, c, 1f);
+                    }
+                }
+                var tex = new Texture2D(W, H, TextureFormat.RGB24, false);
+                tex.SetPixels(px); tex.Apply();
+                File.WriteAllBytes(path, tex.EncodeToPNG());
+                UnityEngine.Object.DestroyImmediate(tex);
+                AssetDatabase.ImportAsset(path);
+                if (AssetImporter.GetAtPath(path) is TextureImporter ti) { ti.sRGBTexture = false; ti.wrapModeU = TextureWrapMode.Repeat; ti.wrapModeV = TextureWrapMode.Clamp; ti.SaveAndReimport(); }
+            }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
         private static Texture2D EarthTexture()

@@ -70,6 +70,13 @@ namespace Astra.DesktopTest
         private float _cardUntil;
         private ModulePhase _cardPhase;
         private float _a = 1f;
+        private const float ChipDelay = 1.45f;                     // debrief: count-up (0.25 s delay + 1.2 s) before the medal pops
+        private readonly Dictionary<string, float> _doneAt = new Dictionary<string, float>();
+        private string _barTitle, _barLine, _barTitlePrev, _barLinePrev;
+        private float _barChangeAt = -100f;
+        private float _xhK;
+        private string _xhLabel;
+        private GUIStyle _popCheck;
         private GUIStyle _glass, _glassDark, _pill, _chip, _h1, _h2, _body, _bodyC, _small, _smallC, _tag, _tagC, _btn, _btnGhost, _btnGreen, _check, _bar, _field, _chipBtn;
 
         public void Configure(LevelController lc, DesktopRig r, bool compactHud = false) { level = lc; rig = r; compact = compactHud; }
@@ -121,12 +128,12 @@ namespace Astra.DesktopTest
             if (_chatOpen) CloseChat();                     // closes when Qualification starts (and on any phase change)
             _cardPhase = p; _cardUntil = Time.unscaledTime + 4f; _phaseAt = Time.unscaledTime;
             if (p == ModulePhase.Debrief) _debriefAt = Time.unscaledTime;
-            if (p == ModulePhase.Practice || p == ModulePhase.Qualification) { _done.Clear(); TestTarget.ResetAll(); }
+            if (p == ModulePhase.Practice || p == ModulePhase.Qualification) { _done.Clear(); _doneAt.Clear(); TestTarget.ResetAll(); }
         }
 
         private void OnEvent(SessionEvent e, StepFeedback fb)
         {
-            if (fb.Outcome == StepOutcome.Correct && fb.StepId != null) _done.Add(fb.StepId);
+            if (fb.Outcome == StepOutcome.Correct && fb.StepId != null && _done.Add(fb.StepId)) _doneAt[fb.StepId] = Time.unscaledTime;
             if (level.Phase != ModulePhase.Practice) { _feedback = ""; _hint = ""; return; }
             _feedbackAt = Time.unscaledTime;
             _feedback = fb.Outcome switch
@@ -156,6 +163,8 @@ namespace Astra.DesktopTest
                 : level.Phase == ModulePhase.Demonstration ? _demoStep?.targetId
                 : level.Phase == ModulePhase.Practice ? level.Runner?.CurrentStep?.targetId : null;
             foreach (var t in TestTarget.Registry.Values) t.SetDemoHighlight(glow != null && t.TargetId == glow);
+            bool xhOn = rig != null && rig.Locked && rig.Hovered != null;
+            _xhK = Mathf.MoveTowards(_xhK, xhOn ? 1f : 0f, Time.unscaledDeltaTime / 0.1f);   // crosshair grow/tint, 0.1 s
 
             if (_welcome && level != null && !level.IsPaused) level.Pause();   // whichever Start() ran first, the level waits
             var kb = Keyboard.current;
@@ -312,6 +321,8 @@ namespace Astra.DesktopTest
             _tag = Text(12, Accent, FontStyle.Bold);
             _tagC = Text(12, Accent, FontStyle.Bold, TextAnchor.MiddleCenter);
             _check = Text(15, new Color(0.86f, 0.89f, 0.95f));
+            _popCheck = Text(15, Green, FontStyle.Bold, TextAnchor.MiddleCenter);
+            _popCheck.wordWrap = false;
 
             _btn = Button(Accent, new Color(0.38f, 0.70f, 1f), new Color(0.18f, 0.48f, 0.85f), new Color(1, 1, 1, 0.25f), 18);
             _btnGreen = Button(new Color(0.15f, 0.64f, 0.28f), Green, new Color(0.12f, 0.5f, 0.22f), new Color(1, 1, 1, 0.25f), 18);
@@ -458,21 +469,25 @@ namespace Astra.DesktopTest
             if (rig == null || !rig.Locked) return;
             var c = new Vector2(W / 2f, H / 2f);
             var hovered = rig.Hovered;
-            float g = hovered != null ? 7f : 9f, len = hovered != null ? 7f : 6f;
+            if (hovered != null) _xhLabel = LabelOf(hovered.TargetId);
+            float e = EaseOutCubic(_xhK);
+            float g = Mathf.Lerp(9f, 7f, e), len = Mathf.Lerp(6f, 7f, e);
             var old = GUI.color;
-            GUI.color = hovered != null ? Accent : new Color(1f, 1f, 1f, 0.9f);
+            GUI.color = Color.Lerp(new Color(1f, 1f, 1f, 0.9f), Accent, e);
             GUI.DrawTexture(new Rect(c.x - 1, c.y - g - len, 2, len), Texture2D.whiteTexture);   // four ticks with a gap
             GUI.DrawTexture(new Rect(c.x - 1, c.y + g, 2, len), Texture2D.whiteTexture);
             GUI.DrawTexture(new Rect(c.x - g - len, c.y - 1, len, 2), Texture2D.whiteTexture);
             GUI.DrawTexture(new Rect(c.x + g, c.y - 1, len, 2), Texture2D.whiteTexture);
             GUI.DrawTexture(new Rect(c.x - 1, c.y - 1, 2, 2), Texture2D.whiteTexture);
             GUI.color = old;
-            if (hovered == null) return;
-            var content = new GUIContent($"<b>{LabelOf(hovered.TargetId)}</b>   <color=#9AA3B2>click</color>");
+            if (e <= 0.01f || _xhLabel == null) return;
+            GUI.color = new Color(old.r, old.g, old.b, old.a * e);                               // label fades with the hover
+            var content = new GUIContent($"<b>{_xhLabel}</b>   <color=#9AA3B2>click</color>");
             var size = _body.CalcSize(content);
             var r = new Rect(c.x - size.x / 2f - 14, c.y + 26, size.x + 28, 30);
             GUI.Box(r, GUIContent.none, _pill);
             GUI.Label(new Rect(r.x + 14, r.y + 4, size.x + 4, 24), content, _body);
+            GUI.color = old;
         }
 
         private int CurrentIndex(List<MissionStep> steps)
@@ -554,9 +569,12 @@ namespace Astra.DesktopTest
                 foreach (var s in steps)
                 {
                     bool done = _done.Contains(s.stepId), now = s.stepId == current;
-                    string mark = done ? "<color=#30D158>✓</color>" : now ? "<color=#409CFF>▶</color>" : "<color=#5B6474>○</color>";
+                    float age = done && _doneAt.TryGetValue(s.stepId, out var at) ? Time.unscaledTime - at : 99f;
+                    string mark = done ? (age < 0.25f ? "<color=#00000000>✓</color>" : "<color=#30D158>✓</color>")   // popping check is drawn separately
+                         : now ? "<color=#409CFF>▶</color>" : "<color=#5B6474>○</color>";
                     string text = now ? $"<b><color=#FFFFFF>{s.instruction}</color></b>" : done ? $"<color=#7D8697>{s.instruction}</color>" : s.instruction;
                     GUILayout.Label($"{mark}   {text}{(s.critical ? "" : "  <color=#7D8697><i>optional</i></color>")}", _check);
+                    if (done && age < 0.8f && Event.current.type == EventType.Repaint) DrawRowPop(GUILayoutUtility.GetLastRect(), age);
                 }
                 GUILayout.EndArea();
             }
@@ -593,9 +611,14 @@ namespace Astra.DesktopTest
             float w = left ? Mathf.Max(420f, W - 40f - 380f - 16f) : Mathf.Min(920f, W - 40f);
             float h = 104 + (hint ? 30 : 0) + (recentFeedback && !hint ? 22 : 0);
             var r = new Rect(left ? 20f : (W - w) / 2f, H - h - 22, w, h);
+            if (title != _barTitle || line != _barLine)
+            {
+                _barTitlePrev = _barTitle; _barLinePrev = _barLine; _barTitle = title; _barLine = line; _barChangeAt = Time.unscaledTime;
+            }
+            float fk = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((Time.unscaledTime - _barChangeAt) / 0.2f));   // 0.2 s crossfade
             GUILayout.BeginArea(r, _glass);
-            GUILayout.Label(title, _tag);
-            GUILayout.Label(line, _h2);
+            FadeLabel(title, _tag, _barTitlePrev, fk);
+            FadeLabel(line, _h2, _barLinePrev, fk);
             if (hint) GUILayout.Label($"{_feedback}   <color=#FFB340><b>HINT</b></color>  {_hint}", _body);
             else if (recentFeedback) GUILayout.Label(_feedback, _body);
             if (sub != null) GUILayout.Label(sub, _small);
@@ -692,7 +715,7 @@ namespace Astra.DesktopTest
             var res = level.LastResult;
             var rep = level.LastReport;
             bool passed = res != null && res.passed;
-            float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((Time.unscaledTime - _phaseAt) / 0.28f));
+            float t = EaseOutCubic((Time.unscaledTime - _phaseAt) / 0.28f);
             var old = GUI.color; GUI.color = new Color(1, 1, 1, t * _a);
             int count = rep != null ? rep.Lines.Count : 0;
             float w = Mathf.Min(620, W - 40);
@@ -708,7 +731,7 @@ namespace Astra.DesktopTest
             if (rep != null)
             {
                 float k = Mathf.Clamp01((Time.unscaledTime - _debriefAt - 0.25f) / 1.2f);
-                k = 1f - (1f - k) * (1f - k) * (1f - k);                       // ease-out count-up
+                k = k >= 1f ? 1f : 1f - Mathf.Pow(2f, -10f * k);               // ease-out-expo count-up
                 int shown = Mathf.RoundToInt(rep.Score * k);
                 GUI.Label(new Rect(x0, y, iw, 96), $"<b>{shown}</b>", Text(84, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter));
                 GUI.Label(new Rect(x0, y + 92, iw, 20), "out of 100", _smallC);
@@ -719,27 +742,36 @@ namespace Astra.DesktopTest
                     : rep.Medal == Astra.UI.Progress.Medal.Bronze ? new Color(0.84f, 0.52f, 0.25f) : Muted;
                 bool best = level.LastWasBest;
                 float pw = 160f, gap = 10f, total = pw + (best ? gap + 110f : 0f), px = (w - total) / 2f;
-                var mr = new Rect(px, y, pw, 28);
+                float ce = EaseOutCubic((Time.unscaledTime - _debriefAt - ChipDelay) / 0.25f);   // chip pops in after the count
+                float cs = Mathf.Lerp(0.8f, 1f, ce);
+                var chipOld = GUI.color; GUI.color = new Color(chipOld.r, chipOld.g, chipOld.b, chipOld.a * ce);
+                var mr = ScaleRect(new Rect(px, y, pw, 28), cs);
                 Tinted(mr, new Color(mc.r, mc.g, mc.b, 0.6f), _chip);
-                GUI.Label(mr, medal, Text(13, mc, FontStyle.Bold, TextAnchor.MiddleCenter));
+                GUI.Label(mr, medal, Text(Mathf.Max(1, Mathf.RoundToInt(13 * cs)), mc, FontStyle.Bold, TextAnchor.MiddleCenter));
                 if (best)
                 {
-                    var br = new Rect(px + pw + gap, y, 110, 28);
+                    var br = ScaleRect(new Rect(px + pw + gap, y, 110, 28), cs);
                     Tinted(br, Amber, _chip);
-                    GUI.Label(br, "NEW BEST", Text(12, Amber, FontStyle.Bold, TextAnchor.MiddleCenter));
+                    GUI.Label(br, "NEW BEST", Text(Mathf.Max(1, Mathf.RoundToInt(12 * cs)), Amber, FontStyle.Bold, TextAnchor.MiddleCenter));
                 }
+                GUI.color = chipOld;
                 y += 42;
                 float linesH = Mathf.Max(0f, h - fixedH);
                 if (count > 0 && linesH > 0f)
                 {
                     GUILayout.BeginArea(new Rect(x0, y, iw, linesH + 4));
+                    float lineT0 = Time.unscaledTime - _debriefAt - ChipDelay - 0.15f;
+                    int li = 0;
                     foreach (var l in rep.Lines)
                     {
+                        float la = EaseOutCubic((lineT0 - li * 0.06f) / 0.2f); li++;   // 60 ms stagger per line
+                        var lineOld = GUI.color; GUI.color = new Color(lineOld.r, lineOld.g, lineOld.b, lineOld.a * la);
                         GUILayout.BeginHorizontal();
                         GUILayout.Label(Safe(l.Text), Text(14, new Color(0.86f, 0.89f, 0.95f)));
                         if (l.Points != 0)
                             GUILayout.Label($"<color=#{(l.Points > 0 ? "30D158" : "FF6961")}><b>{(l.Points > 0 ? "+" : "")}{l.Points}</b></color>", Text(14, Color.white, FontStyle.Bold, TextAnchor.UpperRight), GUILayout.Width(56));
                         GUILayout.EndHorizontal();
+                        GUI.color = lineOld;
                     }
                     GUILayout.EndArea();
                 }
@@ -762,9 +794,10 @@ namespace Astra.DesktopTest
         {
             var (title, line) = PhaseText[_cardPhase];
             float t = _cardUntil - Time.unscaledTime;
-            float a = Mathf.Clamp01(t / 0.6f) * Mathf.Clamp01((4f - t) / 0.3f);   // fade in 0.3 s, out over the last 0.6 s
+            float pin = EaseOutCubic((4f - t) / 0.3f);                             // slide + fade in, 0.3 s ease-out
+            float a = pin * Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / 0.4f));    // fade out over the last 0.4 s
             float w = Mathf.Min(700, W - 40);
-            var r = new Rect((W - w) / 2f, H * 0.26f - (1f - a) * 12f, w, 140);
+            var r = new Rect((W - w) / 2f, H * 0.26f - (1f - pin) * 18f, w, 140);
             var old = GUI.color; GUI.color = new Color(1, 1, 1, a);
             GUI.Box(r, GUIContent.none, _glassDark);
             GUI.Label(new Rect(r.x, r.y + 18, w, 48), title, _h1);
@@ -779,6 +812,46 @@ namespace Astra.DesktopTest
             var r = new Rect((W - size.x) / 2f - 16, H * 0.5f - 16, size.x + 32, 34);
             GUI.Box(r, GUIContent.none, _pill);
             GUI.Label(new Rect(r.x + 16, r.y + 6, size.x + 4, 24), content, _body);
+        }
+
+        private static float EaseOutCubic(float t) { t = 1f - Mathf.Clamp01(t); return 1f - t * t * t; }
+
+        private static float EaseOutBack(float t, float s)
+        {
+            t = Mathf.Clamp01(t) - 1f;
+            return 1f + (s + 1f) * t * t * t + s * t * t;
+        }
+
+        private static Rect ScaleRect(Rect r, float s) => new Rect(r.center.x - r.width * s / 2f, r.center.y - r.height * s / 2f, r.width * s, r.height * s);
+
+        /// <summary>Layout label that fades in; the previous text fades out over the same rect (drawn on Repaint only).</summary>
+        private void FadeLabel(string text, GUIStyle st, string prev, float k)
+        {
+            var old = GUI.color;
+            bool cross = k < 1f && prev != null && prev != text;
+            GUI.color = new Color(old.r, old.g, old.b, old.a * (cross ? k : 1f));
+            GUILayout.Label(text, st);
+            if (cross && Event.current.type == EventType.Repaint)
+            {
+                var rect = GUILayoutUtility.GetLastRect();
+                GUI.color = new Color(old.r, old.g, old.b, old.a * (1f - k));
+                GUI.Label(rect, prev, st);
+            }
+            GUI.color = old;
+        }
+
+        /// <summary>Green row tint that settles over 0.8 s plus a check mark that pops in over 0.25 s. Rect is area-local.</summary>
+        private void DrawRowPop(Rect row, float age)
+        {
+            float tint = 0.2f * (1f - EaseOutCubic(age / 0.8f)) * Mathf.Clamp01(age / 0.06f);
+            Tinted(new Rect(row.x - 6f, row.y, row.width + 12f, row.height), new Color(Green.r, Green.g, Green.b, tint), _bar);
+            if (age >= 0.25f) return;
+            float sc = EaseOutBack(age / 0.25f, 2f);
+            _popCheck.fontSize = Mathf.Max(1, Mathf.RoundToInt(15f * sc));
+            var old = GUI.color; GUI.color = new Color(old.r, old.g, old.b, old.a * Mathf.Clamp01(age / 0.08f));
+            float px = row.x + _check.padding.left + 7f, py = row.y + _check.padding.top + _check.lineHeight * 0.5f;
+            GUI.Label(new Rect(px - 15f, py - 15f, 30f, 30f), "✓", _popCheck);
+            GUI.color = old;
         }
 
         private static string LabelOf(string targetId)
