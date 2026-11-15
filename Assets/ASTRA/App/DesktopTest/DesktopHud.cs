@@ -176,7 +176,7 @@ namespace Astra.DesktopTest
             if (kb == null || level == null) return;
             if (_typing) return;                                                // typing in the chat: no shortcuts
             bool scored = level.Phase == ModulePhase.Qualification;   // no level switching during a scored attempt
-            var digits = new[] { kb.digit0Key, kb.digit1Key, kb.digit2Key, kb.digit3Key, kb.digit4Key, kb.digit5Key, kb.digit6Key, kb.digit7Key };
+            var digits = new[] { kb.digit0Key, kb.digit1Key, kb.digit2Key, kb.digit3Key, kb.digit4Key, kb.digit5Key, kb.digit6Key, kb.digit7Key, kb.digit8Key, kb.digit9Key };
             for (int n = 0; n < digits.Length; n++)
                 if (!scored && digits[n].wasPressedThisFrame && _levels.TryGetValue(n, out var scene) && scene != SceneManager.GetActiveScene().name)
                 { SceneManager.LoadScene(scene); return; }
