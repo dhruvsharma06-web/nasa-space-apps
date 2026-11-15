@@ -44,7 +44,7 @@ namespace Astra.DesktopTest
                 if (mouse.leftButton.wasPressedThisFrame && !DesktopHud.PointerOverHud)
                 {
                     if (ui != null) ui.ActivateFromGaze();
-                    else Cursor.lockState = CursorLockMode.Locked;   // browsers require a click for pointer lock
+                    else if (!DesktopHud.WantsFreeCursor) Cursor.lockState = CursorLockMode.Locked;   // browsers require a click for pointer lock
                 }
                 return;
             }
