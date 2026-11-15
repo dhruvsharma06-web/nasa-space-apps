@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ASTRA Academy: play in your browser</title>
+  <meta name="description" content="ASTRA Academy: a fictional astronaut procedure trainer. Play the browser build, no install needed.">
+  <style>
+    :root {
+      --bg: #0b1220; --panel: #121c30; --line: #23314f; --text: #e8eefc;
+      --muted: #a9b6d3; --accent: #4fb3ff; --accent-ink: #04111f; --warn: #ffd166;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); }
+    body {
+      font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh; display: flex; flex-direction: column;
+    }
+    main { width: 100%; max-width: 760px; margin: 0 auto; padding: 48px 16px 32px; flex: 1; }
+    h1 { font-size: clamp(2rem, 6vw, 3rem); line-height: 1.1; margin: 0 0 8px; letter-spacing: .02em; }
+    .tag { color: var(--muted); font-size: 1.1rem; margin: 0 0 28px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; margin: 0 0 18px; }
+    .card h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 10px; }
+    ol { margin: 0; padding-left: 1.3em; }
+    li + li { margin-top: 6px; }
+    kbd { background: #1c2944; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 6px; font: .85em ui-monospace, Consolas, monospace; }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 18px; }
+    .btn { display: inline-block; padding: 14px 22px; border-radius: 10px; font-weight: 700; text-decoration: none; border: 1px solid var(--line); color: var(--text); }
+    .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+    .btn:focus-visible { outline: 3px solid var(--warn); outline-offset: 2px; }
+    .note { color: var(--muted); font-size: .95rem; margin: 0; }
+    .phone { display: none; border-color: var(--warn); }
+    .phone strong { color: var(--warn); }
+    body.is-phone .phone { display: block; }
+    footer { border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; text-align: center; padding: 18px 16px 24px; }
+    footer a, .note a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>ASTRA Academy</h1>
+    <p class="tag">Learn spacecraft procedures in a fictional station cabin: practise, get scored fairly, and get a debrief that explains every mistake.</p>
+
+    <div class="card phone" role="note">
+      <strong>On a phone?</strong> The browser build is made for desktop. On phones, use the APK with a Cardboard-style headset.
+      <a href="https://github.com/dhruvsharma06-web/nasa-space-apps/releases/latest">Download the APK</a>.
+    </div>
+
+    <div class="actions">
+      <a class="btn primary" href="play/index.html">▶ Play in browser</a>
+      <a class="btn" href="https://github.com/dhruvsharma06-web/nasa-space-apps/releases/latest">Download APK (Android)</a>
+      <a class="btn" href="https://github.com/dhruvsharma06-web/nasa-space-apps">Source code</a>
+    </div>
+
+    <div class="card">
+      <h2>How to play</h2>
+      <ol>
+        <li>Press <b>Play</b>, then click inside the cabin. Move the mouse to look around (<kbd>Esc</kbd> frees the cursor).</li>
+        <li>Aim the crosshair at the glowing control and click to use it. Follow the next-step bar.</li>
+        <li><kbd>Enter</kbd> skips to practice or retries, <kbd>P</kbd> pauses, <kbd>R</kbd> recenters, and number keys switch levels.</li>
+      </ol>
+    </div>
+
+    <p class="note">Best on desktop <b>Chrome</b> or <b>Edge</b>. The first load downloads the whole build and can take a little while.</p>
+    <p class="note">Asset and data credits: <a href="https://github.com/dhruvsharma06-web/nasa-space-apps/blob/main/CREDITS.md">CREDITS.md</a>. Build d4aed0c · 2026-11-15.</p>
+  </main>
+  <footer>
+    Fictional training, not affiliated with or endorsed by NASA. All procedures and the ASTRA Station are fictional.
+  </footer>
+  <script>
+    // Show the phone note on touch-first, small-screen devices only.
+    try {
+      var phone = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+                  (window.matchMedia && matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 820);
+      if (phone) document.body.classList.add("is-phone");
+    } catch (e) { /* the note simply stays hidden */ }
+  </script>
+</body>
+</html>
