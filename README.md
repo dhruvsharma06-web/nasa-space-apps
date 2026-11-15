@@ -50,7 +50,7 @@ New procedures are just two JSON files, so instructors could add training withou
 | L5 | EVA Preparation | Tether and tool check | 5 min | ✅ playable |
 | L6 | Robotics | Capture a free-floating cargo module | 4 min | ✅ playable |
 | L7 | Restore Station Power | Integrated final mission | 5 min | in progress |
-| L8 | Launch Day | Fly from the launch pad to orbit, with a cabin fire to put out on the way (the cinematic finale; graduation follows) | 4 min | ✅ playable (2026-11-15: Editor PlayMode tests) |
+| L8 | Launch Day | Fly from the launch pad to orbit, with a cabin fire to put out on the way (the cinematic finale; graduation follows) | 4 min | ✅ playable (2026-11-15: Editor PlayMode tests; played by hand on an Android phone) |
 
 <sub>*Estimated, to be replaced with timings measured in QA. Status as of 2026-11-14; see [docs/STATUS.md](docs/STATUS.md).</sub>
 
