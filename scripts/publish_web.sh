@@ -74,6 +74,11 @@ fi
 find "$WT" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
 mkdir -p "$WT/play"
 cp -R "$BUILD_ABS/." "$WT/play/"
+# Loading notice on Unity's loading screen: it sits inside #unity-loading-bar, so it shows and hides with the bar.
+LOAD_NOTE='<div id="astra-load-note" style="position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:16px;width:min(86vw,440px);color:#e8eefc;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;text-align:center"><b style="color:#ffd166">Loading about 80\&nbsp;MB.</b> This usually takes 1\&ndash;3 minutes, and up to 15 minutes on a slow connection. Please keep this tab open; the bar fills as it downloads.</div>'
+if ! grep -q 'astra-load-note' "$WT/play/index.html"; then
+  sed -i.bak -e "s|<div id=\"unity-progress-bar-empty\">|${LOAD_NOTE}<div id=\"unity-progress-bar-empty\">|" "$WT/play/index.html" && rm -f "$WT/play/index.html.bak"
+fi
 sed -e "s|{{REPO_URL}}|$REPO_URL|g" \
     -e "s|{{APK_URL}}|$APK_URL|g" \
     -e "s|{{COMMIT}}|$COMMIT|g" \
