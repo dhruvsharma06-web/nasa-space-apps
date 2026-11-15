@@ -22,6 +22,7 @@ in a way that suggests NASA endorsement ([NASA media usage guidelines](https://w
 | `earth_day.jpg`: Blue Marble Next Generation (topography + bathymetry, July 2004), 4096×2048 | Earth outside the cabin window (day side) | [NASA Visible Earth: Blue Marble](https://visibleearth.nasa.gov/collection/1484/blue-marble); exact URLs in `Assets/ASTRA/Levels/_Shared/Textures/NASA/SOURCES.md` | Public domain (NASA) | "NASA Earth Observatory image by Reto Stöckli; enhancements by Robert Simmon." | In the repo |
 | `earth_night.jpg`: Black Marble 2016, 4096×2048 | City lights on the Earth's night side | NASA Earth Observatory (Black Marble); exact URLs in `SOURCES.md` | Public domain (NASA) | "NASA Earth Observatory images by Joshua Stevens, using Suomi NPP VIIRS data from Miguel Román, NASA GSFC." | In the repo |
 | `starmap.jpg`: Deep Star Maps 2020, 4096×2048 | Star sky behind the Earth | [NASA/Goddard SVS Deep Star Maps](https://svs.gsfc.nasa.gov/); exact URLs in `SOURCES.md` | Public domain (NASA); Gaia data ESA | "NASA/Goddard Space Flight Center Scientific Visualization Studio. Gaia DR2: ESA/Gaia/DPAC." | In the repo |
+| `clouds_procedural.png` (generated) | Drifting cloud layer on the Earth | Generated in the level factory (procedural noise); NASA no longer hosts a Blue Marble cloud layer | Our own work | none required | In the repo |
 | _(other NASA data, if added)_ | | | | | |
 
 ## 2. Fonts
