@@ -71,3 +71,6 @@ __pycache__/
 
 # WebGL/Burst build leftovers written to the project root
 /Data/
+
+# Android build temp files
+/.utmp/
