@@ -24,6 +24,8 @@ namespace Astra.DesktopTest
         [SerializeField] private bool compact;
 
         public static bool PointerOverHud { get; private set; }
+        /// <summary>True while a panel with buttons is open (welcome, chat, debrief): the mouse stays free so they can be clicked.</summary>
+        public static bool WantsFreeCursor { get; private set; }
 
         private const int MaxQuestions = 8;
         private const int MaxQuestionChars = 300;
@@ -99,11 +101,12 @@ namespace Astra.DesktopTest
             level.DemonstrationStep += OnDemo;
             if (_speech == null) _speech = BrowserSpeech.Create();
             _speech.Heard += OnHeard;
+            _speech.Failed += OnSpeechFailed;
         }
 
         private void OnDisable()
         {
-            if (_speech != null) _speech.Heard -= OnHeard;
+            if (_speech != null) { _speech.Heard -= OnHeard; _speech.Failed -= OnSpeechFailed; }
             if (level == null) return;
             level.PhaseChanged -= OnPhase;
             level.EventRecorded -= OnEvent;
@@ -138,8 +141,8 @@ namespace Astra.DesktopTest
             _feedbackAt = Time.unscaledTime;
             _feedback = fb.Outcome switch
             {
-                StepOutcome.Correct => "<color=#30D158><b>✓ Correct</b></color>",
-                StepOutcome.Incorrect => "<color=#FF6961><b>✕ Not that one.</b></color> That control is not part of this step.",
+                StepOutcome.Correct => "<color=#30D158><b>√ Correct</b></color>",
+                StepOutcome.Incorrect => "<color=#FF6961><b>× Not that one.</b></color> That control is not part of this step.",
                 StepOutcome.OutOfOrder => "<color=#FFB340><b>Not yet.</b></color> That step comes later.",
                 _ => "",
             };
@@ -166,7 +169,9 @@ namespace Astra.DesktopTest
             bool xhOn = rig != null && rig.Locked && rig.Hovered != null;
             _xhK = Mathf.MoveTowards(_xhK, xhOn ? 1f : 0f, Time.unscaledDeltaTime / 0.1f);   // crosshair grow/tint, 0.1 s
 
-            if (_welcome && level != null && !level.IsPaused) level.Pause();   // whichever Start() ran first, the level waits
+            if (_welcome && level != null && !level.IsPaused) level.Pause();
+            WantsFreeCursor = level != null && (_welcome || _chatOpen || level.Phase == ModulePhase.Debrief);
+            if (WantsFreeCursor && Cursor.lockState == CursorLockMode.Locked) { Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }   // whichever Start() ran first, the level waits
             var kb = Keyboard.current;
             if (kb == null || level == null) return;
             if (_typing) return;                                                // typing in the chat: no shortcuts
@@ -209,6 +214,17 @@ namespace Astra.DesktopTest
         private static string Safe(string s) => (s ?? "").Replace('<', '‹').Replace('>', '›');
 
         private void PushMsg(ChatMsg m) { _chat.Add(m); _scroll.y = 100000f; }
+
+        private void OnSpeechFailed(string code)
+        {
+            string text = code == "not-allowed" || code == "service-not-allowed"
+                ? "Microphone is blocked. Click the camera/mic icon in the address bar, allow the microphone, then press Mic again."
+                : code == "no-speech" ? "I didn't hear anything. Press Mic and speak right away."
+                : code == "network" ? "Voice input needs an internet connection. You can type your question instead."
+                : code == "audio-capture" ? "No microphone was found. You can type your question instead."
+                : "Voice input stopped. You can try again or type your question.";
+            if (_chatOpen) PushMsg(new ChatMsg { info = true, text = text });
+        }
 
         /// <summary>Sends a question through the coach (AI when available, offline otherwise). Max 8 per attempt, Practice only.</summary>
         private void Ask(string question)
@@ -456,7 +472,7 @@ namespace Astra.DesktopTest
             }
 
             float by = Mathf.Max(cy + 24 + fh + 22f, h - 138f);
-            if (GUI.Button(new Rect(w / 2f - 170, by, 340, 54), "Start mission   ⏎", _btn)) StartMission();
+            if (GUI.Button(new Rect(w / 2f - 170, by, 340, 54), "Start mission   (Enter)", _btn)) StartMission();
             GUI.Label(new Rect(x0, by + 62, iw, 20), "Talk to your instructor anytime in Practice (press <b>T</b>).", _smallC);
             GUI.Label(new Rect(x0, by + 82, iw, 18), "Fictional educational training. Not real procedures or certification.", Text(12, new Color(0.5f, 0.55f, 0.63f), FontStyle.Normal, TextAnchor.MiddleCenter));
             GUI.EndGroup();
@@ -561,7 +577,7 @@ namespace Astra.DesktopTest
             else
             {
                 float h = 62;
-                foreach (var s in steps) h += _check.CalcHeight(new GUIContent("✓   " + s.instruction + (s.critical ? "" : "  optional")), inner) + 2;
+                foreach (var s in steps) h += _check.CalcHeight(new GUIContent("√   " + s.instruction + (s.critical ? "" : "  optional")), inner) + 2;
                 r = new Rect(W - w - 20, 20, w, h);
                 GUILayout.BeginArea(r, _glass);
                 GUILayout.Label($"MISSION CHECKLIST   {_done.Count} / {steps.Count}", _tag);
@@ -570,8 +586,8 @@ namespace Astra.DesktopTest
                 {
                     bool done = _done.Contains(s.stepId), now = s.stepId == current;
                     float age = done && _doneAt.TryGetValue(s.stepId, out var at) ? Time.unscaledTime - at : 99f;
-                    string mark = done ? (age < 0.25f ? "<color=#00000000>✓</color>" : "<color=#30D158>✓</color>")   // popping check is drawn separately
-                         : now ? "<color=#409CFF>▶</color>" : "<color=#5B6474>○</color>";
+                    string mark = done ? (age < 0.25f ? "<color=#00000000>√</color>" : "<color=#30D158>√</color>")   // popping check is drawn separately
+                         : now ? "<color=#409CFF>►</color>" : "<color=#5B6474>○</color>";
                     string text = now ? $"<b><color=#FFFFFF>{s.instruction}</color></b>" : done ? $"<color=#7D8697>{s.instruction}</color>" : s.instruction;
                     GUILayout.Label($"{mark}   {text}{(s.critical ? "" : "  <color=#7D8697><i>optional</i></color>")}", _check);
                     if (done && age < 0.8f && Event.current.type == EventType.Repaint) DrawRowPop(GUILayoutUtility.GetLastRect(), age);
@@ -659,7 +675,7 @@ namespace Astra.DesktopTest
                 { _voiceOn = !_voiceOn; if (!_voiceOn) _speech.CancelSpeech(); }
                 GUILayout.Space(4);
             }
-            bool close = GUILayout.Button("✕", _chipBtn, GUILayout.Width(28), GUILayout.Height(24));
+            bool close = GUILayout.Button("Close", _chipBtn, GUILayout.Width(28), GUILayout.Height(24));
             GUILayout.EndHorizontal();
             GUILayout.Space(6);
 
@@ -850,7 +866,7 @@ namespace Astra.DesktopTest
             _popCheck.fontSize = Mathf.Max(1, Mathf.RoundToInt(15f * sc));
             var old = GUI.color; GUI.color = new Color(old.r, old.g, old.b, old.a * Mathf.Clamp01(age / 0.08f));
             float px = row.x + _check.padding.left + 7f, py = row.y + _check.padding.top + _check.lineHeight * 0.5f;
-            GUI.Label(new Rect(px - 15f, py - 15f, 30f, 30f), "✓", _popCheck);
+            GUI.Label(new Rect(px - 15f, py - 15f, 30f, 30f), "√", _popCheck);
             GUI.color = old;
         }
 

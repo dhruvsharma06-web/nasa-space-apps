@@ -29,6 +29,8 @@ namespace Astra.DesktopTest
         public bool Listening { get; private set; }
         /// <summary>Raised with the recognised text (already trimmed to 300 chars).</summary>
         public event Action<string> Heard;
+        /// <summary>Raised with the browser error code (not-allowed, no-speech, network, ...).</summary>
+        public event Action<string> Failed;
 
         public static BrowserSpeech Create()
         {
@@ -93,7 +95,7 @@ namespace Astra.DesktopTest
         }
 
         public void OnSpeechState(string on) { Listening = on == "1"; }
-        public void OnSpeechError(string error) { Listening = false; }
+        public void OnSpeechError(string error) { Listening = false; Failed?.Invoke(error); }
 
         private void OnDestroy() { CancelSpeech(); }
     }

@@ -275,7 +275,7 @@ namespace Astra.UI.Editor
             hubObject.AddComponent<HubProgressBinding>();
 
             // Side cards: how to play (left) and settings / demo / quit (right).
-            var howTo = SideCard("How To Play", -52f, 1.12f, 560f);
+            var howTo = SideCard("How To Play", -46f, 1.12f, 560f);
             var howTitle = MakeLabel(howTo, "Title", "HOW TO PLAY", 44, 0f, 230f, 340f, 60f, TextAnchor.MiddleCenter);
             howTitle.fontStyle = FontStyle.Bold;
             howTitle.color = Theme.AccentInk;
@@ -284,7 +284,7 @@ namespace Astra.UI.Editor
                 34, 0f, -30f, 330f, 440f, TextAnchor.UpperLeft);
             Face(howTo);
 
-            var settings = SideCard("Settings", 52f, 1.12f, 560f);
+            var settings = SideCard("Settings", 46f, 1.12f, 560f);
             var setTitle = MakeLabel(settings, "Title", "SETTINGS", 44, 0f, 230f, 340f, 60f, TextAnchor.MiddleCenter);
             setTitle.fontStyle = FontStyle.Bold;
             setTitle.color = Theme.AccentInk;
