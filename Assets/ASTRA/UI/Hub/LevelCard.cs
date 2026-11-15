@@ -21,7 +21,7 @@ namespace Astra.UI.Hub
 
         public void Configure(int levelNumber, string title, Button button, Text titleText, Text statusText)
         {
-            if (levelNumber < 0 || levelNumber > 7) throw new ArgumentOutOfRangeException(nameof(levelNumber));
+            if (levelNumber < 0 || levelNumber >= LevelCatalog.Levels.Count) throw new ArgumentOutOfRangeException(nameof(levelNumber));
             if (button == null) throw new ArgumentNullException(nameof(button));
             if (titleText == null) throw new ArgumentNullException(nameof(titleText));
             if (statusText == null) throw new ArgumentNullException(nameof(statusText));
@@ -113,7 +113,7 @@ namespace Astra.UI.Hub
         private bool ValidateReferences()
         {
             var valid = true;
-            if (level < 0 || level > 7) { Debug.LogError($"[LevelCard] {name}: level must be 0–7.", this); valid = false; }
+            if (level < 0 || level >= LevelCatalog.Levels.Count) { Debug.LogError($"[LevelCard] {name}: level must be 0–{LevelCatalog.Levels.Count - 1}.", this); valid = false; }
             if (selectButton == null) { Debug.LogError($"[LevelCard] {name}: missing selectButton reference.", this); valid = false; }
             if (titleLabel == null) { Debug.LogError($"[LevelCard] {name}: missing titleLabel reference.", this); valid = false; }
             if (statusLabel == null) { Debug.LogError($"[LevelCard] {name}: missing statusLabel reference.", this); valid = false; }

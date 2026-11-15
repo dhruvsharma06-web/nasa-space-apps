@@ -68,6 +68,13 @@ in Google AI Studio first, then paste a new one into Render.
 - **Good levels to show:**
   - **L0 Safety:** the first-time flow;
   - **L4 Emergency:** the power fault; a clean run should score 100, Gold.
+  - **L8 Launch Day:** the cinematic finale, from the launch pad to orbit. Turn the phone volume up and **tell the
+    viewer to look up at the window**: the launch tower drops away at liftoff, then come the clouds and staging.
+    Then a cabin fire breaks out (alarm, red light): grab the red FIRE EXT by your left knee and tap the FIRE. Then
+    comes the Earth's curve.
+- **After a new level or mission ships**, redeploy the hosted coach (Render → the service → Manual Deploy → Deploy
+  latest commit). It only accepts missions it has a copy of, and until it's redeployed the new level's debrief uses the
+  offline coach.
 - **Known limit:** the phone build runs at **30 fps** (Unity's default cap on Android; measured on a Nothing Phone A059 on
   2026-11-15). Don't claim more. 60 fps would need `Application.targetFrameRate = 60` in the phone tier of
   `Assets/ASTRA/App/PlatformQuality.cs` and a check on the phone.

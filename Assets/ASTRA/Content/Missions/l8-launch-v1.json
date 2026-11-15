@@ -1,0 +1,20 @@
+{
+  "missionId": "l8-launch-v1",
+  "level": 8,
+  "version": "1.0.0",
+  "title": "Launch Day: Ride to Orbit",
+  "fictional": true,
+  "steps": [
+    { "stepId": "strap_in",          "order": 1, "instruction": "Press HARNESS to lock your seat harness.",   "hint": "HARNESS is on the SEAT panel to your left. Locking it holds you in your seat through the launch forces.", "expectedEvent": "control_activated", "targetId": "harness_button",      "critical": true  },
+    { "stepId": "arm_engines",       "order": 2, "instruction": "Set ENGINE ARM to ON.",                       "hint": "ENGINE ARM is the first switch on the FLIGHT panel ahead. Arming lets the flight computer start the engines.", "expectedEvent": "control_activated", "targetId": "engine_arm_toggle",   "critical": true  },
+    { "stepId": "guidance_internal", "order": 3, "instruction": "Set GUIDANCE to INTERNAL.",                   "hint": "Turn the GUIDANCE dial on the FLIGHT panel to INTERNAL. The ship then steers itself instead of following ground commands.", "expectedEvent": "control_activated", "targetId": "guidance_dial",       "critical": true  },
+    { "stepId": "launch",            "order": 4, "instruction": "Press LAUNCH to start the final countdown.",  "hint": "LAUNCH is the third control on the FLIGHT panel. The countdown runs ten seconds and the engines ignite at T-6.", "expectedEvent": "control_activated", "targetId": "launch_button",       "critical": true  },
+    { "stepId": "throttle_max_q",    "order": 5, "instruction": "Set THROTTLE to 70% for MAX-Q.",              "hint": "Turn the THROTTLE dial on the right of the FLIGHT panel to 70%. Less thrust protects the ship through peak air pressure.", "expectedEvent": "control_activated", "targetId": "throttle_dial",       "critical": true  },
+    { "stepId": "stage_sep",         "order": 6, "instruction": "Press STAGE when BOOSTER SEP lights up.",     "hint": "STAGE is on the lower row of the FLIGHT panel. Wait for the amber BOOSTER SEP light: the empty booster must drop away.", "expectedEvent": "control_activated", "targetId": "stage_button",        "critical": true  },
+    { "stepId": "grab_extinguisher", "order": 7, "instruction": "Grab the FIRE EXT from its bracket.",        "hint": "The FIRE EXT hangs on its bracket by your left knee. Grab it first; you cannot fight a fire bare-handed.", "expectedEvent": "object_grabbed",    "targetId": "fire_extinguisher",   "critical": true  },
+    { "stepId": "extinguish_fire",   "order": 8, "instruction": "Spray the FIRE on the AUX POWER panel.",     "hint": "Holding the extinguisher, tap the FIRE on the AUX POWER panel below the FLIGHT panel. The CO2 smothers the flames.", "expectedEvent": "object_placed",     "targetId": "fire_zone",           "critical": true  },
+    { "stepId": "tower_jettison",    "order": 9, "instruction": "Press TOWER JETT to drop the escape tower.",  "hint": "TOWER JETT is in the middle of the lower row. Above the thick air, the escape tower is only extra weight.", "expectedEvent": "control_activated", "targetId": "tower_jett_button",   "critical": false },
+    { "stepId": "engine_cutoff",     "order": 10, "instruction": "Press CUTOFF when ORBIT lights up.",          "hint": "CUTOFF is on the right of the lower row. Wait for the green ORBIT light; cutting off early leaves you short of orbit.", "expectedEvent": "control_activated", "targetId": "cutoff_button",       "critical": true  },
+    { "stepId": "report_orbit",      "order": 11, "instruction": "Press REPORT to confirm you are in orbit.",   "hint": "REPORT is on the COMMS panel to your right. Mission control needs your call to confirm a safe orbit.", "expectedEvent": "status_reported",   "targetId": "orbit_report_button", "critical": true  }
+  ]
+}

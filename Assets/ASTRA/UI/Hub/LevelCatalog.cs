@@ -46,7 +46,8 @@ namespace Astra.UI.Hub
             new Entry(4, "Emergency Response", "L4_Emergency", "Clear a power-bus fault safely.", "Fault response", 3, "~3 min"),
             new Entry(5, "EVA & Tethering", "L5_EVA", "Prepare and tether for a spacewalk.", "EVA preparation", 2, "~3 min"),
             new Entry(6, "Robotics Arm", "L6_Robotics", "Operate the arm to capture a payload.", "Robotics", 3, "~4 min"),
-            new Entry(7, "Integrated Mission", "L7_Finale", "Restore station power under pressure.", "Everything together", 3, "~4 min")
+            new Entry(7, "Integrated Mission", "L7_Finale", "Restore station power under pressure.", "Everything together", 3, "~4 min"),
+            new Entry(8, "Launch Day", "L8_Launch", "Fly the ship from the launch pad to orbit.", "Launch & ascent", 3, "~4 min")
         });
     }
 }
