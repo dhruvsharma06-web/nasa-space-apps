@@ -130,7 +130,8 @@ namespace Astra.UI.Editor
                 UnityEventTools.AddPersistentListener(pauseButton.onClick, pause.Pause);
 
                 var menu = WorldCanvas(root.transform, "MenuRoot", new Vector3(0f, 1.15f, 0.5f), 640f, 760f, 0.0006f);
-                UiPrefabBuilder.Rounded(menu.gameObject.AddComponent<Image>(), Plate);
+                P1Style.Surface(menu.gameObject.AddComponent<Image>(), P1Style.Glass);
+                P1Style.Edge(menu, P1Style.Hairline, "Frame");
                 UiPrefabBuilder.AccentHeader(menu);
                 var title = MakeLabel(menu, "Title", "PAUSED", 56, 0f, 304f, 580f, 80f, TextAnchor.MiddleCenter);
                 title.fontStyle = FontStyle.Bold;
@@ -152,6 +153,7 @@ namespace Astra.UI.Editor
                 UnityEventTools.AddPersistentListener(exit.onClick, pause.RequestExit);
                 UnityEventTools.AddPersistentListener(finish.onClick, pause.RequestFinish);
                 pause.Configure(menu.gameObject, finish.gameObject, null);
+                UiPrefabBuilder.ApplyTypography(root);
                 if (PrefabUtility.SaveAsPrefabAsset(root, PausePrefab) == null)
                     throw new InvalidOperationException("Could not save " + PausePrefab);
             }
@@ -234,27 +236,21 @@ namespace Astra.UI.Editor
             var hubObject = new GameObject("Hub");
             var controller = hubObject.AddComponent<HubController>();
 
-            // Header: title + crest, callsign, academy score, medals, continue, progress notice.
-            var header = WorldCanvas(null, "Hub Header", new Vector3(0f, 1.63f, 1.05f), 1300f, 170f, 0.0008f);
-            UiPrefabBuilder.Rounded(header.gameObject.AddComponent<Image>(), Plate);
-            UiPrefabBuilder.AccentHeader(header);
-            var crest = MakeImage(header, "Crest", -560f, 0f, 130f, 130f, Color.white);
-            crest.sprite = P1Art.Outline;
-            MakeLabel(crest.transform, "Crest Text", "ASTRA\nSTATION", 24, 0f, 0f, 130f, 130f, TextAnchor.MiddleCenter).fontStyle = FontStyle.Bold;
-            var title = MakeLabel(header, "Title", "ASTRA ACADEMY", 64, -150f, 28f, 600f, 84f, TextAnchor.MiddleLeft);
-            title.fontStyle = FontStyle.Bold;
-            var cont = MakeLabel(header, "Continue", string.Empty, 38, -150f, -40f, 600f, 52f, TextAnchor.MiddleLeft);
-            cont.color = Theme.AccentInk;
-            cont.fontStyle = FontStyle.Bold;
-            var callsign = MakeLabel(header, "Callsign", "CALLSIGN  CADET", 32, 400f, 52f, 460f, 40f, TextAnchor.MiddleRight);
-            FitText(callsign, 18, 32);
-            var score = MakeLabel(header, "Score", "ACADEMY SCORE  0", 32, 400f, 12f, 460f, 40f, TextAnchor.MiddleRight);
-            FitText(score, 18, 32);
-            var medals = MakeLabel(header, "Medals", string.Empty, 26, 400f, -28f, 460f, 36f, TextAnchor.MiddleRight);
-            FitText(medals, 14, 26);   // one line: GOLD n  SILVER n  BRONZE n
-            var notice = MakeLabel(header, "Progress Notice", string.Empty, 22, 400f, -64f, 460f, 28f, TextAnchor.MiddleRight);
-            FitText(notice, 12, 22);
-            notice.color = Theme.InkDim;
+            // Header: wordmark, continue line, and three instrument-style stats (label over value).
+            var header = WorldCanvas(null, "Hub Header", new Vector3(0f, 1.63f, 1.05f), 1300f, 160f, 0.0008f);
+            P1Style.Surface(header.gameObject.AddComponent<Image>(), P1Style.Glass).raycastTarget = false;
+            P1Style.Edge(header, P1Style.Hairline, "Frame");
+            P1Style.Type(MakeLabel(header, "Kicker", "ASTRA STATION  \u00b7  CADET TRAINING", 28, -290f, 48f, 640f, 34f,
+                TextAnchor.MiddleLeft), P1Style.Role.Mono, P1Style.InkMuted);
+            P1Style.Type(MakeLabel(header, "Title", "Astra Academy", 66, -290f, 4f, 640f, 76f, TextAnchor.MiddleLeft), P1Style.Role.Title, P1Style.Ink);
+            var cont = P1Style.Type(MakeLabel(header, "Continue", string.Empty, 32, -290f, -50f, 640f, 40f, TextAnchor.MiddleLeft),
+                P1Style.Role.Medium, Theme.AccentInk);
+            var callsign = Stat(header, "Callsign", "CALLSIGN", "CADET", 190f);
+            var score = Stat(header, "Score", "SCORE", "0", 360f);
+            var medals = Stat(header, "Medals", "MEDALS", "0G 0S 0B", 555f);
+            var notice = P1Style.Type(MakeLabel(header, "Progress Notice", string.Empty, 22, 400f, -58f, 470f, 28f, TextAnchor.MiddleRight),
+                P1Style.Role.Body, P1Style.InkMuted);
+            FitText(notice, 14, 22);
             Face(header);
 
             // Cards: two rows of four on a gentle arc, 1.0 m from the eye, each card facing the cadet.
@@ -262,7 +258,7 @@ namespace Astra.UI.Editor
             var cards = new LevelCard[LevelCatalog.Levels.Count];
             var presenters = new LevelCardPresenter[cards.Length];
             var yaws = new[] { -28.5f, -9.5f, 9.5f, 28.5f };
-            var rows = new[] { 1.32f, 0.95f };
+            var rows = new[] { 1.31f, 0.93f };
             for (var i = 0; i < cards.Length; i++)
             {
                 var entry = LevelCatalog.Levels[i];
@@ -274,26 +270,41 @@ namespace Astra.UI.Editor
             controller.ConfigurePresentation(presenters, previews);
             hubObject.AddComponent<HubProgressBinding>();
 
-            // Side cards: how to play (left) and settings / demo / quit (right).
-            var howTo = SideCard("How To Play", -46f, 1.12f, 560f);
-            var howTitle = MakeLabel(howTo, "Title", "HOW TO PLAY", 44, 0f, 230f, 340f, 60f, TextAnchor.MiddleCenter);
-            howTitle.fontStyle = FontStyle.Bold;
-            howTitle.color = Theme.AccentInk;
-            MakeLabel(howTo, "Body",
-                "LOOK at a control: the ring grows.\n\nTAP the screen or headset button to use it.\n\nHOLD the tap for 1 s to recenter.\n\nTools: tap to pick up, tap the bay to place.",
-                34, 0f, -30f, 330f, 440f, TextAnchor.UpperLeft);
+            // Left: how to play, as key / description rows.
+            var howTo = SideCard("How To Play", -48f, 1.12f, 600f);
+            P1Style.Type(MakeLabel(howTo, "Kicker", "HOW TO PLAY", 26, 0f, 256f, 390f, 34f, TextAnchor.MiddleLeft), P1Style.Role.Mono, Theme.AccentInk);
+            var steps = new[]
+            {
+                ("LOOK", "Aim with the centre ring."),
+                ("TAP", "Use what the ring is on. Pinch works too."),
+                ("HOLD", "Hold for 1 s to recenter."),
+                ("TOOLS", "Tap to pick up, tap the bay to place.")
+            };
+            for (var i = 0; i < steps.Length; i++)
+            {
+                var y = 168f - i * 122f;
+                P1Style.Type(MakeLabel(howTo, "Key " + steps[i].Item1, steps[i].Item1, 26, -136f, y + 24f, 120f, 34f, TextAnchor.UpperLeft),
+                    P1Style.Role.Mono, Theme.AccentInk);
+                P1Style.Type(MakeLabel(howTo, "Step " + steps[i].Item1, steps[i].Item2, 32, 54f, y, 270f, 100f, TextAnchor.UpperLeft),
+                    P1Style.Role.Body, P1Style.Ink);
+                if (i < steps.Length - 1)
+                    MakeImage(howTo, "Rule", 0f, y - 62f, 390f, 2f, P1Style.Hairline).sprite = null;
+            }
             Face(howTo);
 
-            var settings = SideCard("Settings", 46f, 1.12f, 560f);
-            var setTitle = MakeLabel(settings, "Title", "SETTINGS", 44, 0f, 230f, 340f, 60f, TextAnchor.MiddleCenter);
-            setTitle.fontStyle = FontStyle.Bold;
-            setTitle.color = Theme.AccentInk;
-            var dwell = MakeButton(settings, "Dwell Toggle", "DWELL SELECT: OFF", 0f, 120f, 330f, 110f, 32, "hub_dwell_toggle");
-            MakeLabel(settings, "Dwell Help", "Select by looking for 1.5 s, no tap needed.", 26, 0f, 40f, 330f, 60f, TextAnchor.MiddleCenter).color = Theme.InkDim;
-            var unlock = MakeButton(settings, "Demo Unlock All", "DEMO: UNLOCK ALL", 0f, -70f, 330f, 110f, 32, "hub_demo_unlock_all");
-            unlock.colors = Primary(unlock.colors);
-            MakeLabel(settings, "Unlock Help", "For judges: open every level.", 26, 0f, -150f, 330f, 40f, TextAnchor.MiddleCenter).color = Theme.InkDim;
-            var quit = MakeButton(settings, "Quit", "QUIT", 0f, -225f, 330f, 90f, 32, "hub_quit");
+            // Right: settings (dwell toggle), the judges' unlock-all, quit.
+            var settings = SideCard("Settings", 48f, 1.12f, 600f);
+            P1Style.Type(MakeLabel(settings, "Kicker", "SETTINGS", 26, 0f, 256f, 390f, 34f, TextAnchor.MiddleLeft), P1Style.Role.Mono, Theme.AccentInk);
+            P1Style.Type(MakeLabel(settings, "Dwell Title", "Dwell select", 34, -70f, 186f, 250f, 48f, TextAnchor.MiddleLeft), P1Style.Role.Medium, P1Style.Ink);
+            var dwell = MakeButton(settings, "Dwell Toggle", "Off", 130f, 186f, 120f, 64f, 30, "hub_dwell_toggle");
+            P1Style.Type(MakeLabel(settings, "Dwell Help", "Look at a control for 1.5 s to use it. No tap needed.", 28, 0f, 112f, 390f, 72f,
+                TextAnchor.UpperLeft), P1Style.Role.Body, P1Style.InkSecondary);
+            MakeImage(settings, "Rule", 0f, 58f, 390f, 2f, P1Style.Hairline).sprite = null;
+            var unlock = MakeButton(settings, "Demo Unlock All", "Unlock all levels", 0f, -14f, 390f, 90f, 32, "hub_demo_unlock_all");
+            unlock.colors = P1Style.ButtonColors(unlock.colors, primary: true);
+            P1Style.Type(MakeLabel(settings, "Unlock Help", "Demo mode for judges: opens every level.", 28, 0f, -90f, 390f, 40f,
+                TextAnchor.UpperLeft), P1Style.Role.Body, P1Style.InkSecondary);
+            var quit = MakeButton(settings, "Quit", "Quit", 0f, -222f, 390f, 80f, 32, "hub_quit");
             var quitter = settings.gameObject.AddComponent<ApplicationQuit>();
             UnityEventTools.AddPersistentListener(quit.onClick, quitter.Quit);
             Face(settings);
@@ -310,71 +321,98 @@ namespace Astra.UI.Editor
                 throw new InvalidOperationException("Could not save " + HubScene);
         }
 
-        /// <summary>One level card: preview, title, status, best + medal, hover details, lock overlay, glow edge.</summary>
         private static void FitText(Text text, int min, int max)
         {
             text.resizeTextForBestFit = true; text.resizeTextMinSize = min; text.resizeTextMaxSize = max;
             text.horizontalOverflow = HorizontalWrapMode.Wrap; text.verticalOverflow = VerticalWrapMode.Truncate;
         }
 
+        /// <summary>Instrument-style stat: small mono label above a value (HubHeader writes the value).</summary>
+        private static Text Stat(Transform parent, string name, string label, string value, float x)
+        {
+            P1Style.Type(MakeLabel(parent, name + " Label", label, 24, x, 32f, 160f, 30f, TextAnchor.MiddleRight), P1Style.Role.Mono, P1Style.InkMuted);
+            var text = P1Style.Type(MakeLabel(parent, name, value, 40, x, -6f, 140f, 48f, TextAnchor.MiddleRight), P1Style.Role.Title, P1Style.Ink);
+            FitText(text, 22, 40);
+            return text;
+        }
+
+        /// <summary>
+        /// One level card (0.29 × 0.36 m, 1.0 m away): full-bleed preview with level/duration chips, title, status dot,
+        /// best score and medal chip; hover reveals the goal; a locked card veils its preview. Title 40 px ≈ 22 mm cap.
+        /// </summary>
         private static void BuildCard(LevelCatalog.Entry entry, Vector3 position, bool hasPreview, out LevelCard card, out LevelCardPresenter presenter)
         {
-            // 375 × 425 px at 0.8 mm/px = 0.30 × 0.34 m, 1.0 m away: 40 px body ≈ 22 mm cap (= 12 mm at 0.55 m).
-            var canvas = WorldCanvas(null, $"L{entry.Level} Card", position, 375f, 425f, 0.0008f);
+            const float W = 360f, H = 450f, PW = 340f, PH = 191f, PY = 117f;   // preview 16:9, 10 px inset
+            var canvas = WorldCanvas(null, $"L{entry.Level} Card", position, W, H, 0.0008f);
             Face(canvas);
-            var glow = MakeImage(canvas, "Edge Glow", 0f, 0f, 395f, 445f, new Color(Theme.Accent.r, Theme.Accent.g, Theme.Accent.b, 0f));
-            glow.sprite = P1Art.Outline;
-            var button = MakeButton(canvas, "Card Button", string.Empty, 0f, 0f, 375f, 425f, 30, $"hub_card_l{entry.Level}");
+            var glow = MakeImage(canvas, "Edge Glow", 0f, 0f, W + 14f, H + 14f, new Color(Theme.Accent.r, Theme.Accent.g, Theme.Accent.b, 0f));
+            glow.sprite = P1Art.Hairline != null ? P1Art.Hairline : P1Art.Outline;
+            var button = MakeButton(canvas, "Card Button", string.Empty, 0f, 0f, W, H, 30, $"hub_card_l{entry.Level}");
             Object.DestroyImmediate(button.transform.Find("Label").gameObject);
+            var colors = button.colors;
+            colors.normalColor = P1Style.GlassRaised;
+            colors.highlightedColor = new Color(0.11f, 0.15f, 0.21f, 0.96f);
+            colors.selectedColor = P1Style.GlassRaised;
+            colors.disabledColor = new Color(0.05f, 0.06f, 0.085f, 0.9f);
+            button.colors = colors;
+            button.transform.Find("Edge").GetComponent<Image>().color = P1Style.Hairline;
             var body = button.transform;
 
             var preview = new GameObject("Preview", typeof(RectTransform)).AddComponent<RawImage>();
             preview.rectTransform.SetParent(body, false);
-            preview.rectTransform.anchoredPosition = new Vector2(0f, 105f);
-            preview.rectTransform.sizeDelta = new Vector2(345f, 194f);   // 16:9
+            preview.rectTransform.anchoredPosition = new Vector2(0f, PY);
+            preview.rectTransform.sizeDelta = new Vector2(PW, PH);
             preview.raycastTarget = false;
             preview.enabled = hasPreview;
-            var level = MakeLabel(body, "Level", "LEVEL " + entry.Level, 30, -110f, 182f, 130f, 40f, TextAnchor.MiddleLeft);
-            level.fontStyle = FontStyle.Bold;
-            level.color = Theme.AccentInk;
-            var cardTitle = MakeLabel(body, "Title", entry.Title, 40, 0f, -36f, 345f, 88f, TextAnchor.MiddleCenter);
-            cardTitle.fontStyle = FontStyle.Bold;
-            FitText(cardTitle, 22, 40);   // two-line titles shrink instead of spilling into the status line
-            var status = MakeLabel(body, "Status", string.Empty, 30, 0f, -112f, 345f, 44f, TextAnchor.MiddleCenter);
-            FitText(status, 18, 30);
-            status.color = Theme.AccentInk;
-            var best = MakeLabel(body, "Best", "NOT PLAYED", 28, -70f, -170f, 200f, 40f, TextAnchor.MiddleLeft);
-            FitText(best, 16, 28);
-            best.color = Theme.InkDim;
-            var badge = MakeImage(body, "Medal Badge", 110f, -172f, 120f, 44f, Theme.Gold);
-            var medal = MakeLabel(badge.transform, "Medal", string.Empty, 28, 0f, 0f, 120f, 44f, TextAnchor.MiddleCenter);
-            medal.fontStyle = FontStyle.Bold;
-            medal.gameObject.AddComponent<UnityEngine.UI.Outline>().effectColor = new Color(0f, 0f, 0f, 0.8f);
+            var veil = MakeImage(body, "Preview Fade", 0f, PY - PH / 2f + 40f, PW, 80f, P1Style.GlassRaised);
+            veil.sprite = P1Art.Fade;
+            veil.type = Image.Type.Simple;
+            Chip(body, "Level Chip", "L" + entry.Level, -PW / 2f + 46f, PY + PH / 2f - 28f, 72f);
+            Chip(body, "Duration Chip", entry.Duration.Replace("~", "").ToUpperInvariant(), PW / 2f - 66f, PY + PH / 2f - 28f, 112f);
 
-            // Details (expand on hover) over the preview area.
+            var cardTitle = P1Style.Type(MakeLabel(body, "Title", entry.Title, 40, 0f, -26f, W - 40f, 84f, TextAnchor.MiddleLeft),
+                P1Style.Role.Title, P1Style.Ink);
+            FitText(cardTitle, 28, 40);
+            var dot = MakeImage(body, "Status Dot", -W / 2f + 28f, -104f, 14f, 14f, Theme.Accent);
+            dot.sprite = P1Art.Dot;
+            dot.type = Image.Type.Simple;
+            var status = P1Style.Type(MakeLabel(body, "Status", string.Empty, 30, 14f, -104f, W - 76f, 40f, TextAnchor.MiddleLeft),
+                P1Style.Role.Medium, P1Style.InkSecondary);
+            FitText(status, 20, 30);
+            MakeImage(body, "Rule", 0f, -140f, W - 40f, 2f, P1Style.Hairline).sprite = null;
+            var best = P1Style.Type(MakeLabel(body, "Best", "NOT PLAYED", 28, -46f, -180f, 248f, 40f, TextAnchor.MiddleLeft),
+                P1Style.Role.Mono, P1Style.InkSecondary);
+            FitText(best, 20, 28);
+            var badge = MakeImage(body, "Medal Badge", W / 2f - 76f, -180f, 116f, 44f, Theme.Gold);
+            var medal = P1Style.Type(MakeLabel(badge.transform, "Medal", string.Empty, 26, 0f, 0f, 116f, 44f, TextAnchor.MiddleCenter),
+                P1Style.Role.Mono, new Color(0.06f, 0.07f, 0.09f));
+            badge.enabled = false;
+            medal.enabled = false;
+
+            // Details (expand on hover) over the preview: the goal and skill / difficulty / time.
             var detailsRect = new GameObject("Details", typeof(RectTransform)).GetComponent<RectTransform>();
             detailsRect.SetParent(body, false);
-            detailsRect.anchoredPosition = new Vector2(0f, 105f);
-            detailsRect.sizeDelta = new Vector2(345f, 194f);
+            detailsRect.anchoredPosition = new Vector2(0f, PY);
+            detailsRect.sizeDelta = new Vector2(PW, PH);
             var detailsGroup = detailsRect.gameObject.AddComponent<CanvasGroup>();
             detailsGroup.alpha = 0f;
             detailsGroup.blocksRaycasts = false;
             detailsGroup.interactable = false;
-            UiPrefabBuilder.Rounded(detailsRect.gameObject.AddComponent<Image>(), new Color(0.02f, 0.04f, 0.08f, 0.92f));
-            var goal = MakeLabel(detailsRect, "Goal", entry.Goal, 34, 0f, 30f, 325f, 120f, TextAnchor.MiddleCenter);
-            var meta = MakeLabel(detailsRect, "Meta", string.Empty, 26, 0f, -66f, 325f, 44f, TextAnchor.MiddleCenter);
-            meta.color = Theme.AccentInk;
+            P1Style.Surface(detailsRect.gameObject.AddComponent<Image>(), new Color(0.03f, 0.05f, 0.08f, 0.93f)).raycastTarget = false;
+            var goal = P1Style.Type(MakeLabel(detailsRect, "Goal", entry.Goal, 30, 0f, 22f, PW - 36f, 110f, TextAnchor.MiddleLeft),
+                P1Style.Role.Body, P1Style.Ink);
+            var meta = P1Style.Type(MakeLabel(detailsRect, "Meta", string.Empty, 26, 0f, -62f, PW - 36f, 36f, TextAnchor.MiddleLeft),
+                P1Style.Role.Mono, Theme.AccentInk);
 
-            // Lock overlay: dim + "LOCKED" + "Pass L<N-1> to unlock".
+            // Locked: veil the preview (no cartoon padlock) with LOCKED and the unlock rule.
             var lockRoot = new GameObject("Lock", typeof(RectTransform)).GetComponent<RectTransform>();
             lockRoot.SetParent(body, false);
-            lockRoot.sizeDelta = new Vector2(375f, 425f);
-            UiPrefabBuilder.Rounded(lockRoot.gameObject.AddComponent<Image>(), new Color(0f, 0f, 0f, 0.55f));
-            lockRoot.GetComponent<Image>().raycastTarget = false;
-            var lockIcon = MakeImage(lockRoot, "Lock Icon", 0f, 120f, 70f, 56f, new Color(0.85f, 0.88f, 0.95f, 1f));
-            MakeImage(lockIcon.transform, "Shackle", 0f, 40f, 46f, 40f, new Color(0.85f, 0.88f, 0.95f, 1f)).sprite = P1Art.Outline;
-            var lockText = MakeLabel(lockRoot, "Lock Text", string.Empty, 34, 0f, 40f, 340f, 90f, TextAnchor.MiddleCenter);
-            lockText.fontStyle = FontStyle.Bold;
+            lockRoot.anchoredPosition = new Vector2(0f, PY);
+            lockRoot.sizeDelta = new Vector2(PW, PH);
+            P1Style.Surface(lockRoot.gameObject.AddComponent<Image>(), new Color(0.02f, 0.03f, 0.05f, 0.72f)).raycastTarget = false;
+            P1Style.Type(MakeLabel(lockRoot, "Locked", "LOCKED", 28, 0f, 24f, PW - 40f, 36f, TextAnchor.MiddleCenter), P1Style.Role.Mono, P1Style.InkSecondary);
+            var lockText = P1Style.Type(MakeLabel(lockRoot, "Lock Text", string.Empty, 30, 0f, -18f, PW - 40f, 40f, TextAnchor.MiddleCenter),
+                P1Style.Role.Medium, P1Style.Ink);
 
             var dim = body.gameObject.AddComponent<CanvasGroup>();
             button.GetComponent<GazeButton>().Configure($"hub_card_l{entry.Level}", $"L{entry.Level} {entry.Title.ToUpperInvariant()}");
@@ -383,16 +421,24 @@ namespace Astra.UI.Editor
             presenter = canvas.gameObject.AddComponent<LevelCardPresenter>();
             presenter.Configure(canvas, glow, detailsGroup, preview, goal, meta, best, medal, badge, lockRoot.gameObject, lockText, dim,
                 button.GetComponent<GazeButton>());
+            presenter.ConfigureStatusDot(dot);
             lockRoot.SetAsLastSibling();
+        }
+
+        /// <summary>Small dark chip with mono text (over images).</summary>
+        private static void Chip(Transform parent, string name, string value, float x, float y, float width)
+        {
+            var chip = MakeImage(parent, name, x, y, width, 40f, new Color(0.02f, 0.03f, 0.05f, 0.78f));
+            P1Style.Type(MakeLabel(chip.transform, "Text", value, 26, 0f, 0f, width, 40f, TextAnchor.MiddleCenter), P1Style.Role.Mono, P1Style.Ink);
         }
 
         private static RectTransform SideCard(string name, float yawDegrees, float y, float height)
         {
             var yaw = yawDegrees * Mathf.Deg2Rad;
             var position = new Vector3(Mathf.Sin(yaw) * 0.95f, y, Mathf.Cos(yaw) * 0.95f);
-            var canvas = WorldCanvas(null, name, position, 380f, height, 0.0008f);
-            UiPrefabBuilder.Rounded(canvas.gameObject.AddComponent<Image>(), Plate);
-            canvas.GetComponent<Image>().raycastTarget = false;
+            var canvas = WorldCanvas(null, name, position, 440f, height, 0.0008f);
+            P1Style.Surface(canvas.gameObject.AddComponent<Image>(), P1Style.Glass).raycastTarget = false;
+            P1Style.Edge(canvas, P1Style.Hairline, "Frame");
             UiPrefabBuilder.AccentHeader(canvas);
             return canvas;
         }
@@ -439,7 +485,6 @@ namespace Astra.UI.Editor
                 bar.GetComponent<Renderer>().sharedMaterial = frameMat;
             }
             Bar("Window Top", new Vector3(0f, 2.45f, 2.2f), new Vector3(5f, 0.12f, 0.12f));
-            Bar("Window Bottom", new Vector3(0f, 0.35f, 2.2f), new Vector3(5f, 0.12f, 0.12f));
             Bar("Window Left", new Vector3(-2.5f, 1.4f, 2.2f), new Vector3(0.12f, 2.2f, 0.12f));
             Bar("Window Right", new Vector3(2.5f, 1.4f, 2.2f), new Vector3(0.12f, 2.2f, 0.12f));
         }
@@ -543,7 +588,7 @@ namespace Astra.UI.Editor
             rect.anchoredPosition = new Vector2(x, y);
             rect.sizeDelta = new Vector2(width, height);
             var text = rect.gameObject.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.font = P1Style.Font(P1Style.Role.Body);
             text.text = value;
             text.fontSize = size;
             text.color = UiPrefabBuilder.Foreground;
@@ -563,8 +608,8 @@ namespace Astra.UI.Editor
             rect.anchoredPosition = new Vector2(x, y);
             rect.sizeDelta = new Vector2(width, height);
             var button = UiPrefabBuilder.StyleButton(rect.gameObject);
-            var label = MakeLabel(rect, "Label", caption, size, 0f, 0f, width - 24f, height, TextAnchor.MiddleCenter);
-            label.fontStyle = FontStyle.Bold;
+            var label = P1Style.Type(MakeLabel(rect, "Label", caption, size, 0f, 0f, width - 24f, height, TextAnchor.MiddleCenter),
+                P1Style.Role.Title);
             UiPrefabBuilder.Gaze(button, gazeId, string.IsNullOrEmpty(caption) ? null : caption);
             return button;
         }

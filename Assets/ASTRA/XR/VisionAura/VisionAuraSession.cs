@@ -36,6 +36,7 @@ namespace Astra.XR.VisionAura
             var host = new GameObject("ASTRA Vision Aura Session");
             DontDestroyOnLoad(host);
             instance = host.AddComponent<VisionAuraSession>();
+            host.AddComponent<VisionAuraHeadsetMode>();
         }
 
         private void Awake()
@@ -81,13 +82,26 @@ namespace Astra.XR.VisionAura
         {
             if (style == null)
                 style = new GUIStyle(GUI.skin.label) { fontSize = 13, wordWrap = true };
-            GUI.Box(new Rect(12, 12, 420, 104), "ASTRA Academy • Vision Aura " + (mode == PresentationMode.AR ? "AR" : "VR"));
+            GUI.Box(new Rect(12, 12, 420, 146), "ASTRA Academy • Vision Aura " + (mode == PresentationMode.AR ? "AR" : "VR"));
             GUI.Label(new Rect(22, 34, 400, 40), "Headset: " + VisionAuraRuntime.State +
                 (string.IsNullOrEmpty(VisionAuraRuntime.Reason) ? string.Empty : " — " + VisionAuraRuntime.Reason), style);
             if (GUI.Button(new Rect(22, 78, 190, 28), "Request headset"))
                 VisionAuraRuntime.Begin(mode);
             if (GUI.Button(new Rect(222, 78, 190, 28), "Return to desktop"))
                 VisionAuraRuntime.End();
+            // Recenter: button, R key or a headset-button tap; auto-recenter on connect and on every level (remembered).
+            var headsetMode = VisionAuraHeadsetMode.Instance;
+            if (GUI.Button(new Rect(22, 116, 190, 28), "Recenter (R)") && headsetMode != null)
+                headsetMode.Recenter();
+            var auto = GUI.Toggle(new Rect(222, 120, 190, 24), VisionAuraHeadsetMode.AutoRecenter, " Auto-recenter");
+            if (auto != VisionAuraHeadsetMode.AutoRecenter)
+                VisionAuraHeadsetMode.AutoRecenter = auto;
+            var e = Event.current;
+            if (e.type == EventType.KeyDown && e.keyCode == KeyCode.R && headsetMode != null && VisionAuraHeadsetMode.HeadsetActive)
+            {
+                headsetMode.Recenter();
+                e.Use();
+            }
         }
     }
 }

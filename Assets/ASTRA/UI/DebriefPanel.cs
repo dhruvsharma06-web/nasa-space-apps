@@ -347,16 +347,18 @@ namespace Astra.UI
                 medalLabel.text = medal == Medal.None ? string.Empty : medal.ToString().ToUpperInvariant();
                 SetAlpha(medalLabel, amount);
             }
+            if (medalLabel != null)
+                medalLabel.color = new Color(color.r, color.g, color.b, amount);   // coloured lettering on a tinted chip
             if (medalBadge != null)
             {
-                medalBadge.enabled = visible;
-                medalBadge.color = new Color(color.r, color.g, color.b, amount);
+                if (medalBadge.gameObject.activeSelf != visible) medalBadge.gameObject.SetActive(visible);   // hides its edge too
+                medalBadge.color = new Color(color.r, color.g, color.b, 0.16f * amount);
                 medalBadge.rectTransform.localScale = Vector3.one * Mathf.Lerp(0.6f, 1f, amount);
             }
             if (medalGlow != null)
             {
                 medalGlow.enabled = visible;
-                medalGlow.color = new Color(color.r, color.g, color.b, 0.35f * amount);
+                medalGlow.color = new Color(color.r, color.g, color.b, 0.12f * amount);
             }
         }
 

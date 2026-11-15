@@ -1,16 +1,30 @@
 {
   "name": "ASTRA.XR.VisionAura",
   "rootNamespace": "Astra.XR.VisionAura",
-  "references": ["ASTRA.XR", "VisionAura.XR"],
-  "includePlatforms": ["Editor", "macOSStandalone"],
+  "references": [
+    "ASTRA.XR",
+    "VisionAura.XR",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "Unity.RenderPipelines.Core.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor",
+    "macOSStandalone"
+  ],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
   "overrideReferences": false,
   "precompiledReferences": [],
   "autoReferenced": true,
-  "defineConstraints": ["ASTRA_VISION_AURA"],
+  "defineConstraints": [
+    "ASTRA_VISION_AURA"
+  ],
   "versionDefines": [
-    { "name": "com.visionaura.xr", "expression": "0.1.0", "define": "ASTRA_VISION_AURA" }
+    {
+      "name": "com.visionaura.xr",
+      "expression": "0.1.0",
+      "define": "ASTRA_VISION_AURA"
+    }
   ],
   "noEngineReferences": false
 }

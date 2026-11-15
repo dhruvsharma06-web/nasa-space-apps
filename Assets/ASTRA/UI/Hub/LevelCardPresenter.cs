@@ -27,6 +27,7 @@ namespace Astra.UI.Hub
         [SerializeField] private Text bestLabel;
         [SerializeField] private Text medalLabel;
         [SerializeField] private Graphic medalBadge;
+        [SerializeField] private Graphic statusDot;
         [SerializeField] private GameObject lockOverlay;
         [SerializeField] private Text lockLabel;
         [SerializeField] private CanvasGroup dimmer;
@@ -44,6 +45,9 @@ namespace Astra.UI.Hub
         public bool IsRecommended => recommended;
         public bool IsLockedView => locked;
         public float HoverAmount => amount;
+
+        /// <summary>Optional coloured dot beside the status: accent = available, green = passed, grey = locked.</summary>
+        public void ConfigureStatusDot(Graphic dot) => statusDot = dot;
 
         public void Configure(RectTransform cardRoot, Graphic glow, CanvasGroup detailGroup, RawImage previewImage, Text goal, Text meta,
             Text best, Text medal, Graphic badge, GameObject lockRoot, Text lockText, CanvasGroup dim, GazeButton gaze)
@@ -86,7 +90,7 @@ namespace Astra.UI.Hub
         {
             locked = !unlocked;
             if (goalLabel != null) goalLabel.text = entry.Goal;
-            if (metaLabel != null) metaLabel.text = $"{entry.Skill}   {entry.DifficultyDots}   {entry.Duration}";
+            if (metaLabel != null) metaLabel.text = $"{entry.Skill.ToUpperInvariant()}  \u00b7  {entry.DifficultyDots}  \u00b7  {entry.Duration.ToUpperInvariant()}";
             if (bestLabel != null) bestLabel.text = bestScore >= 0 ? "BEST " + bestScore : "NOT PLAYED";
             if (medalLabel != null)
             {
@@ -106,7 +110,9 @@ namespace Astra.UI.Hub
             }
             if (lockOverlay != null) lockOverlay.SetActive(locked);
             if (lockLabel != null) lockLabel.text = entry.Level > 0 ? $"Pass L{entry.Level - 1} to unlock" : string.Empty;
-            if (dimmer != null) dimmer.alpha = locked ? 0.55f : 1f;
+            if (statusDot != null)
+                statusDot.color = locked ? new Color(0.45f, 0.5f, 0.58f) : medal != Medal.None || bestScore >= 0 ? Theme.Success : Theme.Accent;
+            if (dimmer != null) dimmer.alpha = locked ? 0.85f : 1f;   // dim, but never see-through
         }
 
         public void SetRecommended(bool on) => recommended = on;

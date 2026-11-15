@@ -21,11 +21,89 @@ namespace Astra.UI.Editor
         public static Sprite Outline => AssetDatabase.LoadAssetAtPath<Sprite>(OutlinePath);
         public static Texture2D Starfield => AssetDatabase.LoadAssetAtPath<Texture2D>(StarfieldPath);
 
+        // Cockpit style: small radius, hairline borders, gradient veil, status dot.
+        public const string PanelPath = "Assets/ASTRA/UI/Sprites/Panel.png";
+        public const string HairlinePath = "Assets/ASTRA/UI/Sprites/Hairline.png";
+        public const string FadePath = "Assets/ASTRA/UI/Sprites/FadeDown.png";
+        public const string DotPath = "Assets/ASTRA/UI/Sprites/Dot.png";
+        public static Sprite Panel => AssetDatabase.LoadAssetAtPath<Sprite>(PanelPath);
+        public static Sprite Hairline => AssetDatabase.LoadAssetAtPath<Sprite>(HairlinePath);
+        public static Sprite Fade => AssetDatabase.LoadAssetAtPath<Sprite>(FadePath);
+        public static Sprite Dot => AssetDatabase.LoadAssetAtPath<Sprite>(DotPath);
+
         public static void EnsureArt()
         {
             WriteSprite(RoundedPath, 0f);
             WriteSprite(OutlinePath, 5f);
             WriteStarfield();
+            WriteShape(PanelPath, 64, 12f, 0f, 16);
+            WriteShape(HairlinePath, 64, 12f, 2f, 16);
+            WriteShape(DotPath, 32, 16f, 0f, 0);
+            WriteFade();
+        }
+
+        /// <summary>Rounded rectangle (radius px) or ring when stroke &gt; 0, imported as a sliced sprite.</summary>
+        private static void WriteShape(string path, int size, float radius, float stroke, int border)
+        {
+            if (!File.Exists(path))
+            {
+                var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+                var pixels = new Color32[size * size];
+                var half = size * 0.5f;
+                for (var y = 0; y < size; y++)
+                for (var x = 0; x < size; x++)
+                {
+                    var qx = Mathf.Abs(x + 0.5f - half) - (half - radius);
+                    var qy = Mathf.Abs(y + 0.5f - half) - (half - radius);
+                    var outside = new Vector2(Mathf.Max(qx, 0f), Mathf.Max(qy, 0f)).magnitude + Mathf.Min(Mathf.Max(qx, qy), 0f) - radius;
+                    var alpha = Mathf.Clamp01(0.5f - outside);
+                    if (stroke > 0f) alpha *= Mathf.Clamp01(outside + stroke + 0.5f);
+                    pixels[y * size + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(alpha * 255f));
+                }
+                texture.SetPixels32(pixels);
+                Write(path, texture.EncodeToPNG());
+                Object.DestroyImmediate(texture);
+            }
+            ImportSprite(path, border);
+        }
+
+        /// <summary>Vertical veil: transparent at the top, opaque at the bottom (text over images).</summary>
+        private static void WriteFade()
+        {
+            if (!File.Exists(FadePath))
+            {
+                const int w = 4, h = 128;
+                var texture = new Texture2D(w, h, TextureFormat.RGBA32, false);
+                for (var y = 0; y < h; y++)
+                {
+                    var a = Mathf.SmoothStep(0f, 1f, 1f - y / (h - 1f));
+                    for (var x = 0; x < w; x++) texture.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+                }
+                texture.Apply();
+                Write(FadePath, texture.EncodeToPNG());
+                Object.DestroyImmediate(texture);
+            }
+            ImportSprite(FadePath, 0);
+        }
+
+        private static void ImportSprite(string path, int border)
+        {
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            var wanted = new Vector4(border, border, border, border);
+            if (importer.textureType == TextureImporterType.Sprite && importer.spriteBorder == wanted) return;
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.spriteBorder = wanted;
+            importer.mipmapEnabled = true;
+            importer.alphaIsTransparency = true;
+            importer.wrapMode = TextureWrapMode.Clamp;
+            importer.filterMode = FilterMode.Bilinear;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            var settings = new TextureImporterSettings();
+            importer.ReadTextureSettings(settings);
+            settings.spriteMeshType = SpriteMeshType.FullRect;
+            importer.SetTextureSettings(settings);
+            importer.SaveAndReimport();
         }
 
         private static void WriteSprite(string path, float stroke)

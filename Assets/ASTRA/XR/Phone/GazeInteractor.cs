@@ -105,6 +105,21 @@ namespace Astra.XR.Phone
         /// centre, so a plain mouse move aims and a left click selects. Ignored on mobile and when mouse input is off.
         /// </summary>
         public void SetMouseAim(bool on) => mouseAim = on;
+
+        /// <summary>
+        /// Optional pointing source that replaces the head ray while set (e.g. a headset's tracked hand aim).
+        /// Null = gaze from the head (default; phone and browser behaviour unchanged).
+        /// </summary>
+        public Transform AimOverride { get; set; }
+
+        /// <summary>Long press (≥ LongPressSeconds) recenters yaw. A headset can turn this off (its runtime recenters).</summary>
+        public bool LongPressRecenter { get; set; } = true;
+
+        /// <summary>
+        /// Aim assist (metres): when the thin ray finds no target, a sphere of this radius along the ray picks the nearest
+        /// one. 0 = off (phone default). A camera-tracked hand pointer jitters, so the headset uses about 2.5 cm.
+        /// </summary>
+        public float AssistRadius { get; set; }
         public bool MouseAim => mouseAim;
 
         /// <summary>Test hook and accessibility switch: presses (true) or releases (false) the gaze button.</summary>
@@ -132,6 +147,8 @@ namespace Astra.XR.Phone
 
         private Ray CurrentRay()
         {
+            if (AimOverride != null)
+                return new Ray(AimOverride.position, AimOverride.forward);
 #if ENABLE_INPUT_SYSTEM
             if (mouseAim && useMouseAndKeyboard && !Application.isMobilePlatform && Mouse.current != null)
             {
@@ -192,7 +209,7 @@ namespace Astra.XR.Phone
             else if (pressing && pressHeld)
             {
                 pressTime += Mathf.Max(0f, deltaTime);
-                if (pressTime >= longPressSeconds && pressTime - Mathf.Max(0f, deltaTime) < longPressSeconds)
+                if (LongPressRecenter && pressTime >= longPressSeconds && pressTime - Mathf.Max(0f, deltaTime) < longPressSeconds)
                 {
                     pressConsumed = true;
                     Recenter();
@@ -248,13 +265,35 @@ namespace Astra.XR.Phone
                 if (best < 0 || hits[i].distance < hits[best].distance)
                     best = i;
             if (best < 0)
-                return null;
+                return AssistRadius > 0f ? Assist(ray, float.PositiveInfinity) : null;
             HasHit = true;
             HitPoint = hits[best].point;
             HitDistance = hits[best].distance;
             // "Take the first collider": an occluder in front blocks what is behind it.
             var target = hits[best].collider.GetComponentInParent<IGazeTarget>();
-            return IsAlive(target) && target.IsGazeEnabled ? target : null;
+            if (IsAlive(target) && target.IsGazeEnabled)
+                return target;
+            return AssistRadius > 0f ? Assist(ray, hits[best].distance + 0.05f) : null;   // never through what the ray hit
+        }
+
+        /// <summary>Nearest enabled target within <see cref="AssistRadius"/> of the ray (for jittery pointers).</summary>
+        private IGazeTarget Assist(Ray ray, float limit)
+        {
+            var count = Physics.SphereCastNonAlloc(ray, AssistRadius, hits, Mathf.Min(maxDistance, limit), layers, QueryTriggerInteraction.Ignore);
+            IGazeTarget found = null;
+            var nearest = float.PositiveInfinity;
+            for (var i = 0; i < count; i++)
+            {
+                if (hits[i].distance <= 0f || hits[i].distance >= nearest) continue;   // 0 = started inside: ignore
+                var candidate = hits[i].collider.GetComponentInParent<IGazeTarget>();
+                if (!IsAlive(candidate) || !candidate.IsGazeEnabled) continue;
+                found = candidate;
+                nearest = hits[i].distance;
+                HasHit = true;
+                HitPoint = hits[i].point;
+                HitDistance = hits[i].distance;
+            }
+            return found;
         }
 
         private void SetHovered(IGazeTarget target)

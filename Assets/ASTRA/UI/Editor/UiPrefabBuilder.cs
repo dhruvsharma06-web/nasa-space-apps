@@ -65,6 +65,7 @@ namespace Astra.UI.Editor
             var instance = create();
             try
             {
+                ApplyTypography(instance);
                 instance.SetActive(true);
                 if (PrefabUtility.SaveAsPrefabAsset(instance, path) == null)
                     throw new InvalidOperationException("Could not save UI prefab: " + path);
@@ -137,9 +138,8 @@ namespace Astra.UI.Editor
             var badge = Box(root.transform, "MedalBadge", 60f, 150f, 240f, 92f, Theme.Gold);
             var medal = Placed(badge.transform, "MedalLabel", string.Empty, 44, 0f, 0f, 240f, 92f, TextAnchor.MiddleCenter, true);
             medal.fontStyle = FontStyle.Bold;
-            var outline = medal.gameObject.AddComponent<UnityEngine.UI.Outline>();
-            outline.effectColor = new Color(0f, 0f, 0f, 0.8f);
-            outline.effectDistance = new Vector2(2f, -2f);
+            medal.color = Theme.Gold;
+            P1Style.Edge(badge.transform, new Color(Theme.Gold.r, Theme.Gold.g, Theme.Gold.b, 0.7f), "MedalEdge");
             var newBest = Placed(root.transform, "NewBest", "NEW BEST", 40, 320f, 154f, 240f, 80f, TextAnchor.MiddleCenter);
             newBest.fontStyle = FontStyle.Bold;
             newBest.color = HintInk;
@@ -179,7 +179,8 @@ namespace Astra.UI.Editor
             panel.anchorMin = Vector2.zero;
             panel.anchorMax = Vector2.one;
             panel.offsetMin = panel.offsetMax = Vector2.zero;
-            Rounded(panel.gameObject.AddComponent<Image>(), Glass);
+            Rounded(panel.gameObject.AddComponent<Image>(), P1Style.Glass);
+            P1Style.Edge(panel, P1Style.Hairline, "Frame");
             AccentHeader(panel);
             var crest = Box(panel, "Crest", 0f, 40f, 150f, 150f, new Color(1f, 1f, 1f, 0.9f));
             crest.sprite = P1Art.Outline;
@@ -348,32 +349,30 @@ namespace Astra.UI.Editor
             Rounded(image, Color.white);
             var button = target.AddComponent<Button>();
             button.targetGraphic = image;
-            var colors = button.colors;
-            colors.normalColor = ButtonFill;
-            colors.highlightedColor = Color.Lerp(ButtonFill, Theme.Accent, 0.6f);
-            colors.selectedColor = ButtonFill;
-            colors.pressedColor = Theme.Success;
-            colors.disabledColor = new Color(0.16f, 0.18f, 0.22f, 0.85f);
-            colors.colorMultiplier = 1f;
-            colors.fadeDuration = 0.08f;
-            button.colors = colors;
-            var outline = Rect("Edge", target.transform);
-            outline.anchorMin = Vector2.zero;
-            outline.anchorMax = Vector2.one;
-            outline.offsetMin = outline.offsetMax = Vector2.zero;
-            var frame = outline.gameObject.AddComponent<Image>();
-            frame.sprite = P1Art.Outline;
-            frame.type = Image.Type.Sliced;
-            frame.color = new Color(Theme.Accent.r, Theme.Accent.g, Theme.Accent.b, 0.55f);
-            frame.raycastTarget = false;
+            button.colors = P1Style.ButtonColors(button.colors);
+            P1Style.Edge(target.transform, P1Style.AccentLine);
             return button;
         }
 
-        internal static void Rounded(Image image, Color color)
+        /// <summary>Cockpit surface: small-radius sliced panel sprite (name kept for existing call sites).</summary>
+        internal static void Rounded(Image image, Color color) => P1Style.Surface(image, color);
+
+        /// <summary>Font roles by object name, so every generated panel uses the same typography.</summary>
+        internal static void ApplyTypography(GameObject root)
         {
-            image.sprite = P1Art.Rounded;
-            image.type = Image.Type.Sliced;
-            image.color = color;
+            foreach (var text in root.GetComponentsInChildren<Text>(true))
+            {
+                var n = text.gameObject.name;
+                P1Style.Role role;
+                if (n == "Heading" || n == "HintHeading" || n == "CoachHeading" || n == "Score" || n == "Date" ||
+                    (n == "Label" && text.transform.parent != null && text.transform.parent.name.StartsWith("Medal")))
+                    role = P1Style.Role.Mono;
+                else if (n == "Hint" || n == "DetailsContent" || n == "CoachContent" || n.StartsWith("Breakdown") || n == "Disclaimer")
+                    role = P1Style.Role.Body;
+                else
+                    role = P1Style.Role.Title;
+                P1Style.Type(text, role);
+            }
         }
 
         private static void Heading(Text text, Color color)
@@ -389,8 +388,11 @@ namespace Astra.UI.Editor
             bar.anchorMin = new Vector2(0f, 1f);
             bar.anchorMax = new Vector2(1f, 1f);
             bar.pivot = new Vector2(0.5f, 1f);
-            bar.anchoredPosition = new Vector2(0f, -4f);
-            bar.sizeDelta = new Vector2(-60f, 6f);
+            // A short accent tick at the top-left edge, not a full-width bar.
+            bar.anchorMax = new Vector2(0f, 1f);
+            bar.pivot = new Vector2(0f, 1f);
+            bar.anchoredPosition = new Vector2(35f, -3f);
+            bar.sizeDelta = new Vector2(72f, 4f);
             var image = bar.gameObject.AddComponent<Image>();
             image.color = AccentBar;
             image.raycastTarget = false;

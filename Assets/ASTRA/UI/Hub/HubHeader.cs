@@ -45,8 +45,8 @@ namespace Astra.UI.Hub
         public void Refresh()
         {
             var progress = hub != null && hub.Academy != null ? hub.Academy : AcademyProgress.Current;
-            if (callsignLabel != null) callsignLabel.text = "CALLSIGN  " + progress.Callsign;
-            if (scoreLabel != null) scoreLabel.text = "ACADEMY SCORE  " + progress.TotalScore;
+            if (callsignLabel != null) callsignLabel.text = progress.Callsign;
+            if (scoreLabel != null) scoreLabel.text = progress.TotalScore.ToString();
             if (medalsLabel != null)
             {
                 int gold = 0, silver = 0, bronze = 0;
@@ -57,15 +57,18 @@ namespace Astra.UI.Hub
                     else if (medal == Medal.Silver) silver++;
                     else if (medal == Medal.Bronze) bronze++;
                 }
-                medalsLabel.text = $"GOLD {gold}   SILVER {silver}   BRONZE {bronze}";
+                medalsLabel.text = $"{gold}G {silver}S {bronze}B";
             }
             if (continueLabel != null)
             {
                 var next = hub != null ? hub.RecommendedLevel : -1;
-                continueLabel.text = next >= 0 ? $"Continue: L{next} {ShortTitle(LevelCatalog.Levels[next].Title)}" : "All levels passed";
+                var allPassed = true;
+                for (var i = 0; i < LevelCatalog.Levels.Count; i++) allPassed &= progress.IsPassed(i);
+                continueLabel.text = next >= 0 ? $"Continue  \u00b7  L{next} {LevelCatalog.Levels[next].Title}"
+                    : allPassed ? "All levels passed" : "Choose a level to begin";
             }
-            if (dwellLabel != null) dwellLabel.text = GazeSettings.DwellSelect ? "DWELL SELECT: ON" : "DWELL SELECT: OFF";
-            if (unlockLabel != null) unlockLabel.text = progress.AllUnlocked ? "ALL LEVELS UNLOCKED" : "DEMO: UNLOCK ALL";
+            if (dwellLabel != null) dwellLabel.text = GazeSettings.DwellSelect ? "On" : "Off";
+            if (unlockLabel != null) unlockLabel.text = progress.AllUnlocked ? "All levels unlocked" : "Unlock all levels";
         }
 
         /// <summary>Settings card button.</summary>
