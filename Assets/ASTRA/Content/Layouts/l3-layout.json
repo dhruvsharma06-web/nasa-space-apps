@@ -7,8 +7,8 @@
     { "id": "setup_display", "title": "CABIN SETUP", "position": [0.22, 1.43, 0.60], "size": [0.42, 0.20], "tilt": -10, "target": false }
   ],
   "controls": [
-    { "targetId": "cabin_lights_toggle", "type": "toggle", "label": "CABIN LIGHTS", "panel": "cabin_control_panel", "at": [-0.11, 0.05] },
-    { "targetId": "air_fan_dial", "type": "dial", "label": "AIR FAN", "panel": "cabin_control_panel", "at": [0.09, 0.05], "positions": ["OFF", "LOW", "HIGH"] },
+    { "targetId": "cabin_lights_toggle", "type": "toggle", "label": "CABIN LIGHTS", "panel": "cabin_control_panel", "at": [-0.11, 0.05], "trigger": "ON" },
+    { "targetId": "air_fan_dial", "type": "dial", "label": "AIR FAN", "panel": "cabin_control_panel", "at": [0.09, 0.05], "positions": ["OFF", "LOW", "HIGH"], "trigger": "LOW" },
     { "targetId": "cabin_setup_checklist", "type": "checklist", "label": "CHECKLIST", "panel": "setup_display", "at": [-0.12, -0.04] },
     { "targetId": "comms_check_button", "type": "button", "label": "COMMS CHECK", "panel": "comms_panel", "at": [-0.06, 0.06] },
     { "targetId": "cabin_report_button", "type": "button", "label": "REPORT", "panel": "comms_panel", "at": [-0.06, -0.06] }

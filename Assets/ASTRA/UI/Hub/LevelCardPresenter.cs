@@ -33,6 +33,7 @@ namespace Astra.UI.Hub
         [SerializeField] private GazeButton gazeButton;
 
         private Vector3 restPosition;
+        private Vector3 restScale = Vector3.one;
         private bool restKnown;
         private bool hovered;
         private bool recommended;
@@ -124,13 +125,14 @@ namespace Astra.UI.Hub
                 if (!restKnown)
                 {
                     restPosition = card.localPosition;
+                    restScale = card.localScale;   // the card IS the world canvas (scale ~0.0008): never write Vector3.one
                     restKnown = true;
                 }
                 // The card's +Z points away from the eye, so "toward the cadet" is its -forward, in metres.
                 var parentScale = card.parent != null ? Mathf.Max(1e-6f, card.parent.lossyScale.z) : 1f;
                 var towardEye = -(card.localRotation * Vector3.forward);
                 card.localPosition = restPosition + towardEye * (LiftMetres * k / parentScale);
-                card.localScale = Vector3.one * (1f + 0.04f * k);
+                card.localScale = restScale * (1f + 0.04f * k);
             }
             if (details != null) details.alpha = Mathf.Lerp(0.0f, 1f, k);
             if (edgeGlow != null)

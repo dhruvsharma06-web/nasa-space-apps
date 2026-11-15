@@ -12,11 +12,18 @@ namespace Astra.XR.Tests.PlayMode
 {
     public class GazeTapTests
     {
+        // Fixtures run far from the origin so leftover colliders / world canvases from other fixtures in the same
+        // PlayMode run can never sit on the ray (they made the tap tests pass alone but fail in the full suite).
+        private static readonly Vector3 Origin = new Vector3(4000f, 4000f, 4000f);
         private readonly List<GameObject> objects = new List<GameObject>();
         private readonly List<InteractionReport> reports = new List<InteractionReport>();
 
         [SetUp]
-        public void SetUp() => InteractionEvents.Reported += Record;
+        public void SetUp()
+        {
+            InteractionEvents.Reported += Record;
+            WorldUiRaycast.Invalidate();
+        }
 
         [TearDown]
         public void TearDown()
@@ -34,7 +41,7 @@ namespace Astra.XR.Tests.PlayMode
         {
             var gaze = Gaze(out var actor);
             Button("start_button", new Vector3(0f, 0f, 1f));
-            var ray = new Ray(Vector3.zero, Vector3.forward);
+            var ray = new Ray(Origin, Vector3.forward);
 
             Assert.That(gaze.Step(ray, true, false, actor), Is.EqualTo(GazeTap.Outcome.None));
             Assert.That(gaze.PointsAtTarget, Is.True);
@@ -52,7 +59,7 @@ namespace Astra.XR.Tests.PlayMode
         {
             var gaze = Gaze(out var actor);
             Button("start_button", new Vector3(0f, 0f, 1f));
-            var away = new Ray(Vector3.zero, Vector3.up);
+            var away = new Ray(Origin, Vector3.up);
             Assert.That(gaze.Step(away, true, true, actor), Is.EqualTo(GazeTap.Outcome.Menu));
             Assert.That(reports, Is.Empty);
         }
@@ -65,11 +72,11 @@ namespace Astra.XR.Tests.PlayMode
             Socket("tool_socket", "practice_tool", new Vector3(0.3f, 0f, 0.5f));
             Physics.SyncTransforms();
 
-            var atTool = new Ray(Vector3.zero, Vector3.forward);
+            var atTool = new Ray(Origin, Vector3.forward);
             Assert.That(gaze.Step(atTool, true, true, actor), Is.EqualTo(GazeTap.Outcome.Interacted));
             Assert.That(tool.IsHeld, Is.True);
 
-            var atSocket = new Ray(Vector3.zero, new Vector3(0.3f, 0f, 0.5f).normalized);
+            var atSocket = new Ray(Origin, new Vector3(0.3f, 0f, 0.5f).normalized);
             gaze.Step(atSocket, true, false, actor);
             Assert.That(tool.IsHeld, Is.True, "the tool stays held between taps");
             Assert.That(gaze.Step(atSocket, true, true, actor), Is.EqualTo(GazeTap.Outcome.Interacted));
@@ -89,9 +96,9 @@ namespace Astra.XR.Tests.PlayMode
             var gaze = Gaze(out var actor);
             var tool = Tool("practice_tool", new Vector3(0f, 0f, 0.5f));
             Physics.SyncTransforms();
-            var ray = new Ray(Vector3.zero, Vector3.forward);
+            var ray = new Ray(Origin, Vector3.forward);
             gaze.Step(ray, true, true, actor);
-            var up = new Ray(Vector3.zero, Vector3.up);
+            var up = new Ray(Origin, Vector3.up);
             gaze.Step(up, true, false, actor);
             Assert.That(gaze.Step(up, true, true, actor), Is.EqualTo(GazeTap.Outcome.Interacted));
             Assert.That(tool.IsHeld, Is.False);
@@ -105,7 +112,7 @@ namespace Astra.XR.Tests.PlayMode
             var gaze = Gaze(out var actor);
             var tool = Tool("practice_tool", new Vector3(0f, 0f, 0.5f));
             Physics.SyncTransforms();
-            var ray = new Ray(Vector3.zero, Vector3.forward);
+            var ray = new Ray(Origin, Vector3.forward);
             gaze.Step(ray, true, true, actor);
             Assert.That(gaze.Step(ray, false, true, actor), Is.EqualTo(GazeTap.Outcome.None));
             gaze.Step(ray, false, false, actor);
@@ -127,7 +134,7 @@ namespace Astra.XR.Tests.PlayMode
                 seen = UiActionActor.Current;
             });
             WorldUiRaycast.Invalidate();
-            var ray = new Ray(Vector3.zero, Vector3.forward);
+            var ray = new Ray(Origin, Vector3.forward);
             Assert.That(gaze.Step(ray, true, true, actor), Is.EqualTo(GazeTap.Outcome.Interacted));
             gaze.Step(ray, true, false, actor);
             Assert.That(clicks, Is.EqualTo(1));
@@ -150,7 +157,7 @@ namespace Astra.XR.Tests.PlayMode
         {
             var canvasObject = Track(new GameObject("canvas", typeof(RectTransform)));
             var rect = (RectTransform)canvasObject.transform;
-            rect.position = position;
+            rect.position = Origin + position;
             rect.sizeDelta = new Vector2(200f, 100f);
             rect.localScale = Vector3.one * 0.001f;
             canvasObject.AddComponent<Canvas>().renderMode = RenderMode.WorldSpace;
@@ -161,6 +168,8 @@ namespace Astra.XR.Tests.PlayMode
             var image = buttonObject.AddComponent<Image>();
             var button = buttonObject.AddComponent<Button>();
             button.targetGraphic = image;
+            Physics.SyncTransforms();
+            WorldUiRaycast.Invalidate();
             return button;
         }
 
@@ -169,13 +178,14 @@ namespace Astra.XR.Tests.PlayMode
             var obj = Track(GameObject.CreatePrimitive(PrimitiveType.Cube));
             obj.name = id;
             obj.SetActive(false);
-            obj.transform.position = position;
+            obj.transform.position = Origin + position;
             obj.transform.localScale = Vector3.one * 0.1f;
 #if UNITY_EDITOR
             LogAssert.Expect(LogType.Error, $"[ButtonTarget] {id}: targetId must use lowercase snake_case.");
 #endif
             obj.AddComponent<ButtonTarget>().Configure(id);
             obj.SetActive(true);
+            Physics.SyncTransforms();
         }
 
         private GrabbableTool Tool(string id, Vector3 position)
@@ -183,7 +193,7 @@ namespace Astra.XR.Tests.PlayMode
             var obj = Track(GameObject.CreatePrimitive(PrimitiveType.Cube));
             obj.name = id;
             obj.SetActive(false);
-            obj.transform.position = position;
+            obj.transform.position = Origin + position;
             obj.transform.localScale = Vector3.one * 0.06f;
 #if UNITY_EDITOR
             LogAssert.Expect(LogType.Error, $"[GrabbableTool] {id}: missing/invalid targetId.");
@@ -198,7 +208,7 @@ namespace Astra.XR.Tests.PlayMode
         {
             var obj = Track(new GameObject(id));
             obj.SetActive(false);
-            obj.transform.position = position;
+            obj.transform.position = Origin + position;
             var trigger = obj.AddComponent<BoxCollider>();
             trigger.isTrigger = true;
             trigger.size = new Vector3(0.2f, 0.2f, 0.2f);

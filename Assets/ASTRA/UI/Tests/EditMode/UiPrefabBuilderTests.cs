@@ -14,14 +14,16 @@ namespace Astra.UI.Tests.EditMode
     {
         private string directory;
 
-        [SetUp]
+        // Build the prefabs once per fixture: creating and deleting them for every test makes Windows file
+        // watchers lock the fresh .meta files ("Cannot open file ... for write").
+        [OneTimeSetUp]
         public void SetUp()
         {
             directory = "Assets/ASTRA/UI/Tests/Generated_" + Guid.NewGuid().ToString("N");
             UiPrefabBuilder.BuildInDirectory(directory);
         }
 
-        [TearDown]
+        [OneTimeTearDown]
         public void TearDown()
         {
             if (AssetDatabase.IsValidFolder(directory)) AssetDatabase.DeleteAsset(directory);

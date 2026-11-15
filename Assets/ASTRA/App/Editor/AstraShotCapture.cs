@@ -17,7 +17,7 @@ namespace Astra.App.EditorTools
     {
         private static readonly (string name, float yaw, float pitch)[] Views =
         {
-            ("front", 0f, 8f), ("left", -55f, 5f), ("right", 55f, 5f), ("down", 0f, 35f),
+            ("front", 0f, 8f), ("left", -55f, 5f), ("right", 55f, 5f), ("down", 0f, 35f), ("window", -5f, -24f),
         };
 
         [MenuItem("ASTRA/Capture level screenshots")]
@@ -39,7 +39,7 @@ namespace Astra.App.EditorTools
         {
             Directory.CreateDirectory(dir);
             ShaderUtil.allowAsyncCompilation = false;   // no placeholder shaders in the shots
-            foreach (var s in EditorBuildSettings.scenes.Where(s => s.enabled && Path.GetFileName(s.path).StartsWith("L")))
+            foreach (var s in EditorBuildSettings.scenes.Where(s => s.enabled && (Path.GetFileName(s.path).StartsWith("L") || Path.GetFileName(s.path).StartsWith("Hub"))))
             {
                 EditorSceneManager.OpenScene(s.path, OpenSceneMode.Single);
                 var cam = Camera.main;

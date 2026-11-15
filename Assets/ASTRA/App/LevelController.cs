@@ -5,6 +5,7 @@ using Astra.Core.Assessment;
 using Astra.Core.Mission;
 using Astra.Integrations.Coach;
 using Astra.UI;
+using Astra.UI.Progress;
 using Astra.XR.Interactables;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -25,6 +26,11 @@ namespace Astra.App
         [SerializeField] private InstructionPanel instructionPanel;
         [SerializeField] private PhaseBanner phaseBanner;
         [SerializeField] private DebriefPanel debriefPanel;
+        [SerializeField] private PauseMenu pauseMenu;
+        [SerializeField] private CertificatePanel certificate;
+
+        [Header("Audio (optional)")]
+        [SerializeField] private AudioCues audioCues;
 
         [Header("Coach (Content & AI Coach provides; optional)")]
         [SerializeField] private CoachProvider coachProvider;
@@ -52,6 +58,17 @@ namespace Astra.App
         public bool IsPaused { get; private set; }
         public bool UsingMockRunner { get; private set; }
         public long AttemptTimeMs => _attemptActive ? NowMs() : 0;
+        /// <summary>Score shown in the debrief (0–100 + medal), from ScoreReports (P2's ResultRating when merged).</summary>
+        public ScoreReport LastReport { get; private set; }
+        /// <summary>True when the last debrief beat this level's stored best.</summary>
+        public bool LastWasBest { get; private set; }
+        /// <summary>The saved session log of the last qualification (JSON), for the browser download.</summary>
+        public string LastSessionLogJson { get; private set; }
+        /// <summary>Level number from the scene name (L3_Cabin → 3); -1 if not a level scene.</summary>
+        public int LevelNumber
+        {
+            get { var n = SceneManager.GetActiveScene().name; return n.Length > 1 && n[0] == 'L' && char.IsDigit(n[1]) ? n[1] - '0' : -1; }
+        }
 
         private readonly ModulePhaseMachine _fsm = new ModulePhaseMachine();
         private IMissionScorer _scorer;
@@ -74,7 +91,18 @@ namespace Astra.App
             {
                 debriefPanel.onRetry.AddListener(Retry);          // RETRY button -> Practice
                 debriefPanel.onBackToHub.AddListener(BackToHub);  // HUB button -> Hub scene
+                debriefPanel.onNextLevel.AddListener(NextLevel);  // NEXT LEVEL button -> next level scene
             }
+            if (pauseMenu != null)
+            {
+                pauseMenu.onPause.AddListener(Pause);
+                pauseMenu.onResume.AddListener(Resume);
+                pauseMenu.onRecenter.AddListener(Recenter);
+                pauseMenu.onRestart.AddListener(Restart);
+                pauseMenu.onExit.AddListener(BackToHub);
+                pauseMenu.onFinish.AddListener(Finish);
+            }
+            LevelAudio.Init(gameObject, audioCues);
         }
 
         private void OnEnable() => InteractionEvents.Reported += OnInteraction;
@@ -89,7 +117,17 @@ namespace Astra.App
         }
         public void SkipToPractice() { if (Phase == ModulePhase.Briefing || Phase == ModulePhase.Demonstration) Enter(ModulePhase.Practice); }
         public void Finish() { if (Phase == ModulePhase.Qualification) Enter(ModulePhase.Debrief); }
-        public void Retry() { if (Phase == ModulePhase.Debrief) Enter(ModulePhase.Practice); }
+        public void Retry()
+        {
+            if (Phase != ModulePhase.Debrief) return;
+            if (certificate != null)
+            {
+                certificate.onClosed.RemoveListener(BackToHub);   // closing for a retry must not leave the level
+                certificate.Close();
+            }
+            Enter(ModulePhase.Practice);   // Announce hides the debrief and resets the pause menu
+            if (IsPaused) Resume();
+        }
         public void Restart() => EnterBriefing();
         public void Recenter() => InteractionEvents.Raise(EventNames.Recentered, SystemTargets.System, InputModality.Simulator);
 
@@ -107,10 +145,42 @@ namespace Astra.App
             if (_attemptActive) InteractionEvents.Raise(EventNames.Resumed, SystemTargets.System, InputModality.Simulator);
         }
 
+        /// <summary>Loads the next level in build order (L&lt;n&gt; → L&lt;n+1&gt;...); after the last level, the Hub.</summary>
+        public void NextLevel()
+        {
+            string next = NextLevelScene(SceneManager.GetActiveScene().name);
+            if (next != null) { SceneManager.LoadScene(next); return; }
+            if (certificate != null)   // last level: graduation certificate, then the Hub
+            {
+                certificate.onClosed.RemoveListener(BackToHub);
+                certificate.onClosed.AddListener(BackToHub);
+                if (debriefPanel != null) debriefPanel.gameObject.SetActive(false);
+                certificate.Show(null);
+                return;
+            }
+            BackToHub();
+        }
+
+        /// <summary>Next level scene name in build settings, or null if this is the last one.</summary>
+        public static string NextLevelScene(string current)
+        {
+            int Num(string n) => n.Length > 1 && n[0] == 'L' && char.IsDigit(n[1]) ? n[1] - '0' : -1;
+            int cur = string.IsNullOrEmpty(current) ? -1 : Num(current), best = int.MaxValue; string bestName = null;
+            for (int i = 0; i < SceneManager.sceneCountInBuildSettings; i++)
+            {
+                string name = Path.GetFileNameWithoutExtension(SceneUtility.GetScenePathByBuildIndex(i));
+                int n = Num(name);
+                if (n > cur && n < best) { best = n; bestName = name; }
+            }
+            return bestName;
+        }
+
         public void BackToHub()
         {
-            if (Application.CanStreamedLevelBeLoaded("Hub")) SceneManager.LoadScene("Hub");
-            else Debug.Log("[LevelController] Hub scene is not in Build Settings yet; staying in the level.");
+            if (Application.CanStreamedLevelBeLoaded("Hub")) { SceneManager.LoadScene("Hub"); return; }
+            string first = NextLevelScene(null);   // lowest L<n> scene in the build
+            if (first != null) { Debug.Log("[LevelController] Hub is not in the build; loading " + first + " instead."); SceneManager.LoadScene(first); }
+            else Debug.Log("[LevelController] No Hub or level scene in the build; staying in the level.");
         }
 
         // ---------------- phases ----------------
@@ -140,6 +210,12 @@ namespace Astra.App
         {
             if (_phaseRoutine != null) { StopCoroutine(_phaseRoutine); _phaseRoutine = null; }
             if (phaseBanner != null) phaseBanner.Show(phase);
+            if (pauseMenu != null)
+            {
+                if (phase == ModulePhase.Practice || phase == ModulePhase.Qualification || phase == ModulePhase.Briefing) pauseMenu.ResetForAttempt(phase);
+                else pauseMenu.SetPhase(phase);
+            }
+            LevelAudio.Play(audioCues != null ? audioCues.phaseChange : null, 0.6f);
             if (debriefPanel != null) debriefPanel.gameObject.SetActive(phase == ModulePhase.Debrief);   // only during Debrief
             ClearHint();
             PhaseChanged?.Invoke(phase);
@@ -168,8 +244,10 @@ namespace Astra.App
         {
             Runner = CreateRunner(Guid.NewGuid().ToString("N"));
             _attemptStart = Clock(); _pausedTotal = 0; IsPaused = false; _attemptActive = true;
-            ShowInstruction(Runner.CurrentStep?.instruction ?? "");
+            ShowInstruction(Phase == ModulePhase.Qualification ? QualificationLine : (Runner.CurrentStep?.instruction ?? ""));
         }
+
+        private const string QualificationLine = "Qualification: complete the procedure on your own.";
 
         private void OnInteraction(InteractionReport report)
         {
@@ -184,6 +262,10 @@ namespace Astra.App
             var events = Runner.Events;
             EventRecorded?.Invoke(events[events.Count - 1], fb);
 
+            if (fb.Outcome == StepOutcome.Correct) LevelAudio.Play(audioCues != null ? audioCues.correct : null, 0.7f);
+            else if (Phase == ModulePhase.Practice && (fb.Outcome == StepOutcome.Incorrect || fb.Outcome == StepOutcome.OutOfOrder))
+                LevelAudio.Play(audioCues != null ? audioCues.wrong : null, 0.7f);
+
             if (Phase == ModulePhase.Practice)
             {
                 if (fb.Outcome == StepOutcome.Incorrect || fb.Outcome == StepOutcome.OutOfOrder) { if (fb.Hint != null) ShowHint(fb.Hint); }
@@ -192,7 +274,6 @@ namespace Astra.App
             }
             else if (Phase == ModulePhase.Qualification)
             {
-                if (fb.Outcome == StepOutcome.Correct) ShowInstruction(Runner.CurrentStep?.instruction ?? "");
                 if (Runner.IsComplete) Enter(ModulePhase.Debrief);
             }
         }
@@ -212,8 +293,17 @@ namespace Astra.App
             try { LastResult = _scorer.Score(Mission, sessionId, trace); }
             catch (ArgumentException ex) { Debug.LogError($"[LevelController] scoring failed: {ex.Message}"); return; }
 
-            QualificationScored?.Invoke(LastResult);
+            LastReport = ScoreReports.Build(LastResult, Mission);
+            // Compare with the stored best BEFORE anything is recorded (the debrief does the same in Show).
+            int previousBest = -1;
+            try { previousBest = AcademyProgress.Current.BestScore(Mission.level); } catch (Exception) { }
+            LastWasBest = LastResult.passed && LastReport.Score > previousBest;
+            QualificationScored?.Invoke(LastResult);   // AcademyProgressBootstrap records via ProgressService one frame later
+            LevelAudio.Play(audioCues != null ? (LastResult.passed ? audioCues.success : audioCues.fail) : null, 0.9f);
             if (debriefPanel != null) debriefPanel.Show(LastResult, Mission);
+            // Recorded exactly once: Core's provider is recorded by the bootstrap; any other provider (tests, placeholder) here, after Show.
+            if (LevelNumber >= 0 && !(AcademyProgress.Current is CoreAcademyProgress))
+                AcademyProgress.Current.RecordScore(LevelNumber, LastReport.Score, LastReport.Medal, LastResult.passed);
             WriteSessionLog(LastResult, trace);
 
             var client = coachProvider != null ? coachProvider.Client : null;
@@ -222,6 +312,7 @@ namespace Astra.App
             request.events.AddRange(trace);
             client.RequestDebrief(request, Mission, r =>
             {
+                if (this == null || debriefPanel == null) return;   // the scene changed before the coach answered
                 if (r == null || string.IsNullOrEmpty(r.summary)) return;
                 string text = r.summary + (r.hints != null && r.hints.Count > 0 ? "\n• " + string.Join("\n• ", r.hints) : "");
                 bool isAi = r.modelVersion != null && !r.modelVersion.StartsWith("offline");
@@ -284,7 +375,8 @@ namespace Astra.App
                 log.events.AddRange(trace);
                 string dir = Path.Combine(Application.persistentDataPath, "SessionLogs");
                 Directory.CreateDirectory(dir);
-                File.WriteAllText(Path.Combine(dir, result.sessionId + ".json"), JsonUtility.ToJson(log, true));
+                LastSessionLogJson = JsonUtility.ToJson(log, true);
+                File.WriteAllText(Path.Combine(dir, result.sessionId + ".json"), LastSessionLogJson);
             }
             catch (Exception ex) { Debug.LogWarning($"[LevelController] could not write session log: {ex.Message}"); }
         }

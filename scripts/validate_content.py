@@ -219,6 +219,13 @@ def layout_errors(lay: dict, filename_stem: str, missions: dict) -> list[str]:
                 if not (isinstance(at, list) and len(at) == 2 and abs(at[0]) <= w / 2 and abs(at[1]) <= h / 2):
                     errs.append(f"{group} {tid}: 'at' {at} is outside its panel")
             if not c.get("label"): errs.append(f"{group} {tid}: label required")
+            if "trigger" in c:
+                typ = c.get("type")
+                if typ in ("toggle", "lever"):
+                    if c["trigger"] not in ("ON", "OFF"): errs.append(f"{group} {tid}: trigger must be ON or OFF")
+                elif typ == "dial":
+                    if c["trigger"] not in (c.get("positions") or ["OFF", "ON"]): errs.append(f"{group} {tid}: trigger must be one of its positions")
+                else: errs.append(f"{group} {tid}: trigger is only valid on toggle, lever or dial")
             if c.get("type") == "socket" and c.get("accepts") not in tool_ids:
                 errs.append(f"{group} {tid}: socket 'accepts' must name a tool in this layout")
     for t in lay.get("tools", []):

@@ -6,17 +6,32 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/ASTRA/Scenes/Hub.unity
+    guid: 460fcf831106241ea8d0ac0e3a573986
+  - enabled: 1
+    path: Assets/ASTRA/Levels/L0_Safety/L0_Safety.unity
+    guid: ade4e56af20480a40a6d81ec3b20caef
+  - enabled: 1
+    path: Assets/ASTRA/Levels/L1_Orientation/L1_Orientation.unity
+    guid: fda802f32aaeffb4fb0100d217045fcf
+  - enabled: 1
     path: Assets/ASTRA/Levels/L2_Equipment/L2_Equipment.unity
     guid: ab0c2f70cc97ea24c9911ed14ecf53b8
   - enabled: 1
     path: Assets/ASTRA/Levels/L3_Cabin/L3_Cabin.unity
     guid: c2ca49bcffaf5fb429fc90d658c0cdee
   - enabled: 1
+    path: Assets/ASTRA/Levels/L4_Emergency/L4_Emergency.unity
+    guid: c4dc9acecdb63c94692a1309edcdf4f3
+  - enabled: 1
     path: Assets/ASTRA/Levels/L5_EVA/L5_EVA.unity
     guid: f15ce7fc3968c68409ae7e6565d053c4
   - enabled: 1
     path: Assets/ASTRA/Levels/L6_Robotics/L6_Robotics.unity
     guid: a76ae968f1d86cc498fa1ac11522d56f
+  - enabled: 1
+    path: Assets/ASTRA/Levels/L7_Finale/L7_Finale.unity
+    guid: 58eb871e921feeb4a8618ebb6719efe2
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: e829eac3b8c89084e945f4e7f4875a8e, type: 2}

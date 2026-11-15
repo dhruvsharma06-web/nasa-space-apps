@@ -12,7 +12,7 @@
     { "targetId": "caution_ack_button", "type": "button", "label": "ACK", "panel": "power_distribution_panel", "at": [-0.17, -0.02] },
     { "targetId": "power_fault_checklist", "type": "checklist", "label": "CHECKLIST", "panel": "power_checklist_display", "at": [0.0, -0.015] },
     { "targetId": "power_bus_b", "type": "button", "label": "BUS B", "panel": "power_distribution_panel", "at": [0.08, 0.02] },
-    { "targetId": "power_bus_b_selector", "type": "dial", "label": "BUS B", "panel": "power_distribution_panel", "at": [0.08, -0.09], "positions": ["NORMAL", "ISOLATE"] },
+    { "targetId": "power_bus_b_selector", "type": "dial", "label": "BUS B", "panel": "power_distribution_panel", "at": [0.08, -0.09], "positions": ["NORMAL", "ISOLATE"], "trigger": "ISOLATE" },
     { "targetId": "crosstie_breaker", "type": "button", "label": "CROSS-TIE", "panel": "power_distribution_panel", "at": [0.19, -0.04] },
     { "targetId": "comms_report_button", "type": "button", "label": "REPORT", "panel": "comms_panel", "at": [0.0, -0.02] }
   ],

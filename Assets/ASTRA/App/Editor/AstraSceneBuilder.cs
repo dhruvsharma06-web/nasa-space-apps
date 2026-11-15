@@ -8,6 +8,8 @@ using Astra.Core.Assessment;
 using Astra.Core.Mission;
 using Astra.DesktopTest;
 using Astra.UI;
+using Astra.XR.Phone;
+using UnityEditor.Events;
 using TMPro;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
@@ -36,6 +38,10 @@ namespace Astra.App.EditorTools
         private const string WebGLOut = "Builds/WebGL";
         private const string TmpFont = "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset";
         private static readonly Vector3 Eye = new Vector3(0f, 1.2f, 0f);
+        private static readonly Vector3 SunDir = new Vector3(0.75f, 0.35f, -0.2f).normalized;   // towards the sun: right and slightly behind: a half-lit Earth with the day/night line in the window
+        /// <summary>Coach proxy base URL baked into levels; unreachable = offline coach (no error shown).</summary>
+        public const string CoachProxyUrl = "http://127.0.0.1:8787";
+        private const string NasaDir = "Assets/ASTRA/Levels/_Shared/Textures/NASA";
 
         private static TMP_FontAsset _font;
         private static Dictionary<string, string> _events;
@@ -44,7 +50,7 @@ namespace Astra.App.EditorTools
         // ------------------------------------------------------------------ layout file model (JsonUtility)
         [Serializable] private class LayoutFile { public string missionId; public string scene; public PanelDef[] panels = new PanelDef[0]; public ControlDef[] controls = new ControlDef[0]; public ToolDef[] tools = new ToolDef[0]; public ControlDef[] decoys = new ControlDef[0]; public IndicatorDef[] indicators = new IndicatorDef[0]; }
         [Serializable] private class PanelDef { public string id; public string title; public float[] position; public float[] size; public float tilt = 15f; public bool target; }
-        [Serializable] private class ControlDef { public string targetId; public string type; public string label; public string panel; public float[] at; public string[] positions; public string accepts; }
+        [Serializable] private class ControlDef { public string targetId; public string type; public string label; public string panel; public float[] at; public string[] positions; public string accepts; public string trigger; }
         [Serializable] private class ToolDef { public string targetId; public string label; public float[] position; }
         [Serializable] private class IndicatorDef { public string id; public string label; public string panel; public float[] at; }
 
@@ -84,7 +90,7 @@ namespace Astra.App.EditorTools
             SetWebGLCodeOptimization("BuildTimes");   // test builds: much faster wasm build, slightly slower runtime
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
-                scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray(),
+                scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray(),   // Hub first
                 locationPathName = WebGLOut,
                 target = BuildTarget.WebGL,
                 options = BuildOptions.None,
@@ -97,6 +103,38 @@ namespace Astra.App.EditorTools
         public static void BuildWebGLBatch()
         {
             try { BuildWebGL(); EditorApplication.Exit(0); }
+            catch (Exception ex) { Debug.LogError(ex); EditorApplication.Exit(1); }
+        }
+
+        [MenuItem("ASTRA/Build Android APK (phone)")]
+        public static void BuildAndroid()
+        {
+            BuildAllLevels();
+            PlayerSettings.productName = "ASTRA Academy";
+            PlayerSettings.bundleVersion = "1.0." + DateTime.Now.ToString("MMddHHmm");
+            PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Android, "com.astra.academy");
+            PlayerSettings.SetScriptingBackend(UnityEditor.Build.NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
+            PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+            PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel26;
+            PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
+            PlayerSettings.Android.optimizedFramePacing = false;   // Cardboard requirement (see XR/Phone/README.md)
+            EditorUserBuildSettings.buildAppBundle = false;
+            Directory.CreateDirectory("Builds/Android");
+            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            {
+                scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray(),
+                locationPathName = "Builds/Android/ASTRA-Academy.apk",
+                target = BuildTarget.Android,
+                options = BuildOptions.None,
+            });
+            Debug.Log($"[AstraSceneBuilder] Android build {report.summary.result}: {report.summary.totalErrors} errors, {report.summary.totalSize / (1024 * 1024)} MB, {report.summary.totalTime}");
+            if (report.summary.result != BuildResult.Succeeded) throw new Exception("Android build failed");
+        }
+
+        /// <summary>Batch: -buildTarget Android -executeMethod Astra.App.EditorTools.AstraSceneBuilder.BuildAndroidBatch</summary>
+        public static void BuildAndroidBatch()
+        {
+            try { BuildAndroid(); EditorApplication.Exit(0); }
             catch (Exception ex) { Debug.LogError(ex); EditorApplication.Exit(1); }
         }
 
@@ -145,7 +183,13 @@ namespace Astra.App.EditorTools
 
             var lcGo = new GameObject("LevelController");
             var lc = lcGo.AddComponent<LevelController>();
+            lcGo.AddComponent<PlatformQuality>();   // phone tier trims effects; browser keeps full quality
+            var coach = lcGo.AddComponent<Astra.Integrations.Coach.CoachProvider>();   // offline coach always; AI when the proxy answers
+            var cso = new SerializedObject(coach);
+            cso.FindProperty("proxyUrl").stringValue = CoachProxyUrl;
+            cso.ApplyModifiedPropertiesWithoutUndo();
             var so = new SerializedObject(lc);
+            so.FindProperty("coachProvider").objectReferenceValue = coach;
             so.FindProperty("missionJson").objectReferenceValue = missionAsset;
             bool realUi = PlaceRealUi(so);   // XR & Interaction's world-space panels, when present
             so.ApplyModifiedPropertiesWithoutUndo();
@@ -189,18 +233,18 @@ namespace Astra.App.EditorTools
             var fabric = Mat("Stowage_Fabric", new Color(0.78f, 0.76f, 0.70f), 0.05f);
             var seatMat = Mat("Seat_Cushion", new Color(0.12f, 0.14f, 0.18f), 0.2f);
 
-            Box("Floor", root, new Vector3(0, -0.01f, 0.2f), new Vector3(2.6f, 0.02f, 2.4f), floor);
-            Box("Ceiling", root, new Vector3(0, 2.2f, 0.2f), new Vector3(2.6f, 0.02f, 2.4f), wall);
-            // front wall with a viewport window, high and centred (x -0.4..0.4, y 1.75..2.1), clear of panels and UI
-            Box("Wall_Front_Left", root, new Vector3(-0.85f, 1.1f, 1.05f), new Vector3(0.9f, 2.2f, 0.04f), wall);
-            Box("Wall_Front_Right", root, new Vector3(0.85f, 1.1f, 1.05f), new Vector3(0.9f, 2.2f, 0.04f), wall);
-            Box("Wall_Front_Below", root, new Vector3(0f, 0.875f, 1.05f), new Vector3(0.8f, 1.75f, 0.04f), wall);
-            Box("Wall_Front_Above", root, new Vector3(0f, 2.15f, 1.05f), new Vector3(0.8f, 0.1f, 0.04f), wall);
+            Box("Floor", root, new Vector3(0, -0.01f, 0.025f), new Vector3(2.6f, 0.02f, 2.05f), floor);     // ends at the front wall (z 1.05)
+            Box("Ceiling", root, new Vector3(0, 2.2f, 0.025f), new Vector3(2.6f, 0.02f, 2.05f), wall);
+            // front wall with a large viewport window (x -0.55..0.55, y 1.62..2.12): the Earth fills its lower part
+            Box("Wall_Front_Left", root, new Vector3(-0.925f, 1.1f, 1.05f), new Vector3(0.75f, 2.2f, 0.04f), wall);
+            Box("Wall_Front_Right", root, new Vector3(0.925f, 1.1f, 1.05f), new Vector3(0.75f, 2.2f, 0.04f), wall);
+            Box("Wall_Front_Below", root, new Vector3(0f, 0.81f, 1.05f), new Vector3(1.1f, 1.62f, 0.04f), wall);
+            Box("Wall_Front_Above", root, new Vector3(0f, 2.16f, 1.05f), new Vector3(1.1f, 0.08f, 0.04f), wall);
             var frame = Mat("Window_Frame", new Color(0.12f, 0.13f, 0.15f), 0.6f, 0.7f);
-            Box("Window_Frame_Top", root, new Vector3(0f, 2.115f, 1.03f), new Vector3(0.88f, 0.04f, 0.07f), frame);
-            Box("Window_Frame_Bottom", root, new Vector3(0f, 1.735f, 1.03f), new Vector3(0.88f, 0.04f, 0.07f), frame);
-            Box("Window_Frame_Left", root, new Vector3(-0.42f, 1.925f, 1.03f), new Vector3(0.04f, 0.42f, 0.07f), frame);
-            Box("Window_Frame_Right", root, new Vector3(0.42f, 1.925f, 1.03f), new Vector3(0.04f, 0.42f, 0.07f), frame);
+            Box("Window_Frame_Top", root, new Vector3(0f, 2.135f, 1.03f), new Vector3(1.18f, 0.04f, 0.07f), frame);
+            Box("Window_Frame_Bottom", root, new Vector3(0f, 1.605f, 1.03f), new Vector3(1.18f, 0.04f, 0.07f), frame);
+            Box("Window_Frame_Left", root, new Vector3(-0.57f, 1.87f, 1.03f), new Vector3(0.04f, 0.54f, 0.07f), frame);
+            Box("Window_Frame_Right", root, new Vector3(0.57f, 1.87f, 1.03f), new Vector3(0.04f, 0.54f, 0.07f), frame);
             // wall panel seams and ceiling light fixtures
             var seam = Mat("Seam_Dark", new Color(0.32f, 0.34f, 0.36f), 0.3f);
             for (float z = -0.6f; z <= 0.95f; z += 0.4f)
@@ -225,8 +269,8 @@ namespace Astra.App.EditorTools
             Box("Strap_1", root, new Vector3(-1.165f, 0.9f, 0.7f), new Vector3(0.005f, 0.32f, 0.03f), strap);
             Box("Strap_2", root, new Vector3(-1.165f, 0.9f, 0.25f), new Vector3(0.005f, 0.27f, 0.03f), strap);
             Box("Wall_Back", root, new Vector3(0, 1.1f, -1.0f), new Vector3(2.6f, 2.2f, 0.04f), wall);
-            Box("Wall_Left", root, new Vector3(-1.3f, 1.1f, 0.2f), new Vector3(0.04f, 2.2f, 2.4f), wall);
-            Box("Wall_Right", root, new Vector3(1.3f, 1.1f, 0.2f), new Vector3(0.04f, 2.2f, 2.4f), wall);
+            Box("Wall_Left", root, new Vector3(-1.3f, 1.1f, 0.025f), new Vector3(0.04f, 2.2f, 2.05f), wall);
+            Box("Wall_Right", root, new Vector3(1.3f, 1.1f, 0.025f), new Vector3(0.04f, 2.2f, 2.05f), wall);
             Box("Seat_Base", root, new Vector3(0, 0.45f, -0.12f), new Vector3(0.5f, 0.1f, 0.5f), seatMat);
             Box("Seat_Back", root, new Vector3(0, 0.85f, -0.38f), new Vector3(0.5f, 0.75f, 0.08f), seatMat);
             Box("Foot_Restraint", root, new Vector3(0, 0.08f, 0.45f), new Vector3(0.45f, 0.04f, 0.12f), trim);
@@ -248,7 +292,7 @@ namespace Astra.App.EditorTools
             var sun = new GameObject("Sun").AddComponent<Light>();   // shines in through the viewport window
             sun.transform.SetParent(root); sun.type = LightType.Directional; sun.intensity = 1.4f;
             sun.color = new Color(1f, 0.96f, 0.9f); sun.shadows = LightShadows.Soft;
-            sun.transform.rotation = Quaternion.LookRotation(new Vector3(0.35f, -0.45f, -1f).normalized);
+            sun.transform.rotation = Quaternion.LookRotation(-SunDir);   // side light: half-lit Earth in the window
             RenderSettings.sun = sun;
             var lights = new List<Light>();
             foreach (var p in new[] { new Vector3(-0.5f, 2.05f, 0.4f), new Vector3(0.5f, 2.05f, 0.4f) })
@@ -270,6 +314,7 @@ namespace Astra.App.EditorTools
             root.position = pos;
             var flat = new Vector3(pos.x - Eye.x, 0f, pos.z - Eye.z);
             root.rotation = Quaternion.LookRotation(flat.normalized) * Quaternion.Euler(def.tilt, 0f, 0f);   // faces the seat
+            _label = def.title;
             bool screen = def.id.Contains("display");
             var mat = screen ? Mat("Display_Dark", new Color(0.03f, 0.05f, 0.08f), 0.92f, 0f, new Color(0.02f, 0.06f, 0.1f))
                              : Surface("Panel_Brushed", "brushed", new Color(0.36f, 0.37f, 0.38f), 0.55f, 0.6f, Vector2.one, 0.35f);
@@ -299,6 +344,7 @@ namespace Astra.App.EditorTools
             var at = new Vector2(c.at[0], c.at[1]);
             string evt = !decoy && _events.TryGetValue(c.targetId, out var e) ? e : EventNames.ControlActivated;
             var black = Mat("Control_Black", new Color(0.05f, 0.05f, 0.06f), 0.4f);
+            _label = c.label;
             var root = ControlRoot(c.targetId, panel, at);
             switch (c.type)
             {
@@ -315,7 +361,7 @@ namespace Astra.App.EditorTools
                     var guard = Mat("Toggle_Guard", new Color(0.55f, 0.57f, 0.6f), 0.6f, 0.8f);
                     Box("Guard_L", root, new Vector3(-0.022f, 0.01f, -0.02f), new Vector3(0.006f, lever ? 0.075f : 0.05f, 0.03f), guard);
                     Box("Guard_R", root, new Vector3(0.022f, 0.01f, -0.02f), new Vector3(0.006f, lever ? 0.075f : 0.05f, 0.03f), guard);
-                    Label("Label", root, root.position - root.forward * 0.02f + root.up * (lever ? 0.06f : 0.045f), root.rotation, c.label, 0.0013f, Color.white);
+                    Label("Label", root, root.position - root.forward * 0.02f + root.up * (lever ? 0.088f : 0.045f), root.rotation, c.label, 0.0013f, Color.white);   // above the handle
                     var state = Label("State", root, root.position - root.forward * 0.02f - root.up * (lever ? 0.055f : 0.04f), root.rotation, "OFF", 0.0011f, new Color(0.7f, 0.72f, 0.75f));
                     Target(root.gameObject, c.targetId, lever ? TestTarget.Kind.Lever : TestTarget.Kind.Toggle, evt, pivot, handle.GetComponent<Renderer>(), state, lever ? new Vector3(0.07f, 0.11f, 0.08f) : new Vector3(0.07f, 0.08f, 0.06f));
                     break;
@@ -331,7 +377,7 @@ namespace Astra.App.EditorTools
                     for (int i = 0; i < positions.Length; i++)
                     {
                         float a = Mathf.Deg2Rad * (45f - 45f * i);
-                        Label("Pos_" + positions[i], root, root.position - root.forward * 0.02f + root.right * (0.045f * Mathf.Sin(a)) + root.up * (0.045f * Mathf.Cos(a) - 0.005f), root.rotation, positions[i], 0.0008f, new Color(0.75f, 0.77f, 0.8f));
+                        Label("Pos_" + positions[i], root, root.position - root.forward * 0.02f + root.right * (0.045f * Mathf.Sin(a)) + root.up * (0.045f * Mathf.Cos(a) - 0.005f), root.rotation, positions[i], 0.0011f, new Color(0.85f, 0.87f, 0.9f));
                     }
                     Target(root.gameObject, c.targetId, TestTarget.Kind.Dial, evt, pivot, knob.GetComponent<Renderer>(), null, new Vector3(0.08f, 0.08f, 0.06f));
                     break;
@@ -357,15 +403,23 @@ namespace Astra.App.EditorTools
                     var pivot = Pivot(root, -0.016f);
                     Cyl("Backlight_Ring", root, new Vector3(0, 0, -0.012f), 0.05f, 0.004f, Mat("Button_Ring", new Color(0.1f, 0.3f, 0.5f), 0.6f, 0f, new Color(0.12f, 0.45f, 0.9f)));
                     var cap = Cyl("Cap", pivot, Vector3.zero, 0.042f, 0.014f, Mat("Button_Cap", new Color(0.86f, 0.87f, 0.9f), 0.45f));
-                    Label("Label", root, root.position - root.forward * 0.025f, root.rotation, c.label, 0.0011f, new Color(0.08f, 0.09f, 0.11f), 0.034f);
+                    Label("Label", root, root.position - root.forward * 0.02f - root.up * 0.042f, root.rotation, c.label, 0.0012f, Color.white, 0.10f);   // under the button, like switch labels
                     Target(root.gameObject, c.targetId, TestTarget.Kind.Button, evt, pivot, cap.GetComponent<Renderer>(), null, new Vector3(0.075f, 0.06f, 0.06f));
                     break;
                 }
+            }
+            // Mission controls raise their event only in the trigger state; decoys raise on every activation.
+            var tt = root.GetComponent<TestTarget>();
+            if (tt != null)
+            {
+                string[] dialPositions = c.type == "dial" ? (c.positions != null && c.positions.Length > 0 ? c.positions : new[] { "OFF", "ON" }) : null;
+                tt.SetStateRules(c.trigger, dialPositions, decoy);
             }
         }
 
         private static void Tool(ToolDef t)
         {
+            _label = t.label;
             var root = new GameObject(t.targetId).transform;   // object name == targetId
             root.position = V3(t.position);
             var flat = new Vector3(root.position.x, 0f, root.position.z);
@@ -403,9 +457,11 @@ namespace Astra.App.EditorTools
             var earth = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             earth.name = "Earth"; UnityEngine.Object.DestroyImmediate(earth.GetComponent<Collider>());
             earth.transform.SetParent(root);
-            earth.transform.position = new Vector3(-6f, -16f, 70f);
+            earth.transform.position = new Vector3(0f, -19.0f, 70f);   // limb at ~33° elevation: Earth fills the lower window, stars above
             earth.transform.localScale = Vector3.one * 110f;
             earth.transform.rotation = Quaternion.Euler(20f, 140f, 10f);
+            var nasaDay = AssetDatabase.LoadAssetAtPath<Texture2D>($"{NasaDir}/earth_day.jpg");
+            if (nasaDay != null && !Mats.ContainsKey("Earth")) Mats["Earth"] = NasaEarthMaterial(nasaDay);
             if (!Mats.TryGetValue("Earth", out var mat))   // created once per build, shared by every level
             {
                 mat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "Earth" };
@@ -417,8 +473,46 @@ namespace Astra.App.EditorTools
                 AssetDatabase.CreateAsset(mat, $"{MatDir}/Earth.mat");
                 Mats["Earth"] = mat;
             }
+            earth.GetComponent<MeshFilter>().sharedMesh = SmoothSphere();   // the primitive's 24 segments look faceted at this size
             var r = earth.GetComponent<Renderer>(); r.sharedMaterial = mat; r.shadowCastingMode = ShadowCastingMode.Off;
             var spin = earth.AddComponent<SlowSpin>(); spin.Configure(new Vector3(0.2f, 1f, 0f), 0.5f);   // orbital drift
+            if (nasaDay != null)
+            {
+                var shell = GameObject.CreatePrimitive(PrimitiveType.Sphere);   // atmosphere halo beyond the limb
+                shell.name = "Atmosphere"; UnityEngine.Object.DestroyImmediate(shell.GetComponent<Collider>());
+                shell.transform.SetParent(root);
+                shell.transform.position = earth.transform.position; shell.transform.localScale = Vector3.one * 110f * 1.025f;
+                if (!Mats.TryGetValue("Atmosphere", out var atmo))
+                {
+                    atmo = new Material(Shader.Find("ASTRA/Atmosphere")) { name = "Atmosphere" };
+                    AssetDatabase.CreateAsset(atmo, $"{MatDir}/Atmosphere.mat"); Mats["Atmosphere"] = atmo;
+                }
+                shell.GetComponent<MeshFilter>().sharedMesh = SmoothSphere();
+                var sr = shell.GetComponent<Renderer>(); sr.sharedMaterial = atmo; sr.shadowCastingMode = ShadowCastingMode.Off;
+            }
+            // the sun itself: a small HDR disc far away along the sun direction; bloom turns it into glare
+            var sunDisc = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            sunDisc.name = "Sun_Disc"; UnityEngine.Object.DestroyImmediate(sunDisc.GetComponent<Collider>());
+            sunDisc.transform.SetParent(root); sunDisc.transform.position = Eye + SunDir * 180f; sunDisc.transform.localScale = Vector3.one * 5f;
+            if (!Mats.TryGetValue("SunDisc", out var sunMat))
+            {
+                sunMat = new Material(Shader.Find("Universal Render Pipeline/Unlit")) { name = "SunDisc" };
+                sunMat.SetColor("_BaseColor", new Color(24f, 21f, 17f));
+                AssetDatabase.CreateAsset(sunMat, $"{MatDir}/SunDisc.mat"); Mats["SunDisc"] = sunMat;
+            }
+            var sdr = sunDisc.GetComponent<Renderer>(); sdr.sharedMaterial = sunMat; sdr.shadowCastingMode = ShadowCastingMode.Off;
+            // NASA star sky (skybox) when available; the particle stars below stay as the fallback
+            var starmap = AssetDatabase.LoadAssetAtPath<Texture2D>($"{NasaDir}/starmap.jpg");
+            if (starmap != null)
+            {
+                if (!Mats.TryGetValue("Sky", out var sky))
+                {
+                    sky = new Material(Shader.Find("Skybox/Panoramic")) { name = "Sky_NASA_Stars" };
+                    sky.SetTexture("_MainTex", starmap); sky.SetFloat("_Exposure", 0.55f); sky.SetFloat("_Rotation", 40f);
+                    AssetDatabase.CreateAsset(sky, $"{MatDir}/Sky_NASA_Stars.mat"); Mats["Sky"] = sky;
+                }
+                RenderSettings.skybox = sky;
+            }
 
             // microgravity dust: slow-drifting specks inside the cabin (world motion only; the camera never moves)
             var dust = new GameObject("Microgravity_Dust").AddComponent<ParticleSystem>();
@@ -439,6 +533,7 @@ namespace Astra.App.EditorTools
             }
             dust.GetComponent<ParticleSystemRenderer>().sharedMaterial = dustMat;
 
+            if (starmap != null) return;   // the NASA sky replaces the particle stars
             // Stars: one particle burst on a large sphere, never moving
             var stars = new GameObject("Stars").AddComponent<ParticleSystem>();
             stars.transform.SetParent(root);
@@ -459,6 +554,93 @@ namespace Astra.App.EditorTools
                 Mats["Stars"] = starMat;
             }
             pr.sharedMaterial = starMat;
+        }
+
+        /// <summary>High-resolution UV sphere (radius 0.5 like the primitive; equirectangular UVs, east to the right).</summary>
+        private static Mesh SmoothSphere()
+        {
+            const string path = SharedDir + "/SmoothSphere.asset";
+            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (existing != null) return existing;
+            const int W = 192, H = 96;
+            var verts = new List<Vector3>(); var uvs = new List<Vector2>(); var normals = new List<Vector3>(); var tris = new List<int>();
+            for (int i = 0; i <= H; i++)
+            for (int j = 0; j <= W; j++)
+            {
+                float u = j / (float)W, v = i / (float)H;
+                float theta = u * Mathf.PI * 2f, phi = (v - 0.5f) * Mathf.PI;
+                var n = new Vector3(Mathf.Cos(phi) * Mathf.Cos(theta), Mathf.Sin(phi), Mathf.Cos(phi) * Mathf.Sin(theta));
+                verts.Add(n * 0.5f); normals.Add(n); uvs.Add(new Vector2(u, v));
+            }
+            for (int i = 0; i < H; i++)
+            for (int j = 0; j < W; j++)
+            {
+                int a = i * (W + 1) + j, b = a + 1, c = a + W + 1, d = c + 1;
+                tris.AddRange(new[] { a, c, b, b, c, d });
+            }
+            // make sure the faces point outwards (Unity front faces are clockwise)
+            int t0 = (H / 2) * W * 6;
+            var e = Vector3.Cross(verts[tris[t0 + 1]] - verts[tris[t0]], verts[tris[t0 + 2]] - verts[tris[t0]]);
+            if (Vector3.Dot(e, verts[tris[t0]]) < 0f)
+                for (int k = 0; k < tris.Count; k += 3) { int tmp = tris[k + 1]; tris[k + 1] = tris[k + 2]; tris[k + 2] = tmp; }
+            var mesh = new Mesh { name = "SmoothSphere", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+            mesh.SetVertices(verts); mesh.SetNormals(normals); mesh.SetUVs(0, uvs); mesh.SetTriangles(tris, 0);
+            mesh.RecalculateBounds(); mesh.RecalculateTangents();
+            AssetDatabase.CreateAsset(mesh, path);
+            return mesh;
+        }
+
+        /// <summary>Earth from NASA imagery: Blue Marble day + Black Marble night lights (+ clouds if present).</summary>
+        private static Material NasaEarthMaterial(Texture2D day)
+        {
+            var m = new Material(Shader.Find("ASTRA/EarthDayNight")) { name = "Earth" };
+            m.SetTexture("_DayTex", day);
+            m.SetFloat("_AtmoStrength", 0.75f); m.SetFloat("_NightIntensity", 1.8f);
+            var night = AssetDatabase.LoadAssetAtPath<Texture2D>($"{NasaDir}/earth_night.jpg");
+            if (night != null) m.SetTexture("_NightTex", night);
+            var clouds = AssetDatabase.LoadAssetAtPath<Texture2D>($"{NasaDir}/earth_clouds.jpg");
+            if (clouds == null) clouds = CloudTexture();   // NASA no longer serves a cloud layer: procedural, seamless
+            if (clouds != null) m.SetTexture("_CloudTex", clouds);
+            m.SetFloat("_CloudSpeed", 0.0006f); m.SetFloat("_CloudStrength", 0.85f);
+            AssetDatabase.CreateAsset(m, $"{MatDir}/Earth.mat");
+            return m;
+        }
+
+        /// <summary>Seamless procedural cloud layer (domain-warped fBm, banded by latitude), cached as a PNG.</summary>
+        private static Texture2D CloudTexture()
+        {
+            string path = $"{SharedDir}/Textures/clouds_procedural.png";
+            if (!File.Exists(path))
+            {
+                const int W = 2048, H = 1024;
+                var px = new Color[W * H];
+                float Base(float x, float y)
+                {
+                    float wx = x + 0.35f * Fbm(x * 1.7f + 5.2f, y * 1.7f + 1.3f, 4);   // swirl
+                    float wy = y + 0.35f * Fbm(x * 1.7f + 9.1f, y * 1.7f + 4.7f, 4);
+                    return Fbm(wx * 2.2f, wy * 2.2f, 6);
+                }
+                for (int y = 0; y < H; y++)
+                {
+                    float v = y / (float)H;
+                    float lat = Mathf.Abs(v - 0.5f) * 2f;                                       // 0 equator .. 1 pole
+                    float belt = 0.55f + 0.35f * Mathf.Exp(-Mathf.Pow((lat - 0.55f) / 0.2f, 2f)) + 0.2f * Mathf.Exp(-Mathf.Pow(lat / 0.12f, 2f));
+                    for (int x = 0; x < W; x++)
+                    {
+                        float u = x / (float)W;
+                        float n = Base(u * 6f, v * 3f) * (1f - u) + Base((u - 1f) * 6f, v * 3f) * u;   // wraps at u = 0/1
+                        float c = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.52f, 0.78f, n * belt + 0.12f));
+                        px[y * W + x] = new Color(c, c, c, 1f);
+                    }
+                }
+                var tex = new Texture2D(W, H, TextureFormat.RGB24, false);
+                tex.SetPixels(px); tex.Apply();
+                File.WriteAllBytes(path, tex.EncodeToPNG());
+                UnityEngine.Object.DestroyImmediate(tex);
+                AssetDatabase.ImportAsset(path);
+                if (AssetImporter.GetAtPath(path) is TextureImporter ti) { ti.sRGBTexture = false; ti.wrapModeU = TextureWrapMode.Repeat; ti.wrapModeV = TextureWrapMode.Clamp; ti.SaveAndReimport(); }
+            }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
         private static Texture2D EarthTexture()
@@ -510,6 +692,23 @@ namespace Astra.App.EditorTools
             var instruction = PlaceUi("InstructionPanel", new Vector3(-0.56f, 1.37f, 0.56f), 0.42f);
             var debrief = PlaceUi("DebriefPanel", new Vector3(0.0f, 1.3f, 0.44f), 0.46f);
             PlaceUi("AlarmIndicator", new Vector3(0.62f, 1.58f, 0.6f), 0.28f);
+            var pause = PlaceUi("PauseMenu", new Vector3(0.0f, 1.3f, 0.42f), 0.40f, backplate: false);
+            var pm = pause != null ? pause.GetComponentInChildren<PauseMenu>(true) : null;
+            if (pm != null)
+            {
+                levelController.FindProperty("pauseMenu").objectReferenceValue = pm;
+                if (_gaze != null) { UnityEventTools.AddVoidPersistentListener(_gaze.onEmptyTap, pm.Toggle); EditorUtility.SetDirty(_gaze); }   // phone: tap on nothing = pause menu
+            }
+            var cert = PlaceUi("Certificate", new Vector3(0.0f, 1.32f, 0.5f), 0.56f, backplate: false);   // after the last level
+            var cp = cert != null ? cert.GetComponentInChildren<CertificatePanel>(true) : null;
+            if (cp != null)
+            {
+                levelController.FindProperty("certificate").objectReferenceValue = cp;
+                var certRoot = new SerializedObject(cp).FindProperty("root").objectReferenceValue as GameObject;
+                (certRoot != null ? certRoot : cp.gameObject).SetActive(false);   // hidden until the last level is passed
+            }
+            var cues = AssetDatabase.LoadAssetAtPath<AudioCues>("Assets/ASTRA/Audio/AudioCues.asset");
+            if (cues != null) levelController.FindProperty("audioCues").objectReferenceValue = cues;
             if (instruction == null || phase == null || debrief == null) return false;
             levelController.FindProperty("instructionPanel").objectReferenceValue = instruction.GetComponentInChildren<InstructionPanel>(true);
             levelController.FindProperty("phaseBanner").objectReferenceValue = phase.GetComponentInChildren<PhaseBanner>(true);
@@ -522,7 +721,7 @@ namespace Astra.App.EditorTools
             return true;
         }
 
-        private static GameObject PlaceUi(string prefabName, Vector3 position, float targetWidth)
+        private static GameObject PlaceUi(string prefabName, Vector3 position, float targetWidth, bool backplate = true)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{UiPrefabs}/{prefabName}.prefab");
             if (prefab == null) { Debug.LogWarning($"[AstraSceneBuilder] UI prefab {prefabName} not found; using the test HUD."); return null; }
@@ -539,7 +738,7 @@ namespace Astra.App.EditorTools
                 rt.GetWorldCorners(corners);
                 float w = Vector3.Distance(corners[0], corners[3]), h = Vector3.Distance(corners[0], corners[1]);
                 Debug.Log($"[AstraSceneBuilder] {prefabName}: {w:0.00} m x {h:0.00} m");
-                Backplate(go.transform, (corners[0] + corners[2]) / 2f, w, h);
+                if (backplate) Backplate(go.transform, (corners[0] + corners[2]) / 2f, w, h);
             }
             return go;
         }
@@ -583,8 +782,9 @@ namespace Astra.App.EditorTools
             go.transform.position = Eye;
             go.tag = "MainCamera";
             var cam = go.AddComponent<Camera>();
-            cam.fieldOfView = 70f; cam.nearClipPlane = 0.02f; cam.farClipPlane = 50f;
-            cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(0.0f, 0.0f, 0.01f);
+            cam.fieldOfView = 70f; cam.nearClipPlane = 0.02f; cam.farClipPlane = 400f;
+            cam.clearFlags = RenderSettings.skybox != null && RenderSettings.skybox.shader.name == "Skybox/Panoramic" ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0.0f, 0.0f, 0.01f);
             cam.allowHDR = true; cam.allowMSAA = true;
             // reflections for metal and glass: one realtime probe for the whole cabin
             var probe = new GameObject("Cabin_ReflectionProbe").AddComponent<ReflectionProbe>();
@@ -593,7 +793,10 @@ namespace Astra.App.EditorTools
             probe.timeSlicingMode = ReflectionProbeTimeSlicingMode.NoTimeSlicing;
             probe.size = new Vector3(2.6f, 2.3f, 2.4f); probe.resolution = 128; probe.boxProjection = true;
             go.AddComponent<AudioListener>();
-            return (cam, go.AddComponent<DesktopRig>());
+            var rig = go.AddComponent<DesktopRig>();
+            var reticle = AssetDatabase.LoadAssetAtPath<Material>(GazeRig.ReticleMaterialPath);
+            _gaze = GazeRig.AttachTo(cam, reticle, _font, keepDesktopMouse: true);
+            return (cam, rig);
         }
 
         private static void BuildPostProcessing(Camera cam, string folder, string sceneName)
@@ -630,6 +833,9 @@ namespace Astra.App.EditorTools
 
         // ------------------------------------------------------------------ helpers
 
+        private static string _label;          // display label of the control being built (gaze reticle text)
+        private static GazeInteractor _gaze;   // phone gaze rig of the level being built
+
         private static Transform ControlRoot(string id, Transform panel, Vector2 at)
         {
             var root = new GameObject(id).transform;   // object name == targetId (Blender/Unity naming convention)
@@ -654,7 +860,7 @@ namespace Astra.App.EditorTools
                 col.size = hitSize.Value;                 // unscaled roots: size in metres (>= 6 cm)
                 col.center = new Vector3(0, 0, -hitSize.Value.z / 2f + 0.01f);
             }
-            go.AddComponent<TestTarget>().Configure(id, evt, kind, part, highlight, state, accepts);
+            go.AddComponent<TestTarget>().Configure(id, evt, kind, part, highlight, state, accepts, _label);
         }
 
         private static Vector3 Face(Transform panel, Vector2 at, float outward = 0.016f) =>
