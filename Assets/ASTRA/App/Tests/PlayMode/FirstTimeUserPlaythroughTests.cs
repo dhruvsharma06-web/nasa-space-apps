@@ -27,6 +27,14 @@ namespace Astra.App.Tests.PlayMode
             }
         }
 
+        /// <summary>Unload the last level so its rigs don't affect later tests.</summary>
+        [UnityTearDown]
+        public IEnumerator TearDown()
+        {
+            foreach (var go in SceneManager.GetActiveScene().GetRootGameObjects()) Object.Destroy(go);
+            yield return null;
+        }
+
         [UnityTest]
         public IEnumerator EveryLevel_CanBeCompletedByAimingAndClickingTheNextControl()
         {
@@ -68,6 +76,15 @@ namespace Astra.App.Tests.PlayMode
                 if (level.Phase != ModulePhase.Debrief) { failures.Add($"{scene}: no Debrief (phase {level.Phase})"); continue; }
                 if (level.LastResult == null || !level.LastResult.passed)
                     failures.Add($"{scene}: a perfect run did not pass (omitted {string.Join(",", level.LastResult?.omittedCriticalSteps ?? new List<string>())})");
+
+                // 4. "Next level" from the debrief loads the next level in order
+                string expected = LevelController.NextLevelScene(scene);
+                if (expected != null)
+                {
+                    level.NextLevel();
+                    for (int f = 0; f < 3; f++) yield return null;
+                    if (SceneManager.GetActiveScene().name != expected) failures.Add($"{scene}: Next level opened '{SceneManager.GetActiveScene().name}', expected '{expected}'");
+                }
             }
             Assert.Greater(levels, 0, "no level scenes in the build settings");
             Assert.IsEmpty(failures, string.Join("\n", failures));
@@ -101,12 +118,23 @@ namespace Astra.App.Tests.PlayMode
             var dir = aim - cam.transform.position;
             float angle = Vector3.Angle(Vector3.ProjectOnPlane(dir, Vector3.up), Vector3.forward);
             if (angle > 100f) failures.Add($"{scene}/{phase}: '{target.TargetId}' is behind the user ({angle:0}°)");
-            if (Physics.Raycast(cam.transform.position, dir.normalized, out var hit, 4f))
+            // a user may aim anywhere on the control: centre first, then points across a panel's face
+            var points = new List<Vector3> { aim };
+            if (col != null && target.TargetKind == TestTarget.Kind.Panel)
             {
-                var hitTarget = hit.collider.GetComponentInParent<TestTarget>();
-                if (hitTarget != target) failures.Add($"{scene}/{phase}: aiming at '{target.TargetId}' hits '{(hitTarget != null ? hitTarget.TargetId : hit.collider.name)}' instead");
+                var t = target.transform; var e = col.bounds.extents;
+                foreach (var fx in new[] { -0.4f, 0f, 0.4f }) foreach (var fy in new[] { -0.4f, 0f, 0.4f })
+                    points.Add(aim + t.right * (fx * e.magnitude) + t.up * (fy * e.magnitude));
             }
-            else failures.Add($"{scene}/{phase}: '{target.TargetId}' cannot be hit from the seat");
+            string blocker = null; bool reached = false;
+            foreach (var p in points)
+            {
+                if (!Physics.Raycast(cam.transform.position, (p - cam.transform.position).normalized, out var hit, 4f)) continue;
+                var hitTarget = hit.collider.GetComponentInParent<TestTarget>();
+                if (hitTarget == target) { reached = true; break; }
+                blocker ??= hitTarget != null ? hitTarget.TargetId : hit.collider.name;
+            }
+            if (!reached) failures.Add(blocker != null ? $"{scene}/{phase}: aiming at '{target.TargetId}' hits '{blocker}' instead" : $"{scene}/{phase}: '{target.TargetId}' cannot be hit from the seat");
             target.Activate();
             yield return null;
         }

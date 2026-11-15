@@ -51,6 +51,8 @@ namespace Astra.XR.Phone
         private bool pressConsumed;
         private float pressTime;
         private bool simulatedPress;
+        private bool mouseAim;
+        private Camera aimCamera;
 
         public UnityEvent onEmptyTap => emptyTap;
         public IGazeTarget Hovered => IsAlive(hovered) ? hovered : null;
@@ -98,6 +100,13 @@ namespace Astra.XR.Phone
         /// <summary>Off when a desktop rig on the same camera already handles mouse clicks (no double activation).</summary>
         public void SetMouseAndKeyboard(bool on) => useMouseAndKeyboard = on;
 
+        /// <summary>
+        /// Desktop pointer mode (Hub in the browser/editor): the ray goes through the mouse cursor instead of the view
+        /// centre, so a plain mouse move aims and a left click selects. Ignored on mobile and when mouse input is off.
+        /// </summary>
+        public void SetMouseAim(bool on) => mouseAim = on;
+        public bool MouseAim => mouseAim;
+
         /// <summary>Test hook and accessibility switch: presses (true) or releases (false) the gaze button.</summary>
         public void SetSimulatedPress(bool down) => simulatedPress = down;
 
@@ -118,7 +127,24 @@ namespace Astra.XR.Phone
         private void Update()
         {
             var held = ReadPressHeld();
-            Tick(new Ray(head.position, head.forward), held && !pressing, held, Time.unscaledDeltaTime);
+            Tick(CurrentRay(), held && !pressing, held, Time.unscaledDeltaTime);
+        }
+
+        private Ray CurrentRay()
+        {
+#if ENABLE_INPUT_SYSTEM
+            if (mouseAim && useMouseAndKeyboard && !Application.isMobilePlatform && Mouse.current != null)
+            {
+                if (aimCamera == null)
+                    aimCamera = head != null ? head.GetComponent<Camera>() : null;
+                if (aimCamera == null)
+                    aimCamera = Camera.main;
+                var position = Mouse.current.position.ReadValue();
+                if (aimCamera != null && position.x >= 0f && position.y >= 0f && position.x <= Screen.width && position.y <= Screen.height)
+                    return aimCamera.ScreenPointToRay(position);
+            }
+#endif
+            return new Ray(head.position, head.forward);
         }
 
         /// <summary>

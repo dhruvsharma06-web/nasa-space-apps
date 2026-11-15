@@ -1,6 +1,7 @@
 using System;
 using Astra.Core.Progress;
 using Astra.UI.Progress;
+using Astra.XR.Phone;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -153,6 +154,41 @@ namespace Astra.UI.Hub
         {
             if (!ValidateReferences())
                 enabled = false;
+        }
+
+        private void Start() => SetUpDesktopPointer();
+
+        /// <summary>
+        /// Desktop/WebGL: aim with the mouse, left click selects (no right-drag), plus a small hint. Mobile keeps gaze + tap.
+        /// Only when a gaze rig exists in the scene.
+        /// </summary>
+        private void SetUpDesktopPointer()
+        {
+            if (Application.isMobilePlatform) return;
+            var gaze = FindFirstObjectByType<GazeInteractor>();
+            if (gaze == null) return;
+            gaze.SetMouseAim(true);
+
+            var canvasObject = new GameObject("Desktop Hint", typeof(RectTransform));
+            canvasObject.transform.SetParent(transform, false);
+            var canvas = canvasObject.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 100;
+            var textObject = new GameObject("Hint", typeof(RectTransform));
+            var rect = (RectTransform)textObject.transform;
+            rect.SetParent(canvasObject.transform, false);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = new Vector2(0f, 24f);
+            rect.sizeDelta = new Vector2(520f, 40f);
+            var text = textObject.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.text = "Click a level to start";
+            text.fontSize = 24;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = new Color(0.9f, 0.95f, 1f, 0.9f);
+            text.raycastTarget = false;
+            text.supportRichText = false;
         }
 
         private void OnEnable()

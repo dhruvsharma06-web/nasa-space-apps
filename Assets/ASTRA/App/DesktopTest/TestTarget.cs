@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Astra.Core.Assessment;
+using Astra.XR.Input;
 using Astra.XR.Interactables;
 using TMPro;
 using UnityEngine;
@@ -15,7 +16,7 @@ namespace Astra.DesktopTest
     /// OWNER: Integration Lead (test tooling).
     /// </summary>
     [RequireComponent(typeof(Collider))]
-    public class TestTarget : MonoBehaviour
+    public class TestTarget : MonoBehaviour, IGazeTarget, IGazeLocatable, IGazeLabel
     {
         public enum Kind { Button, Toggle, Dial, Panel, Checklist, Lever, Tool, Socket }
 
@@ -31,6 +32,8 @@ namespace Astra.DesktopTest
         [SerializeField] private TMP_Text stateLabel;
         [Tooltip("Socket only: the tool targetId it accepts.")]
         [SerializeField] private string accepts;
+        [Tooltip("Label shown under the gaze reticle (e.g. CABIN LIGHTS).")]
+        [SerializeField] private string label;
 
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         private static readonly int EmissionColor = Shader.PropertyToID("_EmissionColor");
@@ -41,14 +44,32 @@ namespace Astra.DesktopTest
         private Vector3 _partRestPos, _homePos;
         private Quaternion _homeRot;
         private Transform _homeParent;
+        private string trigger;            // state that raises the mission event: ON/OFF (toggle, lever) or a dial position name
+        private string[] positions;        // dial positions, cycled in order
+        private bool decoy;                // decoys raise control_activated on every activation
+        private int _posIndex;
 
         public string TargetId => targetId;
         public Kind TargetKind => kind;
         public string Accepts => accepts;
 
-        public void Configure(string id, string evt, Kind k, Transform movingPart, Renderer highlight, TMP_Text state, string acceptsTool = null)
+        // ---- phone gaze rig (P1's IGazeTarget): same behaviour as a click, reported as "gaze"
+        public bool IsGazeEnabled { get { var c = GetComponent<Collider>(); return isActiveAndEnabled && c != null && c.enabled; } }
+        public void SetGazeHover(bool on) => SetHover(on);
+        public void ActivateFromGaze() => Activate(InputModality.Gaze);
+        public float GazeLocateSeconds => kind == Kind.Panel ? 1f : 0f;   // CONTRACT §3: locating = 1 s look
+        public string GazeLabel => label;
+
+        public void Configure(string id, string evt, Kind k, Transform movingPart, Renderer highlight, TMP_Text state, string acceptsTool = null, string displayLabel = null, string triggerState = null, string[] dialPositions = null, bool isDecoy = false)
         {
-            targetId = id; eventName = evt; kind = k; part = movingPart; highlightRenderer = highlight; stateLabel = state; accepts = acceptsTool;
+            targetId = id; eventName = evt; kind = k; part = movingPart; highlightRenderer = highlight; stateLabel = state; accepts = acceptsTool; label = displayLabel;
+            SetStateRules(triggerState, dialPositions, isDecoy);
+        }
+
+        /// <summary>Which state raises the mission event. Null trigger: ON for toggles/levers, every turn for dials.</summary>
+        public void SetStateRules(string triggerState, string[] dialPositions, bool isDecoy)
+        {
+            trigger = triggerState; positions = dialPositions; decoy = isDecoy;
         }
 
         private void Awake()
@@ -58,6 +79,7 @@ namespace Astra.DesktopTest
             if (part != null) { _partRest = part.localRotation; _partRestPos = part.localPosition; }
             _homePos = transform.position; _homeRot = transform.rotation; _homeParent = transform.parent;
             UpdateStateLabel();
+            ApplyDialAngle();
         }
 
         private void OnEnable() { if (!string.IsNullOrEmpty(targetId)) Registry[targetId] = this; }
@@ -70,7 +92,11 @@ namespace Astra.DesktopTest
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() { Registry.Clear(); Held = null; }
 
-        public void SetHover(bool on) { _hover = on; Refresh(); }
+        public void SetHover(bool on)
+        {
+            if (on && !_hover && Astra.App.LevelAudio.Cues != null) Astra.App.LevelAudio.Play(Astra.App.LevelAudio.Cues.hover, 0.25f);
+            _hover = on; Refresh();
+        }
         public void SetDemoHighlight(bool on) { _demo = on; Refresh(); }
 
         /// <summary>New attempt: tools go home, toggles/levers go back to OFF.</summary>
@@ -86,11 +112,32 @@ namespace Astra.DesktopTest
                     if (t.part != null) t.part.localRotation = t._partRest;
                     t.UpdateStateLabel();
                 }
+                if (t.kind == Kind.Dial) { t._posIndex = 0; t.ApplyDialAngle(); }
             }
         }
 
-        public void Activate()
+        public void Activate() => Activate(InputModality.Simulator);
+
+        private void PlayCue()
         {
+            var c = Astra.App.LevelAudio.Cues;
+            if (c == null) return;
+            var clip = kind switch
+            {
+                Kind.Toggle or Kind.Lever => c.toggle,
+                Kind.Dial => c.dialTick,
+                Kind.Tool => c.grab,
+                Kind.Socket => Held != null ? c.place : null,
+                Kind.Panel => c.select,
+                _ => c.button,
+            };
+            Astra.App.LevelAudio.Play(clip, 0.8f);
+        }
+
+        /// <summary>Uses the control; <paramref name="modality"/> is reported with the event (simulator, gaze, ...).</summary>
+        public void Activate(string modality)
+        {
+            PlayCue();
             switch (kind)
             {
                 case Kind.Toggle:
@@ -98,9 +145,13 @@ namespace Astra.DesktopTest
                     _on = !_on;
                     if (part != null) part.localRotation = _partRest * Quaternion.Euler(_on ? (kind == Kind.Lever ? -90f : -70f) : 0f, 0f, 0f);
                     UpdateStateLabel();
+                    if (!decoy && (_on ? "ON" : "OFF") != (string.IsNullOrEmpty(trigger) ? "ON" : trigger)) return;   // not the required state: no event
                     break;
                 case Kind.Dial:
-                    if (part != null) part.localRotation = part.localRotation * Quaternion.Euler(0f, 0f, -45f);
+                    int n = positions != null && positions.Length > 0 ? positions.Length : 2;
+                    _posIndex = (_posIndex + 1) % n;
+                    ApplyDialAngle();
+                    if (!decoy && !string.IsNullOrEmpty(trigger) && positions != null && positions.Length > 0 && positions[_posIndex] != trigger) return;   // wrong position: no event
                     break;
                 case Kind.Button:
                     if (part != null) StartCoroutine(Press());
@@ -116,7 +167,7 @@ namespace Astra.DesktopTest
                         transform.SetParent(cam.transform, true);
                         transform.localPosition = new Vector3(0.12f, -0.12f, 0.35f);   // "in hand", lower right of view
                     }
-                    InteractionEvents.Raise(EventNames.ObjectGrabbed, targetId, InputModality.Simulator);
+                    InteractionEvents.Raise(EventNames.ObjectGrabbed, targetId, modality);
                     return;
                 case Kind.Socket:
                     if (Held == null) return;                       // nothing to place
@@ -127,16 +178,16 @@ namespace Astra.DesktopTest
                         tool.transform.position = transform.position - transform.forward * 0.03f;
                         tool.transform.rotation = transform.rotation;
                         tool.GetComponent<Collider>().enabled = true;
-                        InteractionEvents.Raise(EventNames.ObjectPlaced, targetId, InputModality.Simulator);   // socket id (CONTRACT §3)
+                        InteractionEvents.Raise(EventNames.ObjectPlaced, targetId, modality);   // socket id (CONTRACT §3)
                     }
                     else
                     {
                         tool.Drop();
-                        InteractionEvents.Raise(EventNames.ObjectReleased, tool.targetId, InputModality.Simulator);
+                        InteractionEvents.Raise(EventNames.ObjectReleased, tool.targetId, modality);
                     }
                     return;
             }
-            InteractionEvents.Raise(eventName, targetId, InputModality.Simulator);
+            InteractionEvents.Raise(eventName, targetId, modality);
         }
 
         private void Drop() { GoHome(); }
@@ -153,6 +204,13 @@ namespace Astra.DesktopTest
             part.localPosition = _partRestPos + new Vector3(0f, 0f, 0.004f);   // 4 mm travel into the panel
             yield return new WaitForSecondsRealtime(0.12f);
             part.localPosition = _partRestPos;
+        }
+
+        // Matches the builder's dial labels (45 degree steps; label 0 is 45 degrees clockwise of up, so z = -45 + 45 * index).
+        private void ApplyDialAngle()
+        {
+            if (kind != Kind.Dial || part == null) return;
+            part.localRotation = _partRest * Quaternion.Euler(0f, 0f, -45f + 45f * _posIndex);
         }
 
         private void UpdateStateLabel()

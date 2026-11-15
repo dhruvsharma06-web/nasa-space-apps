@@ -1,3 +1,4 @@
+using Astra.XR.Input;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -19,6 +20,7 @@ namespace Astra.DesktopTest
         private float _yaw, _pitch;
         private Quaternion _rest;
         private TestTarget _hovered;
+        private IGazeTarget _hoveredUi;   // non-TestTarget gaze targets (debrief RETRY / HUB / NEXT LEVEL buttons)
 
         public bool Locked => Cursor.lockState == CursorLockMode.Locked;
         public TestTarget Hovered => _hovered;
@@ -34,9 +36,16 @@ namespace Astra.DesktopTest
 
             if (!Locked)
             {
-                // First click into the view locks the cursor (browsers require a click for pointer lock).
-                if (mouse.leftButton.wasPressedThisFrame && !DesktopHud.PointerOverHud) Cursor.lockState = CursorLockMode.Locked;
+                // Free cursor: UI gaze buttons (debrief) can be clicked at the mouse position.
+                IGazeTarget ui = null;
+                if (!DesktopHud.PointerOverHud) ui = UiUnder(_cam.ScreenPointToRay(mouse.position.ReadValue()), 4f);
                 SetHovered(null);
+                SetHoveredUi(ui);
+                if (mouse.leftButton.wasPressedThisFrame && !DesktopHud.PointerOverHud)
+                {
+                    if (ui != null) ui.ActivateFromGaze();
+                    else Cursor.lockState = CursorLockMode.Locked;   // browsers require a click for pointer lock
+                }
                 return;
             }
 
@@ -47,10 +56,43 @@ namespace Astra.DesktopTest
 
             var ray = new Ray(_cam.transform.position, _cam.transform.forward);
             TestTarget hit = null;
-            if (Physics.Raycast(ray, out var info, rayLength)) hit = info.collider.GetComponentInParent<TestTarget>();
+            IGazeTarget uiHit = null;
+            if (Physics.Raycast(ray, out var info, rayLength))
+            {
+                hit = info.collider.GetComponentInParent<TestTarget>();
+                if (hit == null) uiHit = GazeTargetOf(info.collider);
+            }
             SetHovered(hit);
+            SetHoveredUi(uiHit);
 
-            if (mouse.leftButton.wasPressedThisFrame && _hovered != null) _hovered.Activate();
+            if (mouse.leftButton.wasPressedThisFrame && !DesktopHud.PointerOverHud)
+            {
+                if (_hovered != null) _hovered.Activate();
+                else if (_hoveredUi != null) _hoveredUi.ActivateFromGaze();
+            }
+        }
+
+        private static IGazeTarget GazeTargetOf(Collider c)
+        {
+            foreach (var mb in c.GetComponentsInParent<MonoBehaviour>())
+                if (mb is IGazeTarget g && !(mb is TestTarget) && g.IsGazeEnabled) return g;
+            return null;
+        }
+
+        // First hit only: a UI gaze target that is not a TestTarget.
+        private static IGazeTarget UiUnder(Ray ray, float length)
+        {
+            if (!Physics.Raycast(ray, out var info, length)) return null;
+            if (info.collider.GetComponentInParent<TestTarget>() != null) return null;
+            return GazeTargetOf(info.collider);
+        }
+
+        private void SetHoveredUi(IGazeTarget t)
+        {
+            if (t == _hoveredUi) return;
+            if (_hoveredUi is Object o && o != null) _hoveredUi.SetGazeHover(false);   // skip if destroyed with the debrief
+            _hoveredUi = t;
+            if (_hoveredUi != null) _hoveredUi.SetGazeHover(true);
         }
 
         private void SetHovered(TestTarget t)

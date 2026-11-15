@@ -21,7 +21,7 @@ namespace Astra.UI.Editor
     /// and the Hub scene. L0/L1 are built by the Integration Lead's level factory from their layout files
     /// (Content/Layouts/l0-layout.json, l1-layout.json); this builder does not touch level scenes.
     /// Layout follows CONTRACT.md §8 comfort rules: seated eye at (0, 1.2, 0) facing +Z, nothing behind the cadet.
-    /// Generated assets are overwritten in place (GUIDs kept).
+    /// Prefabs are created only when missing by BuildAll; RebuildAll overwrites them in place (GUIDs kept).
     /// </summary>
     public static class P1SceneBuilder
     {
@@ -38,17 +38,27 @@ namespace Astra.UI.Editor
         private static readonly Vector3 Eye = new Vector3(0f, EyeHeight, 0f);
         private static readonly Color Plate = new Color(0.02f, 0.035f, 0.06f, 0.9f);
 
-        [MenuItem("ASTRA/P1/Rebuild P1 assets and Hub scene (overwrites)")]
-        public static void BuildAll()
+        /// <summary>Creates missing P1 prefabs/assets and rebuilds the Hub scene. Existing prefabs are never overwritten.</summary>
+        [MenuItem("ASTRA/P1/Build P1 assets and Hub scene (keeps existing prefabs)")]
+        public static void BuildAll() => Build(false);
+
+        /// <summary>Explicit regeneration: overwrites the shared UI prefabs, PauseMenu and GazeRig (GUIDs kept).</summary>
+        [MenuItem("ASTRA/P1/Rebuild P1 assets and Hub scene (overwrites prefabs)")]
+        public static void RebuildAll() => Build(true);
+
+        private static void Build(bool overwritePrefabs)
         {
-            UiPrefabBuilder.RebuildUiPrefabs();
+            if (overwritePrefabs) UiPrefabBuilder.RebuildUiPrefabs();
+            else UiPrefabBuilder.BuildUiPrefabs();
             var reticle = EnsureReticleMaterial();
-            BuildGazeRigPrefab(reticle);
-            BuildPausePrefab();
+            if (overwritePrefabs || AssetDatabase.LoadMainAssetAtPath(GazeRig.PrefabPath) == null)
+                BuildGazeRigPrefab(reticle);
+            if (overwritePrefabs || AssetDatabase.LoadMainAssetAtPath(PausePrefab) == null)
+                BuildPausePrefab();
             CreateAudioCues();
             BuildHub(reticle);
             AssetDatabase.SaveAssets();
-            Debug.Log("[P1SceneBuilder] Built P1 prefabs, AudioCues and " + HubScene);
+            Debug.Log("[P1SceneBuilder] Built P1 assets (" + (overwritePrefabs ? "prefabs overwritten" : "existing prefabs kept") + ") and " + HubScene);
         }
 
         /// <summary>Batch entry: -executeMethod Astra.UI.Editor.P1SceneBuilder.BuildAllBatch (exits 0/1).</summary>
@@ -77,7 +87,7 @@ namespace Astra.UI.Editor
             return material;
         }
 
-        [MenuItem("ASTRA/P1/Build GazeRig prefab")]
+        [MenuItem("ASTRA/P1/Rebuild GazeRig prefab (overwrites)")]
         public static void BuildGazeRigPrefabMenu() => BuildGazeRigPrefab(EnsureReticleMaterial());
 
         private static void BuildGazeRigPrefab(Material reticle)
@@ -297,6 +307,12 @@ namespace Astra.UI.Editor
         }
 
         /// <summary>One level card: preview, title, status, best + medal, hover details, lock overlay, glow edge.</summary>
+        private static void FitText(Text text, int min, int max)
+        {
+            text.resizeTextForBestFit = true; text.resizeTextMinSize = min; text.resizeTextMaxSize = max;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap; text.verticalOverflow = VerticalWrapMode.Truncate;
+        }
+
         private static void BuildCard(LevelCatalog.Entry entry, Vector3 position, bool hasPreview, out LevelCard card, out LevelCardPresenter presenter)
         {
             // 375 × 425 px at 0.8 mm/px = 0.30 × 0.34 m, 1.0 m away: 40 px body ≈ 22 mm cap (= 12 mm at 0.55 m).
@@ -317,11 +333,14 @@ namespace Astra.UI.Editor
             var level = MakeLabel(body, "Level", "LEVEL " + entry.Level, 30, -110f, 182f, 130f, 40f, TextAnchor.MiddleLeft);
             level.fontStyle = FontStyle.Bold;
             level.color = Theme.AccentInk;
-            var cardTitle = MakeLabel(body, "Title", entry.Title, 44, 0f, -40f, 345f, 96f, TextAnchor.MiddleCenter);
+            var cardTitle = MakeLabel(body, "Title", entry.Title, 40, 0f, -36f, 345f, 88f, TextAnchor.MiddleCenter);
             cardTitle.fontStyle = FontStyle.Bold;
-            var status = MakeLabel(body, "Status", string.Empty, 40, 0f, -116f, 345f, 48f, TextAnchor.MiddleCenter);
+            FitText(cardTitle, 22, 40);   // two-line titles shrink instead of spilling into the status line
+            var status = MakeLabel(body, "Status", string.Empty, 30, 0f, -112f, 345f, 44f, TextAnchor.MiddleCenter);
+            FitText(status, 18, 30);
             status.color = Theme.AccentInk;
-            var best = MakeLabel(body, "Best", "NOT PLAYED", 32, -70f, -172f, 200f, 44f, TextAnchor.MiddleLeft);
+            var best = MakeLabel(body, "Best", "NOT PLAYED", 28, -70f, -170f, 200f, 40f, TextAnchor.MiddleLeft);
+            FitText(best, 16, 28);
             best.color = Theme.InkDim;
             var badge = MakeImage(body, "Medal Badge", 110f, -172f, 120f, 44f, Theme.Gold);
             var medal = MakeLabel(badge.transform, "Medal", string.Empty, 28, 0f, 0f, 120f, 44f, TextAnchor.MiddleCenter);
