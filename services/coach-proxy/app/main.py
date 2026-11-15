@@ -3,7 +3,8 @@ from typing import Callable
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from .ai import AIUnavailable, CoachAI, GeminiCoach
+from .ask import offline_answer, screen
+from .ai import AIUnavailable, CoachAI, GeminiCoach, OutputRejected
 from .errors import error_response, install_error_handling
 from .missions import MissionStore, find_step
 from .mock import build_mock_response
@@ -119,6 +120,9 @@ def create_app(
             return unavailable("AI coach is not configured.")
         try:
             advice, hints = ai.debrief(mission, request)
+        except OutputRejected:
+            # empty/off-topic model text: deterministic offline debrief, labelled as such
+            return build_mock_response(request, settings.FIXTURES_DIR)
         except AIUnavailable:
             return unavailable()
         return compose_debrief(request, advice, hints, settings.GEMINI_MODEL)
@@ -138,17 +142,23 @@ def create_app(
             if step is None:
                 return _invalid("currentStepId", "not a step of this mission")
 
-        if settings.USE_MOCK_AI:
-            answer = step["hint"] if step else "All steps are complete."
+        refusal = screen(request.question)
+        if refusal is not None:
+            answer, model = refusal, "coach-mock-0"
+        elif settings.USE_MOCK_AI:
+            answer = offline_answer(mission, step, request.question)
             model = "coach-mock-0"
         else:
             if ai is None:
                 return unavailable("AI coach is not configured.")
             try:
                 answer = cut_words(ai.ask(mission, step, request.question), ANSWER_MAX)
+                model = settings.GEMINI_MODEL
+            except OutputRejected:
+                answer = offline_answer(mission, step, request.question)
+                model = "coach-mock-0"
             except AIUnavailable:
                 return unavailable()
-            model = settings.GEMINI_MODEL
         return {
             "sessionId": request.sessionId,
             "missionId": request.missionId,

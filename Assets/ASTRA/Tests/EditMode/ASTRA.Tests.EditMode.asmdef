@@ -1,7 +1,7 @@
 {
   "name": "ASTRA.Tests.EditMode",
   "rootNamespace": "Astra.Tests",
-  "references": ["ASTRA.Core", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
+  "references": ["ASTRA.Core", "ASTRA.Coach", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
   "includePlatforms": ["Editor"],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
