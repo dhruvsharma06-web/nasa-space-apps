@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41833f17b3ff433c9a5204f3e245d3d8, type: 3}
+  m_Name: AudioCues
+  m_EditorClassIdentifier: ASTRA.UI::Astra.UI.AudioCues
+  hover: {fileID: 8300000, guid: 4a4caf45a57a4ee687019619ee10ee3d, type: 3}
+  select: {fileID: 8300000, guid: 31e9481ba58743e9989f8256665acd95, type: 3}
+  toggle: {fileID: 8300000, guid: 84e1b9aad633454789f195ac3e5aadcb, type: 3}
+  button: {fileID: 8300000, guid: c7dc15b5c2644d6a8214bfed230b0a7d, type: 3}
+  dialTick: {fileID: 8300000, guid: fd49de04e2d24b14af006e1e8187c1eb, type: 3}
+  grab: {fileID: 8300000, guid: a2be1e1a72624d25b79aa77cc6aa4603, type: 3}
+  place: {fileID: 8300000, guid: 93e8ffb6420241dca54f727a32565f0c, type: 3}
+  correct: {fileID: 8300000, guid: 00ef2ef36a2c42518cee78824b5cdcf9, type: 3}
+  wrong: {fileID: 8300000, guid: bb5b860f78e248969792c3ad9389b034, type: 3}
+  phaseChange: {fileID: 8300000, guid: e9d4dd875e1c4c7e97dc66dd40855875, type: 3}
+  alarm: {fileID: 8300000, guid: d67f775aa5bf4162919b291b7576e2c6, type: 3}
+  success: {fileID: 8300000, guid: 9c9653711f504fc0a77587fe9ddc2258, type: 3}
+  fail: {fileID: 8300000, guid: 060450293a61429ea709fbe2ac07c641, type: 3}
+  ambientHum: {fileID: 8300000, guid: c816db071c294660b8804b410c081e7f, type: 3}

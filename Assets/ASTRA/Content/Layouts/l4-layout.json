@@ -9,8 +9,8 @@
   "controls": [
     { "targetId": "caution_ack_button", "type": "button", "label": "ACK", "panel": "power_panel", "at": [-0.20, -0.015] },
     { "targetId": "power_bus_b_display", "type": "button", "label": "BUS B", "panel": "power_panel", "at": [0.06, 0.025] },
-    { "targetId": "power_bus_b_dial", "type": "dial", "label": "BUS B", "panel": "power_panel", "at": [0.06, -0.095], "positions": ["NORMAL", "ISOLATE"] },
-    { "targetId": "crosstie_lever", "type": "lever", "label": "CROSS-TIE", "panel": "power_panel", "at": [0.20, -0.03] },
+    { "targetId": "power_bus_b_dial", "type": "dial", "label": "BUS B", "panel": "power_panel", "at": [0.06, -0.095], "positions": ["NORMAL", "ISOLATE"], "trigger": "ISOLATE" },
+    { "targetId": "crosstie_lever", "type": "lever", "label": "CROSS-TIE", "panel": "power_panel", "at": [0.20, -0.03], "trigger": "ON" },
     { "targetId": "power_fault_checklist", "type": "checklist", "label": "CHECKLIST", "panel": "checklist_display", "at": [0.0, -0.015] },
     { "targetId": "power_report_button", "type": "button", "label": "REPORT", "panel": "status_display", "at": [0.0, -0.05] }
   ],

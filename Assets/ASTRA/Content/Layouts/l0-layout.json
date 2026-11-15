@@ -7,8 +7,8 @@
   ],
   "controls": [
     { "targetId": "ready_button", "type": "button", "label": "READY", "panel": "safety_placard_panel", "at": [-0.15, 0.04] },
-    { "targetId": "test_switch_toggle", "type": "toggle", "label": "TEST SWITCH", "panel": "safety_placard_panel", "at": [0.00, 0.04] },
-    { "targetId": "test_dial", "type": "dial", "label": "TEST DIAL", "panel": "safety_placard_panel", "at": [0.15, 0.04], "positions": ["1", "2", "3"] },
+    { "targetId": "test_switch_toggle", "type": "toggle", "label": "TEST SWITCH", "panel": "safety_placard_panel", "at": [0.00, 0.04], "trigger": "ON" },
+    { "targetId": "test_dial", "type": "dial", "label": "TEST DIAL", "panel": "safety_placard_panel", "at": [0.15, 0.04], "positions": ["1", "2", "3"], "trigger": "2" },
     { "targetId": "tool_bay_slot", "type": "socket", "label": "TOOL BAY", "panel": "tool_stowage_panel", "at": [0.00, 0.00], "accepts": "check_tool" }
   ],
   "tools": [

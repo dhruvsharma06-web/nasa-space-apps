@@ -8,8 +8,8 @@
   "controls": [
     { "targetId": "tool_bay_socket_1", "type": "socket", "label": "BAY 1", "panel": "tool_stowage_panel", "at": [-0.11, 0.04], "accepts": "torque_wrench_tool" },
     { "targetId": "tool_bay_socket_2", "type": "socket", "label": "BAY 2", "panel": "tool_stowage_panel", "at": [0.11, 0.04], "accepts": "inspection_scanner_tool" },
-    { "targetId": "bay_1_latch_toggle", "type": "toggle", "label": "BAY 1 LATCH", "panel": "tool_stowage_panel", "at": [-0.11, -0.10] },
-    { "targetId": "bay_2_latch_toggle", "type": "toggle", "label": "BAY 2 LATCH", "panel": "tool_stowage_panel", "at": [0.11, -0.10] },
+    { "targetId": "bay_1_latch_toggle", "type": "toggle", "label": "BAY 1 LATCH", "panel": "tool_stowage_panel", "at": [-0.11, -0.10], "trigger": "ON" },
+    { "targetId": "bay_2_latch_toggle", "type": "toggle", "label": "BAY 2 LATCH", "panel": "tool_stowage_panel", "at": [0.11, -0.10], "trigger": "ON" },
     { "targetId": "stowage_report_button", "type": "button", "label": "REPORT", "panel": "status_panel", "at": [0.0, -0.05] }
   ],
   "tools": [

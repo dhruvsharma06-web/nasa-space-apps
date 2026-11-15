@@ -9,12 +9,12 @@
   "controls": [
     { "targetId": "robotics_checklist", "type": "checklist", "label": "CHECKLIST", "panel": "camera_display", "at": [-0.10, -0.05] },
     { "targetId": "camera_two_button", "type": "button", "label": "CAMERA 2", "panel": "camera_display", "at": [0.10, -0.05] },
-    { "targetId": "arm_power_toggle", "type": "toggle", "label": "ARM POWER", "panel": "arm_control_panel", "at": [-0.18, 0.05] },
-    { "targetId": "shoulder_dial", "type": "dial", "label": "SHOULDER", "panel": "arm_control_panel", "at": [-0.04, 0.05], "positions": ["STOW", "TARGET", "LIMIT"] },
-    { "targetId": "wrist_dial", "type": "dial", "label": "WRIST", "panel": "arm_control_panel", "at": [0.10, 0.05], "positions": ["STOW", "TARGET", "LIMIT"] },
+    { "targetId": "arm_power_toggle", "type": "toggle", "label": "ARM POWER", "panel": "arm_control_panel", "at": [-0.18, 0.05], "trigger": "ON" },
+    { "targetId": "shoulder_dial", "type": "dial", "label": "SHOULDER", "panel": "arm_control_panel", "at": [-0.04, 0.05], "positions": ["STOW", "TARGET", "LIMIT"], "trigger": "TARGET" },
+    { "targetId": "wrist_dial", "type": "dial", "label": "WRIST", "panel": "arm_control_panel", "at": [0.10, 0.05], "positions": ["STOW", "TARGET", "LIMIT"], "trigger": "TARGET" },
     { "targetId": "arm_brake_button", "type": "button", "label": "BRAKES ON", "panel": "arm_control_panel", "at": [-0.18, -0.08] },
     { "targetId": "robotics_report_button", "type": "button", "label": "REPORT", "panel": "arm_control_panel", "at": [0.10, -0.08] },
-    { "targetId": "capture_lever", "type": "lever", "label": "CAPTURE", "panel": "capture_panel", "at": [-0.07, 0.0] }
+    { "targetId": "capture_lever", "type": "lever", "label": "CAPTURE", "panel": "capture_panel", "at": [-0.07, 0.0], "trigger": "ON" }
   ],
   "tools": [],
   "indicators": [],
